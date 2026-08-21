@@ -268,3 +268,43 @@
 .page .footer .logo img {
   background: transparent;
 }
+
+/* Landing-page spacing refinements after the component-library update. */
+.page .stats > .eyebrow {
+  padding-top: 28px;
+  padding-bottom: 16px;
+}
+
+.page .statGrid article {
+  min-height: 110px;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.page .workflow {
+  padding-top: 76px;
+  padding-bottom: 76px;
+}
+
+.page .sectionIntro .eyebrow:nth-child(2) {
+  margin-top: 60px;
+}
+
+.page .stepGrid {
+  margin-top: 38px;
+}
+
+.page .collaboration {
+  padding-top: 76px;
+  padding-bottom: 76px;
+}
+
+.page .collaborationMock > div:first-child,
+.page .collaborationMock > div:nth-child(2) > div {
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+.page .collaborationMock > div:nth-child(2) > div > div {
+  min-height: 0;
+}
