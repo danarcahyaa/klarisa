@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/ui/submit-button"
+import { SubmitButtonDemo } from "@/components/submit-button-demo"
 import { ChevronButton } from "@/components/ui/chevron-button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -96,6 +98,9 @@ export default function Home() {
                 </DropdownMenuItem>
                 <DropdownMenuItem className="focus:bg-muted cursor-pointer font-sans" asChild>
                   <a href="#components">Komponen UI (Shadcn)</a>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="focus:bg-muted cursor-pointer font-sans text-klarisa-secondary font-semibold" asChild>
+                  <a href="#submit-button-docs">⭐ Reusable SubmitButton</a>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="focus:bg-muted cursor-pointer font-sans" asChild>
                   <a href="#paper-demo">Dokumen Hukum (.doc-paper)</a>
@@ -465,6 +470,29 @@ export default function Home() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* SubmitButton Reusable Component Showcase & Interactive Demo */}
+          <div id="submit-button-docs" className="pt-6">
+            <Card className="border border-klarisa-secondary/40 bg-gradient-to-br from-card via-card to-klarisa-secondary/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="border-klarisa-secondary/40 bg-klarisa-secondary/10 text-klarisa-secondary text-xs">
+                    Komponen Reusable Formulir
+                  </Badge>
+                  <span className="font-mono text-xs text-muted-foreground">src/components/ui/form-input.tsx & submit-button.tsx</span>
+                </div>
+                <CardTitle className="font-heading text-xl font-bold text-foreground pt-1">
+                  Komponen FormInput & SubmitButton (Icon Inside & Spinner Loading)
+                </CardTitle>
+                <CardDescription className="font-sans text-xs text-muted-foreground">
+                  Sistem input & tombol reusable: <strong>`FormInput`</strong> mendukung label, indikator error, serta ikon di <strong>dalam input</strong> (`leftIcon` & `rightIcon`). <strong>`SubmitButton`</strong> mendukung <strong>loading spinner (`Loader2`)</strong> dan penanganan klik ikon kanan (toggle password).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <SubmitButtonDemo />
               </CardContent>
             </Card>
           </div>
