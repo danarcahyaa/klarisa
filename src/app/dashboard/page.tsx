@@ -1,17 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, FilePlus2, FileSearch } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createContractService } from "@/services/contract.service";
 
-const documents = [
-  ["Perjanjian Kerja Sama Desain", "Diperbarui hari ini", "3 bagian perlu ditinjau", "/dashboard/review/result"],
-  ["Perjanjian Jasa Identitas Visual", "Diperbarui kemarin", "1 diskusi baru", "/dashboard/create"],
-  ["Kontrak Freelancer Ilustrasi", "Diperbarui 12 Agustus", "Review selesai", "/dashboard/review/result/detail"],
-] as const;
-const metrics = [
-  ["DOKUMEN AKTIF", "04", "Review dan draft dalam workspace"],
-  ["BAGIAN UNTUK DIBAHAS", "03", "Terhubung ke kalimat sumber"],
-  ["DISKUSI TERBUKA", "02", "Menunggu keputusan pihak terkait"],
-] as const;
 const eyebrow = "text-[9px] font-bold tracking-[0.18em] text-klarisa-secondary";
 
 export default async function DashboardHome() {
@@ -19,6 +11,19 @@ export default async function DashboardHome() {
   const { data: { user } } = await supabase.auth.getUser();
   const fullName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split("@")[0] ?? "Anda";
   const firstName = fullName.split(" ")[0];
+  const result = user ? await createContractService(createAdminClient()).list(user.id) : null;
+  const items = result?.data ?? [];
+  const documents = items.slice(0, 3).map((item) => [
+    item.title,
+    `Diperbarui ${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.updatedAt))}`,
+    item.type === "review" ? `${item.riskCount} bagian perlu ditinjau` : `${Number(item.metadata.comments ?? 0)} diskusi baru`,
+    item.type === "review" ? `/dashboard/review/result?id=${item.id}` : `/dashboard/create?id=${item.id}`,
+  ] as const);
+  const metrics = [
+    ["DOKUMEN AKTIF", String(items.length).padStart(2, "0"), "Review dan draft dalam workspace"],
+    ["BAGIAN UNTUK DIBAHAS", String(items.reduce((sum, item) => sum + item.riskCount, 0)).padStart(2, "0"), "Terhubung ke kalimat sumber"],
+    ["DISKUSI TERBUKA", String(items.reduce((sum, item) => sum + Number(item.metadata.comments ?? 0), 0)).padStart(2, "0"), "Menunggu keputusan pihak terkait"],
+  ] as const;
   return (
     <div className="mx-auto max-w-[1190px] px-4 py-10 sm:px-7 lg:py-16">
       <section className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">

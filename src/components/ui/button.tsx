@@ -47,9 +47,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
     const buttonClassName = cn(buttonVariants({ variant, size, className }))
 
-    const child = React.Children.toArray(children).find(React.isValidElement) as
-      | React.ReactElement<{ className?: string }>
-      | undefined
     if (asChild) {
       const child = React.Children.toArray(children).find(React.isValidElement) as
         | React.ReactElement<{ className?: string }>

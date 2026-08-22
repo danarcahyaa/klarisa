@@ -21,8 +21,11 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
+import { useContract } from "@/hooks/useContract";
 
 const DRAFT_KEY = "klarisa:draft:contract-v1";
 const TITLE_KEY = "klarisa:draft:contract-title-v1";
@@ -55,14 +58,20 @@ const defaultDocument = `
 `;
 
 type SaveStatus = "saved" | "saving";
+type SidebarTab = "conversation" | "discussion";
+type AiMessage = { role: "assistant" | "user"; body: string };
 
 export function DraftEditor() {
+  const searchParams = useSearchParams();
+  const { data: remoteDraft, isLoading, isSaving, error: remoteError, saveDraft: saveRemoteDraft, dismissError } = useContract(searchParams.get("id"));
   const editorRef = useRef<HTMLElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchIndexRef = useRef(0);
   const [title, setTitle] = useState("Surat Perjanjian Kerja Sama Jasa Digital");
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState(["Mas, bagian ini sebaiknya diberi batas waktu yang jelas."]);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("conversation");
+  const [discussionMessages, setDiscussionMessages] = useState(["Mas, bagian ini sebaiknya diberi batas waktu yang jelas."]);
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([{ role: "assistant", body: "Halo, saya siap membantu menjelaskan atau merapikan bagian draft yang Anda pilih." }]);
   const [activeCommands, setActiveCommands] = useState<Set<string>>(new Set());
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -71,17 +80,24 @@ export function DraftEditor() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [notice, setNotice] = useState("");
 
-  const saveDraft = useCallback(() => {
+  const persistLocally = useCallback(() => {
     if (!editorRef.current) return;
     localStorage.setItem(DRAFT_KEY, editorRef.current.innerHTML);
     localStorage.setItem(TITLE_KEY, title);
     setSaveStatus("saved");
   }, [title]);
 
+  const saveDraft = useCallback(async (createVersion = false) => {
+    persistLocally();
+    if (!editorRef.current || !remoteDraft) return;
+    const saved = await saveRemoteDraft({ title, content: editorRef.current.innerHTML, createVersion });
+    if (saved) setNotice(createVersion ? "Versi baru draft berhasil disimpan." : "Draft berhasil disimpan.");
+  }, [persistLocally, remoteDraft, saveRemoteDraft, title]);
+
   const scheduleSave = useCallback(() => {
     setSaveStatus("saving");
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(saveDraft, 600);
+    saveTimerRef.current = setTimeout(() => { void saveDraft(false); }, 900);
   }, [saveDraft]);
 
   const updateActiveCommands = useCallback(() => {
@@ -106,6 +122,12 @@ export function DraftEditor() {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [updateActiveCommands]);
+
+  useEffect(() => {
+    if (!remoteDraft || !editorRef.current) return;
+    setTitle(remoteDraft.title);
+    editorRef.current.innerHTML = remoteDraft.content || defaultDocument;
+  }, [remoteDraft]);
 
   const runCommand = (command: string, value?: string) => {
     editorRef.current?.focus();
@@ -170,7 +192,7 @@ export function DraftEditor() {
     if (!(event.ctrlKey || event.metaKey)) return;
     if (event.key.toLowerCase() === "s") {
       event.preventDefault();
-      saveDraft();
+      void saveDraft(true);
       setNotice("Draft disimpan.");
     }
     if (event.key.toLowerCase() === "f") {
@@ -180,7 +202,7 @@ export function DraftEditor() {
   };
 
   const shareDraft = async () => {
-    saveDraft();
+    void saveDraft(false);
     const shareData = { title, text: `Tinjau draft: ${title}`, url: window.location.href };
     try {
       if (navigator.share) {
@@ -198,21 +220,25 @@ export function DraftEditor() {
   const sendMessage = () => {
     const value = message.trim();
     if (!value) return;
-    setMessages((current) => [...current, value]);
+    if (activeSidebarTab === "conversation") {
+      setAiMessages((current) => [...current, { role: "user", body: value }, { role: "assistant", body: "Pertanyaan sudah dicatat. Jawaban AI akan tersedia setelah layanan model dihubungkan." }]);
+    } else {
+      setDiscussionMessages((current) => [...current, value]);
+    }
     setMessage("");
   };
 
   return <div className="min-h-[calc(100svh-57px)] bg-white">
     <header className="flex min-h-[68px] flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
       <span className="grid min-w-0 flex-1 gap-1">
-        <input value={title} onChange={(event) => { const nextTitle = event.target.value; setTitle(nextTitle); localStorage.setItem(TITLE_KEY, nextTitle); setSaveStatus("saving"); if (saveTimerRef.current) clearTimeout(saveTimerRef.current); saveTimerRef.current = setTimeout(() => setSaveStatus("saved"), 600); }} onBlur={saveDraft} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary"/>
-        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">10 September 2026 · Draft v.01 · {saveStatus === "saving" ? "Menyimpan..." : <><Check className="size-3 text-green-600"/>Tersimpan di perangkat ini</>}</small>
+        <input value={title} onChange={(event) => { setTitle(event.target.value); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary"/>
+        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft?.metadata.version ?? 1).padStart(2, "0")} · {isLoading ? "Memuat..." : isSaving || saveStatus === "saving" ? "Menyimpan..." : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
-      <button type="button" onClick={saveDraft} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary"><Save className="size-4"/><span className="hidden sm:inline">Simpan</span></button>
+      <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving || isLoading} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>
       <button type="button" onClick={shareDraft} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary"><Share2 className="size-4"/>Bagikan</button>
     </header>
 
-    {notice && <div role="status" className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg"><Check className="size-4 text-klarisa-secondary"/><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Tutup pemberitahuan"><X className="size-4 text-slate-400"/></button></div>}
+    {(notice || remoteError) && <div role={remoteError ? "alert" : "status"} className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg"><Check className="size-4 text-klarisa-secondary"/><span>{remoteError || notice}</span><button type="button" onClick={() => { setNotice(""); dismissError(); }} aria-label="Tutup pemberitahuan" className="grid size-7 shrink-0 place-items-center rounded hover:bg-slate-100"><X className="size-4 text-slate-400"/></button></div>}
 
     <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_290px]">
       <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">
@@ -234,9 +260,15 @@ export function DraftEditor() {
       </section>
 
       <aside className="flex min-h-[440px] flex-col bg-white p-5">
-        <div className="flex gap-2 border-b border-slate-200 pb-3"><button type="button" className="text-[10px] text-slate-500">Percakapan</button><button type="button" className="rounded bg-slate-100 px-3 py-2 text-[10px] font-bold">Diskusi</button></div>
-        <div className="mt-5 grid gap-4">{messages.map((item,index)=><article key={`${item}-${index}`} className="grid grid-cols-[30px_1fr] gap-3"><span className="grid size-8 place-items-center rounded-full bg-[#edf2ff] text-[9px] font-bold text-klarisa-secondary">{index===0?"JS":"AN"}</span><span><b className="text-[11px]">{index===0?"Joko Sam":"Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item}</small></span></article>)}</div>
-        <div className="mt-auto rounded-lg bg-slate-100 p-4"><textarea value={message} onChange={(event)=>setMessage(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMessage();}}} placeholder="Tanyakan sesuatu, @ untuk menandai..." className="min-h-20 w-full resize-none bg-transparent text-xs outline-none"/><button type="button" onClick={sendMessage} aria-label="Kirim komentar" className="ml-auto grid size-9 place-items-center rounded-full bg-[#172031] text-white hover:bg-klarisa-secondary"><Send className="size-4"/></button></div>
+        <div className="flex gap-1 border-b border-slate-200 pb-3"><button type="button" aria-pressed={activeSidebarTab === "conversation"} onClick={() => { setActiveSidebarTab("conversation"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "conversation" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Percakapan</button><button type="button" aria-pressed={activeSidebarTab === "discussion"} onClick={() => { setActiveSidebarTab("discussion"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "discussion" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Diskusi</button></div>
+        {activeSidebarTab === "conversation" ? <>
+          <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain"/><b className="text-[11px]">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain"/></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
+          <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-[9px] font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain"/> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-[11px]">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
+        </> : <>
+          <div className="mt-5"><p className="text-[10px] font-bold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-5 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
+          <div className="mt-5 grid gap-4">{discussionMessages.map((item,index)=><article key={`${item}-${index}`} className="grid grid-cols-[30px_1fr] gap-3"><span className="grid size-8 place-items-center rounded-full bg-[#edf2ff] text-[9px] font-bold text-klarisa-secondary">{index===0?"JS":"AN"}</span><span><b className="text-[11px]">{index===0?"Joko Sam":"Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item}</small></span></article>)}</div>
+        </>}
+        <div className="mt-auto rounded-lg bg-slate-100 p-4"><textarea value={message} onChange={(event)=>setMessage(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMessage();}}} placeholder={activeSidebarTab === "conversation" ? "Tanyakan isi draft kepada Klarisa AI..." : "Tulis komentar, @ untuk menandai pihak..."} className="min-h-20 w-full resize-none bg-transparent text-xs outline-none"/><button type="button" onClick={sendMessage} aria-label={activeSidebarTab === "conversation" ? "Kirim pertanyaan ke Klarisa AI" : "Kirim komentar diskusi"} className="ml-auto grid size-9 place-items-center rounded-full bg-[#172031] text-white hover:bg-klarisa-secondary"><Send className="size-4"/></button></div>
       </aside>
     </div>
   </div>;

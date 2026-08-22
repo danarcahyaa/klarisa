@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArrowRight, LockKeyhole, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
@@ -27,13 +27,8 @@ function LoginFormContent() {
     password: '',
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [localError, setLocalError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (urlError) setLocalError(urlError)
-    if (urlMessage) setSuccessMessage(urlMessage)
-  }, [urlError, urlMessage])
+  const [localError, setLocalError] = useState<string | null>(urlError)
+  const [successMessage, setSuccessMessage] = useState<string | null>(urlMessage)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({

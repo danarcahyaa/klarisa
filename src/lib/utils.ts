@@ -25,3 +25,15 @@ export function sanitizeEmail(email: string): string {
   if (!email) return ""
   return email.trim().toLowerCase()
 }
+
+/**
+ * Remove executable HTML while preserving basic rich-text formatting.
+ */
+export function sanitizeContractHtml(html: string): string {
+  return html
+    .trim()
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript\s*:/gi, "")
+}
