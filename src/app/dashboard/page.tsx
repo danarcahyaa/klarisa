@@ -1,27 +1,46 @@
 import Link from "next/link";
 import { ArrowRight, FilePlus2, FileSearch } from "lucide-react";
-import styles from "./dashboard.module.css";
+import { createClient } from "@/lib/supabase/server";
 
 const documents = [
-  ["Perjanjian Kerja Sama Desain", "Diperbarui Hari ini", "3 bagian perlu ditinjau"],
-  ["Perjanjian Jasa Identitas Visual", "Diperbarui Kemarin", "1 diskusi baru"],
-  ["Kontrak Freelancer Ilustrasi", "Diperbarui 12 Agustus", "Review selesai"],
-];
+  ["Perjanjian Kerja Sama Desain", "Diperbarui hari ini", "3 bagian perlu ditinjau", "/dashboard/review/result"],
+  ["Perjanjian Jasa Identitas Visual", "Diperbarui kemarin", "1 diskusi baru", "/dashboard/create"],
+  ["Kontrak Freelancer Ilustrasi", "Diperbarui 12 Agustus", "Review selesai", "/dashboard/review/result/detail"],
+] as const;
+const metrics = [
+  ["DOKUMEN AKTIF", "04", "Review dan draft dalam workspace"],
+  ["BAGIAN UNTUK DIBAHAS", "03", "Terhubung ke kalimat sumber"],
+  ["DISKUSI TERBUKA", "02", "Menunggu keputusan pihak terkait"],
+] as const;
+const eyebrow = "text-[9px] font-bold tracking-[0.18em] text-klarisa-secondary";
 
-export default function DashboardHome() {
-  return <div className={styles.content}>
-    <section className={styles.welcome}>
-      <div><p>WORKSPACE PRIBADI</p><h1>Selamat datang, Gede.</h1><span>Lanjutkan dokumen yang sedang membutuhkan keputusan, atau mulai dari kontrak baru.</span></div>
-      <div className={styles.actions}><Link href="/dashboard/create" className={styles.lightButton}><FilePlus2 />Buat kontrak</Link><Link href="/dashboard/search" className={styles.darkButton}><FileSearch />Review kontrak</Link></div>
-    </section>
-    <section className={styles.metricGrid}>
-      {[['DOKUMEN AKTIF','04','Review dan draft dalam workspace'],['BAGIAN UNTUK DIBAHAS','03','Terhubung ke klausul sumber'],['DISKUSI TERBUKA','02','Menunggu keputusan pihak terkait']].map(([label,value,desc])=><article key={label}><p>{label}</p><b>{value}</b><span>{desc}</span></article>)}
-    </section>
-    <section className={styles.homeGrid}>
-      <article className={styles.documentList}><header><div><p>DOKUMEN KERJA</p><h2>Yang perlu Anda lihat</h2></div><Link href="/dashboard/search">Lihat semua <ArrowRight /></Link></header><div>{documents.map(([name,when,state],index)=><Link href="/dashboard/search" className={styles.documentRow} key={name}><i>0{index+1}</i><span><b>{name}</b><small>{when}</small></span><em>{state}</em><ArrowRight /></Link>)}</div><footer>Dokumen disimpan dalam workspace Anda untuk dilanjutkan kapan saja.</footer></article>
-      <aside className={styles.nextCard}><p>BERIKUTNYA</p><h2>Konfirmasi batas penerimaan hasil.</h2><span>Pasal pembayaran pada Perjanjian Kerja Sama Desain belum memiliki tenggat respons tertulis.</span><div><small>PASAL 03</small><b>Nilai dan Pembayaran</b></div><Link href="/dashboard/search">Tinjau konteks pasal <ArrowRight /></Link></aside>
-      <article className={styles.activity}><header><p>AKTIVITAS TERBARU</p><Link href="/dashboard/search">Buka diskusi <ArrowRight /></Link></header><div><span>Hari ini</span><p><b>Klausul pembayaran dibuka untuk ditinjau ulang.</b><small>Perjanjian Kerja Sama Desain</small></p></div><div><span>Kemarin</span><p><b>Komentar baru ditambahkan pada batas revisi.</b><small>Perjanjian Jasa Identitas Visual</small></p></div></article>
-      <aside className={styles.noteCard}><p>CATATAN KERJA</p><h2>Prioritaskan batas pembayaran, revisi, dan kepemilikan karya sebelum dokumen dibagikan.</h2><Link href="/dashboard/create">Mulai dari draft <ArrowRight /></Link></aside>
-    </section>
-  </div>;
+export default async function DashboardHome() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const fullName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split("@")[0] ?? "Anda";
+  const firstName = fullName.split(" ")[0];
+  return (
+    <div className="mx-auto max-w-[1190px] px-4 py-10 sm:px-7 lg:py-16">
+      <section className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
+        <div><p className={eyebrow}>WORKSPACE PRIBADI</p><h1 className="mt-5 font-heading text-[clamp(2.75rem,5vw,4.4rem)] font-normal leading-[.95] tracking-[-.06em]">Selamat datang, {firstName}.</h1><p className="mt-3 max-w-2xl text-sm text-slate-500">Lanjutkan dokumen yang memerlukan keputusan, atau mulai dari kontrak baru.</p></div>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+          <Link href="/dashboard/create" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary"><FilePlus2 className="size-4" />Buat kontrak</Link>
+          <Link href="/dashboard/review" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white transition-colors hover:bg-klarisa-secondary"><FileSearch className="size-4" />Review kontrak</Link>
+        </div>
+      </section>
+      <section className="mt-12 grid overflow-hidden rounded-lg border border-[#d9e0ea] bg-white sm:grid-cols-3" aria-label="Ringkasan workspace">
+        {metrics.map(([label,value,description]) => <article key={label} className="grid min-h-32 gap-2 border-b border-[#d9e0ea] p-6 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"><p className={eyebrow}>{label}</p><b className="font-heading text-4xl font-normal tracking-[-.06em]">{value}</b><span className="text-[10px] text-slate-500">{description}</span></article>)}
+      </section>
+      <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(260px,.82fr)]">
+        <article className="overflow-hidden rounded-lg border border-[#d9e0ea] bg-white">
+          <header className="flex items-end justify-between gap-4 border-b border-[#e2e7ee] p-6 sm:p-7"><div><p className={eyebrow}>DOKUMEN KERJA</p><h2 className="mt-4 font-heading text-2xl font-normal tracking-[-.04em]">Yang perlu Anda lihat</h2></div><Link href="/dashboard/search" className="inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat semua<ArrowRight className="size-4" /></Link></header>
+          <div>{documents.map(([name,when,state,href],index) => <Link href={href} key={name} className="grid grid-cols-[26px_minmax(0,1fr)_18px] items-center gap-3 border-b border-[#e2e7ee] px-5 py-5 text-slate-700 transition-colors hover:bg-slate-50 sm:grid-cols-[32px_minmax(0,1fr)_auto_18px] sm:px-7"><i className="text-[10px] not-italic text-slate-400">0{index+1}</i><span className="grid gap-1"><b className="text-xs">{name}</b><small className="text-[10px] text-slate-400">{when}</small></span><em className="hidden text-[10px] not-italic text-klarisa-secondary sm:block">{state}</em><ArrowRight className="size-4 text-klarisa-secondary" /></Link>)}</div>
+          <footer className="px-6 py-4 text-[9px] text-slate-400">Dokumen tersimpan di workspace dan dapat dilanjutkan kapan saja.</footer>
+        </article>
+        <aside className="flex min-h-80 flex-col rounded-lg border border-[#172031] bg-[#172031] p-7 text-white"><p className="text-[9px] font-bold tracking-[.18em] text-[#91aaff]">BERIKUTNYA</p><h2 className="mt-5 font-heading text-3xl font-normal leading-none tracking-[-.04em]">Konfirmasi batas penerimaan hasil.</h2><p className="mt-5 text-xs leading-6 text-slate-300">Pasal pembayaran belum memiliki tenggat respons tertulis.</p><div className="my-7 grid gap-2 border-y border-white/15 py-5"><small className="text-[9px] tracking-widest text-[#91aaff]">PASAL 03</small><b className="text-xs">Nilai dan Pembayaran</b></div><Link href="/dashboard/review/result/detail" className="mt-auto inline-flex items-center gap-2 text-[10px] font-bold">Tinjau konteks pasal<ArrowRight className="size-4" /></Link></aside>
+        <article className="rounded-lg border border-[#d9e0ea] bg-white p-6"><header className="flex justify-between border-b border-[#e2e7ee] pb-5"><p className={eyebrow}>AKTIVITAS TERBARU</p><Link href="/dashboard/create" className="inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Buka diskusi<ArrowRight className="size-4" /></Link></header>{[["Hari ini","Klausul pembayaran dibuka untuk ditinjau ulang.","Perjanjian Kerja Sama Desain"],["Kemarin","Komentar baru ditambahkan pada batas revisi.","Perjanjian Jasa Identitas Visual"]].map(([when,title,doc]) => <div key={title} className="grid gap-2 border-b border-[#e2e7ee] py-4 last:border-0 sm:grid-cols-[88px_1fr]"><span className="text-[10px] text-slate-400">{when}</span><p className="grid gap-1"><b className="text-[11px]">{title}</b><small className="text-[9px] text-slate-400">{doc}</small></p></div>)}</article>
+        <aside className="flex flex-col rounded-lg border border-[#d9e0ea] bg-[#eaf0ff] p-7"><p className={eyebrow}>CATATAN KERJA</p><h2 className="my-6 font-heading text-2xl font-normal leading-tight tracking-[-.03em]">Prioritaskan batas pembayaran, revisi, dan kepemilikan karya sebelum dokumen dibagikan.</h2><Link href="/dashboard/create" className="mt-auto inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Mulai dari draft<ArrowRight className="size-4" /></Link></aside>
+      </section>
+    </div>
+  );
 }

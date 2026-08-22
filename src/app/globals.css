@@ -153,6 +153,10 @@
   *, ::before, ::after {
     @apply border-border outline-ring/50;
   }
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
   html, body, input, button, select, textarea {
     font-family: var(--font-dm), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
@@ -161,6 +165,48 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 44px;
+    border: 3px solid #f1f5f9;
+    border-radius: 999px;
+    background: #94a3b8;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #2f5bd3;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+  }
+
+  .dark {
+    scrollbar-color: #475569 #0f172a;
+  }
+
+  .dark *::-webkit-scrollbar-track,
+  .dark *::-webkit-scrollbar-corner {
+    background: #0f172a;
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    border-color: #0f172a;
+    background: #475569;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: #7da0ff;
   }
 }
 

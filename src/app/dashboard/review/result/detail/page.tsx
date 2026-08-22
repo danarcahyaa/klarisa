@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { ContractDocument, DiscussionPanel, DocumentHeader, FindingList } from "@/components/contract-review-components";
+export default function ReviewResultDetailPage(){return <div className="min-h-[calc(100svh-57px)] bg-white"><DocumentHeader status="Temuan Pasal 03"/><div className="grid min-h-[calc(100svh-121px)] lg:grid-cols-[minmax(500px,1.55fr)_390px] xl:grid-cols-[minmax(540px,1.55fr)_390px_240px]"><div className="relative border-b border-slate-200 lg:border-r lg:border-b-0"><Link href="/dashboard/review/result" className="absolute top-4 left-4 inline-flex items-center gap-1 text-[10px] font-bold text-klarisa-secondary"><ArrowLeft className="size-3"/>Semua temuan</Link><ContractDocument/></div><div className="border-b border-slate-200 lg:border-b-0 xl:border-r"><FindingList detailed/></div><div className="lg:col-span-2 xl:col-span-1"><DiscussionPanel/></div></div></div>;}

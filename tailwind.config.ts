@@ -20,7 +20,7 @@ const config: Config = {
       colors: {
         klarisa: {
           primary: "#0F172A",
-          secondary: "#0284C7",
+          secondary: "#2F5BD3",
           tertiary: "#FF4A18",
           error: "#DC2626",
           warning: "#D97706",
