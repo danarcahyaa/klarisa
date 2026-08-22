@@ -1,22 +1,31 @@
-import { NextResponse } from "next/server";
-
-import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const supabase = await createClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const forwardedHost = request.headers.get('x-forwarded-host')
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+      
+      if (isLocalEnv) {
+        return NextResponse.redirect(`${origin}${next}`)
+      } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      } else {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
     }
   }
 
+  // Redirect ke halaman login dengan pesan error jika pertukaran kode OAuth gagal
   return NextResponse.redirect(
-    `${origin}/login?error=${encodeURIComponent("Tautan konfirmasi tidak valid atau sudah kedaluwarsa.")}`,
-  );
+    `${origin}/login?error=${encodeURIComponent('Tautan konfirmasi atau autentikasi OAuth tidak valid atau sudah kedaluwarsa.')}`
+  )
 }
