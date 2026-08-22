@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { label: "Ringkasan", href: "/dashboard", icon: LayoutGrid, exact: true },
+  { label: "Cari dokumen", href: "/dashboard/search", icon: Search, exact: true },
   { label: "Review kontrak", href: "/dashboard/review", icon: FileSearch, exact: false },
   { label: "Buat kontrak", href: "/dashboard/create", icon: FilePlus2, exact: false },
   { label: "Draft dibagikan", href: "/dashboard/shared", icon: Share2, exact: false },
@@ -157,9 +158,10 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           <Link
             href="/dashboard/search"
             aria-label="Cari dokumen"
-            className="ml-auto grid size-10 place-items-center rounded-md border border-slate-200 text-slate-600 sm:ml-2"
+            className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-[10px] font-semibold text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary sm:ml-2"
           >
             <Search className="size-4" />
+            <span className="hidden sm:inline">Cari dokumen</span>
           </Link>
         </header>
         {children}
