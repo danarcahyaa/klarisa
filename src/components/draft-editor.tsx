@@ -11,18 +11,21 @@ import {
   Link2,
   List,
   ListOrdered,
+  MoreHorizontal,
   Redo2,
   Reply,
   Save,
   Search,
   Send,
   Share2,
+  Trash2,
   Underline,
   Undo2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { useDraft } from "@/hooks/useDraft";
@@ -113,13 +116,16 @@ function renderCommentAnchors(editor: HTMLElement, comments: DraftComment[]) {
 }
 
 export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) {
+  const router = useRouter();
   const {
     data: remoteDraft,
     isSaving,
     isCommenting,
     isSharing,
+    isDeleting,
     error: remoteError,
     saveDraft: saveRemoteDraft,
+    deleteDraft,
     addComment,
     deleteComment,
     inviteCollaborator,
@@ -142,6 +148,8 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [notice, setNotice] = useState("");
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedDraftText, setSelectedDraftText] = useState("");
   const [selectedTextPosition, setSelectedTextPosition] = useState<{ start: number; end: number } | null>(null);
@@ -324,6 +332,15 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     setIsShareOpen(true);
   };
 
+  const confirmDeleteDraft = async () => {
+    const deleted = await deleteDraft();
+    if (!deleted) return;
+    localStorage.removeItem(`${DRAFT_KEY}:${remoteDraft.id}`);
+    localStorage.removeItem(`${TITLE_KEY}:${remoteDraft.id}`);
+    router.push("/dashboard/search");
+    router.refresh();
+  };
+
   const submitInvitation = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const invited = await inviteCollaborator({ email: inviteEmail });
@@ -402,11 +419,14 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
       </span>
       {canEdit && <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>}
       {remoteDraft.permission === "owner" && <button type="button" onClick={shareDraft} disabled={isSharing} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary disabled:cursor-wait disabled:opacity-60"><Share2 className="size-4"/>{isSharing ? "Menyiapkan..." : "Bagikan"}</button>}
+      {remoteDraft.permission === "owner" && <div className="relative"><button type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)} className="grid size-10 place-items-center rounded-md border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"><MoreHorizontal className="size-4"/></button>{isActionsOpen && <div className="absolute top-12 right-0 z-50 w-44 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg"><button type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="flex w-full items-center gap-2 rounded px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="size-4"/>Hapus draft</button></div>}</div>}
     </header>
 
     {(notice || remoteError) && <div role={remoteError ? "alert" : "status"} className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg"><Check className="size-4 text-klarisa-secondary"/><span>{remoteError || notice}</span><button type="button" onClick={() => { setNotice(""); dismissError(); }} aria-label="Tutup pemberitahuan" className="grid size-7 shrink-0 place-items-center rounded hover:bg-slate-100"><X className="size-4 text-slate-400"/></button></div>}
 
     {isShareOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup panel bagikan" onClick={() => setIsShareOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p><h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2><p className="mt-2 text-xs leading-5 text-slate-500">Pengguna yang diundang dapat menyorot teks, berdiskusi, dan meninjau draft, tetapi tidak dapat mengubah isi kontrak.</p></div><button type="button" onClick={() => setIsShareOpen(false)} aria-label="Tutup" className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><form onSubmit={submitInvitation} className="mt-6 grid gap-4"><label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna<input type="email" required value={inviteEmail} onChange={(event)=>setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10"/></label><div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600"><b className="text-klarisa-secondary">Akses pihak terkait:</b> komentar dan review tanpa izin menyunting.</div><div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setIsShareOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold">Batal</button><button type="submit" disabled={isSharing} className="min-h-10 rounded-md bg-[#172031] px-4 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{isSharing ? "Menambahkan..." : "Undang dan salin tautan"}</button></div></form></section></div>}
+
+    {isDeleteOpen && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Batal menghapus draft" onClick={() => setIsDeleteOpen(false)} className="absolute inset-0"/><section role="alertdialog" aria-modal="true" aria-labelledby="delete-draft-title" aria-describedby="delete-draft-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600"><Trash2 className="size-4"/></span><h2 id="delete-draft-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Hapus draft ini?</h2><p id="delete-draft-description" className="mt-2 text-xs leading-5 text-slate-500">Draft, versi tersimpan, komentar, dan akses pihak terkait akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold disabled:opacity-50">Batal</button><button type="button" disabled={isDeleting} onClick={() => void confirmDeleteDraft()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-red-600 px-4 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"><Trash2 className="size-4"/>{isDeleting ? "Menghapus..." : "Hapus permanen"}</button></div></section></div>}
 
     <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_290px]">
       <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">

@@ -132,6 +132,17 @@ export class ContractService {
     return createSuccessResponse({ id: contractId }, "Draft baru berhasil dibuat.");
   }
 
+  async deleteDraft(userId: string, contractId: string) {
+    const current = await this.repository.findById(userId, contractId);
+    if (current.error) return createErrorResponse<{ id: string }>(mapSupabaseError(current.error.message));
+    if (!current.data || current.data.type !== "draft") {
+      return createErrorResponse<{ id: string }>("Draft tidak ditemukan atau Anda bukan pemiliknya.");
+    }
+    const result = await this.repository.deleteContract(userId, contractId);
+    if (result.error) return createErrorResponse<{ id: string }>(mapSupabaseError(result.error.message));
+    return createSuccessResponse({ id: contractId }, "Draft berhasil dihapus.");
+  }
+
   async detail(userId: string, contractId?: string) {
     const result = contractId ? await this.repository.findDraftById(contractId) : await this.repository.findLatestDraft(userId);
     if (result.error) return createErrorResponse<ContractDetail>(mapSupabaseError(result.error.message));

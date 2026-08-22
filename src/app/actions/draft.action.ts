@@ -17,6 +17,18 @@ export async function createDraftAction(input: CreateDraftDTO) {
   return result;
 }
 
+export async function deleteDraftAction(contractId: string) {
+  const context = await getDraftServerContext();
+  if (!context) return createErrorResponse<{ id: string }>("Sesi Anda telah berakhir.");
+  const result = await context.service.deleteDraft(context.user.id, contractId);
+  if (result.success) {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/search");
+    revalidatePath("/dashboard/shared");
+  }
+  return result;
+}
+
 export async function deleteDraftCommentAction(contractId: string, commentId: string) {
   const context = await getDraftServerContext();
   if (!context) return createErrorResponse<{ id: string }>("Sesi Anda telah berakhir.");

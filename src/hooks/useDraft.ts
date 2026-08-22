@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { addDraftCommentAction, deleteDraftCommentAction, inviteDraftCollaboratorAction, saveDraftAction, shareDraftAction } from "@/app/actions/draft.action";
+import { addDraftCommentAction, deleteDraftAction, deleteDraftCommentAction, inviteDraftCollaboratorAction, saveDraftAction, shareDraftAction } from "@/app/actions/draft.action";
 import type { AddDraftCommentDTO, ContractDetail, InviteDraftCollaboratorDTO, SaveDraftDTO } from "@/types/contract.type";
 
 export function useDraft(initialDraft: ContractDetail) {
@@ -10,6 +10,7 @@ export function useDraft(initialDraft: ContractDetail) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const saveDraft = useCallback(async (input: SaveDraftDTO) => {
@@ -49,6 +50,21 @@ export function useDraft(initialDraft: ContractDetail) {
   }, [data.id]);
 
   const dismissError = useCallback(() => setError(null), []);
+
+  const deleteDraft = useCallback(async () => {
+    setIsDeleting(true);
+    setError(null);
+    try {
+      const result = await deleteDraftAction(data.id);
+      if (!result.success) throw new Error(result.error ?? "Draft gagal dihapus.");
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Draft gagal dihapus.");
+      return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [data.id]);
 
   const addComment = useCallback(async (input: AddDraftCommentDTO) => {
     setIsCommenting(true);
@@ -120,5 +136,5 @@ export function useDraft(initialDraft: ContractDetail) {
     }
   }, [data.id]);
 
-  return { data, isSaving, isCommenting, isSharing, error, saveDraft, addComment, deleteComment, shareDraft, inviteCollaborator, dismissError };
+  return { data, isSaving, isCommenting, isSharing, isDeleting, error, saveDraft, deleteDraft, addComment, deleteComment, shareDraft, inviteCollaborator, dismissError };
 }
