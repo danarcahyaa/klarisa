@@ -20,10 +20,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 text-sm gap-2",
-        xs: "h-7 px-2.5 text-xs gap-1",
-        sm: "h-8 px-3 text-xs gap-1.5",
-        lg: "h-10 px-6 text-sm font-semibold gap-2",
+        default: "h-11 px-4 py-2 text-sm gap-2",
+        xs: "h-8 px-2.5 text-xs gap-1",
+        sm: "h-9 px-3 text-xs gap-1.5",
+        lg: "h-12 px-6 text-sm font-semibold gap-2",
         icon: "size-9 p-0",
         "icon-xs": "size-7 p-0",
         "icon-sm": "size-8 p-0",
@@ -47,26 +47,30 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
     const buttonClassName = cn(buttonVariants({ variant, size, className }))
 
-    const child = React.Children.toArray(children).find(React.isValidElement)
+    if (asChild) {
+      const child = React.Children.toArray(children).find(React.isValidElement) as
+        | React.ReactElement<{ className?: string }>
+        | undefined
 
-    if (asChild && child) {
-      return React.cloneElement(child, {
-        ...props,
-        className: cn(buttonClassName, child.props.className),
-      })
+      if (child) {
+        return React.cloneElement(child, {
+          ...props,
+          className: cn(buttonClassName, child.props.className),
+        })
+      }
     }
 
-    const Comp = "button"
-
     return (
-      <Comp
+      <button
         data-slot="button"
         data-variant={variant}
         data-size={size}
         className={buttonClassName}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+      </button>
     )
   }
 )
