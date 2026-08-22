@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function RegisterPage() {
-  const { handleRegister, handleGoogleLogin, isLoading, isAuthGoogle, error } = useAuth()
+  const { handleRegister, handleGoogleLogin, isLoading, isAuthGoogle, error, clearError } = useAuth()
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -42,6 +42,15 @@ export default function RegisterPage() {
   }
 
   const displayError = localError || error
+
+  React.useEffect(() => {
+    if (!displayError) return
+    const timeoutId = window.setTimeout(() => {
+      setLocalError(null)
+      clearError()
+    }, 5000)
+    return () => window.clearTimeout(timeoutId)
+  }, [clearError, displayError])
 
   return (
     <main className="grid min-h-svh bg-background text-foreground md:grid-cols-[1.05fr_.95fr]">

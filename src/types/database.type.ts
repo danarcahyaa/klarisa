@@ -226,6 +226,165 @@ export type Database = {
           },
         ]
       }
+      draft_collaborators: {
+        Row: {
+          contract_id: string
+          created_at: string
+          invited_by: string
+          role: Database["public"]["Enums"]["draft_collaborator_role"]
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["draft_collaborator_role"]
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["draft_collaborator_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_collaborators_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_collaborators_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_collaborators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      draft_comments: {
+        Row: {
+          author_id: string
+          body: string
+          contract_id: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          position_end: number | null
+          position_start: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          selected_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          position_end?: number | null
+          position_start?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          selected_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          position_end?: number | null
+          position_start?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          selected_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_comments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "draft_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_comments_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      draft_settings: {
+        Row: {
+          contract_id: string
+          created_at: string
+          status: Database["public"]["Enums"]["draft_status"]
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          status?: Database["public"]["Enums"]["draft_status"]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          status?: Database["public"]["Enums"]["draft_status"]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_settings_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finding_comments: {
         Row: {
           author_id: string
@@ -427,6 +586,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_comment_draft: {
+        Args: { target_contract_id: string }
+        Returns: boolean
+      }
+      can_edit_draft: {
+        Args: { target_contract_id: string }
+        Returns: boolean
+      }
+      can_view_draft: {
+        Args: { target_contract_id: string }
+        Returns: boolean
+      }
+      is_draft_owner: {
+        Args: { target_contract_id: string }
+        Returns: boolean
+      }
       is_workspace_editor: {
         Args: { target_workspace_id: string }
         Returns: boolean
@@ -438,6 +613,8 @@ export type Database = {
     }
     Enums: {
       document_status: "draft" | "processing" | "review_ready" | "archived"
+      draft_collaborator_role: "editor" | "commenter" | "viewer"
+      draft_status: "private" | "shared" | "archived"
       finding_severity: "critical" | "attention" | "fair"
       member_role: "owner" | "editor" | "viewer"
     }
@@ -568,6 +745,8 @@ export const Constants = {
   public: {
     Enums: {
       document_status: ["draft", "processing", "review_ready", "archived"],
+      draft_collaborator_role: ["editor", "commenter", "viewer"],
+      draft_status: ["private", "shared", "archived"],
       finding_severity: ["critical", "attention", "fair"],
       member_role: ["owner", "editor", "viewer"],
     },

@@ -20,7 +20,7 @@ function LoginFormContent() {
     ? requestedNext
     : '/dashboard'
 
-  const { handleLogin, handleGoogleLogin, isLoading, error, isAuthGoogle } = useAuth()
+  const { handleLogin, handleGoogleLogin, isLoading, error, isAuthGoogle, clearError } = useAuth()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -52,6 +52,16 @@ function LoginFormContent() {
   }
 
   const displayError = localError || error
+
+  React.useEffect(() => {
+    if (!displayError && !successMessage) return
+    const timeoutId = window.setTimeout(() => {
+      setLocalError(null)
+      setSuccessMessage(null)
+      clearError()
+    }, 5000)
+    return () => window.clearTimeout(timeoutId)
+  }, [clearError, displayError, successMessage])
 
   return (
     <div className="w-full max-w-[400px]">

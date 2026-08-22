@@ -19,6 +19,23 @@ export class ContractRepository {
       .order("updated_at", { ascending: false });
   }
 
+  async listCollaborations(userId: string) {
+    return this.supabase
+      .from("draft_collaborators")
+      .select("contract_id, role")
+      .eq("user_id", userId);
+  }
+
+  async listDraftsByIds(contractIds: string[]) {
+    if (contractIds.length === 0) return { data: [] as ContractRecord[], error: null };
+    return this.supabase
+      .from("contracts")
+      .select("*, contract_draft(*)")
+      .in("id", contractIds)
+      .eq("type", "draft")
+      .order("updated_at", { ascending: false });
+  }
+
   async createContract(payload: TablesInsert<"contracts">) {
     return this.supabase.from("contracts").insert(payload).select().single();
   }
@@ -33,6 +50,108 @@ export class ContractRepository {
       .select("*, contract_draft(*)")
       .eq("id", contractId)
       .eq("user_id", userId)
+      .maybeSingle();
+  }
+
+  async findDraftById(contractId: string) {
+    return this.supabase
+      .from("contracts")
+      .select("*, contract_draft(*)")
+      .eq("id", contractId)
+      .eq("type", "draft")
+      .maybeSingle();
+  }
+
+  async findCollaborator(userId: string, contractId: string) {
+    return this.supabase
+      .from("draft_collaborators")
+      .select("*")
+      .eq("contract_id", contractId)
+      .eq("user_id", userId)
+      .maybeSingle();
+  }
+
+  async listCollaborators(contractId: string) {
+    return this.supabase
+      .from("draft_collaborators")
+      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
+      .eq("contract_id", contractId)
+      .order("created_at", { ascending: true });
+  }
+
+  async upsertCollaborator(payload: TablesInsert<"draft_collaborators">) {
+    return this.supabase
+      .from("draft_collaborators")
+      .upsert(payload, { onConflict: "contract_id,user_id" })
+      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
+      .single();
+  }
+
+  async findAuthUserByEmail(email: string) {
+    const result = await this.supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (result.error) return { data: null, error: result.error };
+    return {
+      data: result.data.users.find((user) => user.email?.toLocaleLowerCase("id-ID") === email) ?? null,
+      error: null,
+    };
+  }
+
+  async listComments(contractId: string) {
+    return this.supabase
+      .from("draft_comments")
+      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
+      .eq("contract_id", contractId)
+      .order("created_at", { ascending: true });
+  }
+
+  async createComment(payload: TablesInsert<"draft_comments">) {
+    return this.supabase
+      .from("draft_comments")
+      .insert(payload)
+      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
+      .single();
+  }
+
+  async findComment(contractId: string, commentId: string) {
+    return this.supabase
+      .from("draft_comments")
+      .select("id, contract_id, parent_id")
+      .eq("id", commentId)
+      .eq("contract_id", contractId)
+      .maybeSingle();
+  }
+
+  async deleteComment(contractId: string, commentId: string) {
+    return this.supabase
+      .from("draft_comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("contract_id", contractId);
+  }
+
+  async findOwnedWorkspace(userId: string) {
+    return this.supabase
+      .from("workspaces")
+      .select("id")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+  }
+
+  async upsertDraftSettings(payload: TablesInsert<"draft_settings">) {
+    return this.supabase
+      .from("draft_settings")
+      .upsert(payload, { onConflict: "contract_id" })
+      .select()
+      .single();
+  }
+
+  async getDraftSettings(contractId: string) {
+    return this.supabase
+      .from("draft_settings")
+      .select("*")
+      .eq("contract_id", contractId)
       .maybeSingle();
   }
 
@@ -55,12 +174,16 @@ export class ContractRepository {
       .order("version", { ascending: false });
   }
 
-  async updateTitle(userId: string, contractId: string, title: string) {
-    return this.supabase.from("contracts").update({ title }).eq("id", contractId).eq("user_id", userId).select().single();
+  async updateTitle(contractId: string, title: string) {
+    return this.supabase.from("contracts").update({ title }).eq("id", contractId).eq("type", "draft").select().single();
   }
 
   async upsertDraft(payload: TablesInsert<"contract_draft">) {
     return this.supabase.from("contract_draft").upsert(payload, { onConflict: "contract_id" }).select().single();
+  }
+
+  async updateDraftMetadata(contractId: string, metadata: TablesInsert<"contract_draft">["metadata"]) {
+    return this.supabase.from("contract_draft").update({ metadata }).eq("contract_id", contractId);
   }
 
   async createDraftVersion(payload: TablesInsert<"document_drafts">) {

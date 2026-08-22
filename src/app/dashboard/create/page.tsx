@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { redirect } from "next/navigation";
 
 import { DraftEditor } from "@/components/draft-editor";
+import { DraftOnboarding } from "@/components/draft-onboarding";
 import { getDraftServerContext } from "@/lib/draft-context";
 
 interface CreateContractPageProps {
@@ -22,28 +22,7 @@ export default async function CreateContractPage({ searchParams }: CreateContrac
   }
 
   if (!id) {
-    const created = await context.service.createDraft(context.user.id);
-
-    if (created.success && created.data) {
-      redirect(`/dashboard/create?id=${created.data.id}`);
-    }
-
-    return (
-      <main className="grid min-h-[calc(100svh-57px)] place-items-center px-5">
-        <section className="max-w-md text-center">
-          <p className="text-sm font-semibold text-red-500">
-            {created.error ?? "Draft gagal dibuat."}
-          </p>
-          <Link
-            href="/dashboard"
-            className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-klarisa-secondary"
-          >
-            <ArrowLeft className="size-4" />
-            Kembali ke dashboard
-          </Link>
-        </section>
-      </main>
-    );
+    return <DraftOnboarding />;
   }
 
   const result = await context.service.detail(context.user.id, id);
