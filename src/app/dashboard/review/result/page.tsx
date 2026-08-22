@@ -1,2 +1,2 @@
-import { ContractDocument, DiscussionPanel, DocumentHeader, FindingList } from "@/components/contract-review-components";
-export default function ReviewResultPage(){return <div className="min-h-[calc(100svh-57px)] bg-white"><DocumentHeader/><div className="grid min-h-[calc(100svh-121px)] lg:grid-cols-[minmax(500px,1.55fr)_390px] xl:grid-cols-[minmax(540px,1.55fr)_390px_240px]"><div className="border-b border-slate-200 lg:border-r lg:border-b-0"><ContractDocument/></div><div className="border-b border-slate-200 lg:border-b-0 xl:border-r"><FindingList/></div><div className="lg:col-span-2 xl:col-span-1"><DiscussionPanel/></div></div></div>;}
+import { ReviewResultWorkspace } from "@/components/review-result-workspace";
+export default function ReviewResultPage(){return <ReviewResultWorkspace/>;}
