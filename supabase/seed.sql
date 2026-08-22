@@ -1,0 +1,17 @@
+-- Create an authenticated user in Supabase Auth first, then replace this UUID.
+-- This seed is intentionally commented out so it never creates user-owned data
+-- in a production project by accident.
+--
+-- do $$
+-- declare
+--   owner_id uuid := 'REPLACE_WITH_AUTH_USER_UUID';
+--   workspace_id uuid := gen_random_uuid();
+--   document_id uuid := gen_random_uuid();
+-- begin
+--   insert into public.workspaces (id, name, owner_id) values (workspace_id, 'Workspace Klarisa', owner_id);
+--   insert into public.workspace_members (workspace_id, user_id, role) values (workspace_id, owner_id, 'owner');
+--   insert into public.documents (id, workspace_id, created_by, title, source_file_name, status, review_score)
+--   values (document_id, workspace_id, owner_id, 'Perjanjian Kerja Sama Desain', 'Kontrak_Kerja_Sama.docx', 'review_ready', 68);
+--   insert into public.review_findings (document_id, clause_number, clause_title, quoted_text, severity, explanation, legal_basis, suggested_revision)
+--   values (document_id, 'Pasal 4', 'Pembayaran', 'PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu apabila hasil pekerjaan dinilai belum memuaskan.', 'attention', 'Kriteria penerimaan tidak objektif dan tidak memiliki batas waktu.', 'KUHPerdata Pasal 1338', 'Pembayaran dilakukan paling lambat 14 hari setelah hasil pekerjaan diterima berdasarkan kriteria yang disepakati.');
+-- end $$;
