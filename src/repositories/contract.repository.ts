@@ -19,6 +19,14 @@ export class ContractRepository {
       .order("updated_at", { ascending: false });
   }
 
+  async createContract(payload: TablesInsert<"contracts">) {
+    return this.supabase.from("contracts").insert(payload).select().single();
+  }
+
+  async deleteContract(userId: string, contractId: string) {
+    return this.supabase.from("contracts").delete().eq("id", contractId).eq("user_id", userId);
+  }
+
   async findById(userId: string, contractId: string) {
     return this.supabase
       .from("contracts")

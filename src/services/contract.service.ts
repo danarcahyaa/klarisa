@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { contractQuerySchema, saveDraftSchema } from "@/app/validations/contract.validation";
+import { contractQuerySchema, createDraftSchema, saveDraftSchema } from "@/app/validations/contract.validation";
 import { decryptContractContent, encryptContractContent } from "@/lib/contract-encryption";
 import { createErrorResponse, createSuccessResponse, mapSupabaseError } from "@/lib/response";
 import { sanitizeContractHtml } from "@/lib/utils";
+import { DEFAULT_DRAFT_CONTENT, DEFAULT_DRAFT_TITLE } from "@/lib/draft-template";
 import { ContractRepository, type ContractRecord } from "@/repositories/contract.repository";
-import type { ContractDetail, ContractListItem, ContractMetadata, ContractQuery, SaveDraftDTO } from "@/types/contract.type";
+import type { ContractDetail, ContractListItem, ContractMetadata, ContractQuery, CreateDraftDTO, SaveDraftDTO } from "@/types/contract.type";
 import type { Database } from "@/types/database.type";
 
 function metadataOf(value: unknown): ContractMetadata {
@@ -41,6 +42,33 @@ export class ContractService {
       return !keyword || item.title.toLocaleLowerCase("id-ID").includes(keyword);
     });
     return createSuccessResponse(items);
+  }
+
+  async createDraft(userId: string, input: CreateDraftDTO = {}) {
+    const validation = createDraftSchema.safeParse(input);
+    if (!validation.success) return createErrorResponse<{ id: string }>(validation.error.issues[0]?.message ?? "Draft tidak valid.");
+    const title = validation.data.title || DEFAULT_DRAFT_TITLE;
+    const contractResult = await this.repository.createContract({ user_id: userId, title, type: "draft", is_pinned: false });
+    if (contractResult.error || !contractResult.data) return createErrorResponse<{ id: string }>(mapSupabaseError(contractResult.error?.message ?? "Draft gagal dibuat."));
+    const contractId = contractResult.data.id;
+    const encrypted = encryptContractContent(DEFAULT_DRAFT_CONTENT);
+    const draftResult = await this.repository.upsertDraft({
+      contract_id: contractId,
+      content: encrypted,
+      fairness_score: null,
+      total_clausul_risk: 0,
+      metadata: { encryption: "aes-256-gcm", shared: false, recipients: 0, comments: 0, version: 1 },
+    });
+    if (draftResult.error) {
+      await this.repository.deleteContract(userId, contractId);
+      return createErrorResponse<{ id: string }>(mapSupabaseError(draftResult.error.message));
+    }
+    const versionResult = await this.repository.createDraftVersion({ document_id: contractId, title, body: encrypted, version: 1, created_by: userId });
+    if (versionResult.error) {
+      await this.repository.deleteContract(userId, contractId);
+      return createErrorResponse<{ id: string }>(mapSupabaseError(versionResult.error.message));
+    }
+    return createSuccessResponse({ id: contractId }, "Draft baru berhasil dibuat.");
   }
 
   async detail(userId: string, contractId?: string) {

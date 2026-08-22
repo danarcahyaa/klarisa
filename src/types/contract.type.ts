@@ -45,4 +45,8 @@ export interface SaveDraftDTO {
   createVersion?: boolean;
 }
 
+export interface CreateDraftDTO {
+  title?: string;
+}
+
 export type ContractResponse<T> = BaseResponse<T>;

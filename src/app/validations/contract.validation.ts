@@ -6,6 +6,10 @@ export const contractQuerySchema = z.object({
   shared: z.boolean().optional(),
 });
 
+export const createDraftSchema = z.object({
+  title: z.string().trim().min(1, "Judul wajib diisi").max(250, "Judul maksimal 250 karakter").optional(),
+});
+
 export const saveDraftSchema = z.object({
   title: z.string().trim().min(1, "Judul wajib diisi").max(250, "Judul maksimal 250 karakter"),
   content: z.string().trim().min(1, "Isi draft wajib diisi").max(500_000, "Isi draft terlalu panjang"),

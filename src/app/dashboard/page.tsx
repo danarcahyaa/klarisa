@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { ArrowRight, FilePlus2, FileSearch } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createContractService } from "@/services/contract.service";
+import { ArrowRight, FileSearch } from "lucide-react";
+import { CreateDraftButton } from "@/components/create-draft-button";
+import { getDraftServerContext } from "@/lib/draft-context";
 
 const eyebrow = "text-[9px] font-bold tracking-[0.18em] text-klarisa-secondary";
 
 export default async function DashboardHome() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const context = await getDraftServerContext();
+  const user = context?.user;
   const fullName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split("@")[0] ?? "Anda";
   const firstName = fullName.split(" ")[0];
-  const result = user ? await createContractService(createAdminClient()).list(user.id) : null;
+  const result = context ? await context.service.list(context.user.id) : null;
   const items = result?.data ?? [];
   const documents = items.slice(0, 3).map((item) => [
     item.title,
@@ -29,7 +28,7 @@ export default async function DashboardHome() {
       <section className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
         <div><p className={eyebrow}>WORKSPACE PRIBADI</p><h1 className="mt-5 font-heading text-[clamp(2.75rem,5vw,4.4rem)] font-normal leading-[.95] tracking-[-.06em]">Selamat datang, {firstName}.</h1><p className="mt-3 max-w-2xl text-sm text-slate-500">Lanjutkan dokumen yang memerlukan keputusan, atau mulai dari kontrak baru.</p></div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-          <Link href="/dashboard/create" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary"><FilePlus2 className="size-4" />Buat kontrak</Link>
+          <CreateDraftButton/>
           <Link href="/dashboard/review" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white transition-colors hover:bg-klarisa-secondary"><FileSearch className="size-4" />Review kontrak</Link>
         </div>
       </section>

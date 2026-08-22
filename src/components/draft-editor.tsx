@@ -21,11 +21,11 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { useContract } from "@/hooks/useContract";
+import { useDraft } from "@/hooks/useDraft";
+import type { ContractDetail } from "@/types/contract.type";
 
 const DRAFT_KEY = "klarisa:draft:contract-v1";
 const TITLE_KEY = "klarisa:draft:contract-title-v1";
@@ -61,9 +61,8 @@ type SaveStatus = "saved" | "saving";
 type SidebarTab = "conversation" | "discussion";
 type AiMessage = { role: "assistant" | "user"; body: string };
 
-export function DraftEditor() {
-  const searchParams = useSearchParams();
-  const { data: remoteDraft, isLoading, isSaving, error: remoteError, saveDraft: saveRemoteDraft, dismissError } = useContract(searchParams.get("id"));
+export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) {
+  const { data: remoteDraft, isSaving, error: remoteError, saveDraft: saveRemoteDraft, dismissError } = useDraft(initialDraft);
   const editorRef = useRef<HTMLElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchIndexRef = useRef(0);
@@ -232,9 +231,9 @@ export function DraftEditor() {
     <header className="flex min-h-[68px] flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
       <span className="grid min-w-0 flex-1 gap-1">
         <input value={title} onChange={(event) => { setTitle(event.target.value); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary"/>
-        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft?.metadata.version ?? 1).padStart(2, "0")} · {isLoading ? "Memuat..." : isSaving || saveStatus === "saving" ? "Menyimpan..." : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
+        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {isSaving || saveStatus === "saving" ? "Menyimpan..." : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
-      <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving || isLoading} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>
+      <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>
       <button type="button" onClick={shareDraft} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary"><Share2 className="size-4"/>Bagikan</button>
     </header>
 
@@ -256,7 +255,7 @@ export function DraftEditor() {
           </div>
         </div>
 
-        <article ref={editorRef} contentEditable suppressContentEditableWarning spellCheck onInput={scheduleSave} onKeyDown={handleEditorKeyDown} onMouseUp={updateActiveCommands} onKeyUp={updateActiveCommands} dangerouslySetInnerHTML={{ __html: defaultDocument }} className="mx-auto min-h-[calc(100svh-178px)] max-w-[900px] px-5 py-8 text-sm leading-7 outline-none selection:bg-[#dce6ff] empty:before:text-slate-400 empty:before:content-['Mulai_tulis_kontrak_Anda...'] sm:px-10 lg:px-14 [&_a]:text-klarisa-secondary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-klarisa-secondary [&_blockquote]:pl-4 [&_h2]:mt-7 [&_h2]:font-sans [&_h2]:text-sm [&_h2]:font-bold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:min-h-[1.25rem] [&_ul]:list-disc"/>
+        <article ref={editorRef} contentEditable suppressContentEditableWarning spellCheck onInput={scheduleSave} onKeyDown={handleEditorKeyDown} onMouseUp={updateActiveCommands} onKeyUp={updateActiveCommands} dangerouslySetInnerHTML={{ __html: initialDraft.content }} className="mx-auto min-h-[calc(100svh-178px)] max-w-[900px] px-5 py-8 text-sm leading-7 outline-none selection:bg-[#dce6ff] empty:before:text-slate-400 empty:before:content-['Mulai_tulis_kontrak_Anda...'] sm:px-10 lg:px-14 [&_a]:text-klarisa-secondary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-klarisa-secondary [&_blockquote]:pl-4 [&_h2]:mt-7 [&_h2]:font-sans [&_h2]:text-sm [&_h2]:font-bold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:min-h-[1.25rem] [&_ul]:list-disc"/>
       </section>
 
       <aside className="flex min-h-[440px] flex-col bg-white p-5">
