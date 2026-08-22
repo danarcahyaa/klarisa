@@ -10,7 +10,6 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import GoogleIcon from '@/components/ui/google-icon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/useAuth'
-import styles from '../../auth.module.css'
 
 function LoginFormContent() {
   const searchParams = useSearchParams()
@@ -56,8 +55,8 @@ function LoginFormContent() {
   const displayError = localError || error
 
   return (
-    <div className={styles.form}>
-      <Link href="/" className={`${styles.logo} ${styles.mobileLogo}`}>
+    <div className="auth-form">
+      <Link href="/" className="auth-logo auth-mobile-logo">
         <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
         Klarisa
       </Link>
@@ -82,22 +81,22 @@ function LoginFormContent() {
         disabled={!isAuthGoogle && isLoading}
         variant="outline"
         leftIcon={<GoogleIcon />}
-        className={styles.googleButton}
+        className="auth-google-button"
         onClick={() => handleGoogleLogin()}
         isLoading={isAuthGoogle && isLoading}
       >
         Lanjutkan dengan Google
       </SubmitButton>
 
-      <div className={styles.divider}>
-        <div className={styles.dividerLine}>
+      <div className="auth-divider">
+        <div className="auth-divider-line">
           <span />
         </div>
-        <span className={styles.dividerText}>atau</span>
+        <span className="auth-divider-text">atau</span>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className={styles.fields}>
+          <div className="auth-fields">
           <FormInput
             name="email"
             label="Email"
@@ -127,14 +126,14 @@ function LoginFormContent() {
         <SubmitButton
           type="submit"
           rightIcon={<ArrowRight />}
-          className={styles.submit}
+          className="auth-submit"
           isLoading={isLoading}
         >
           Masuk ke Klarisa
         </SubmitButton>
       </form>
 
-      <p className={styles.switch}>
+      <p className="auth-switch">
         Belum memiliki akun? <Link href="/register">Daftar</Link>
       </p>
     </div>
@@ -143,13 +142,13 @@ function LoginFormContent() {
 
 export default function LoginPage() {
   return (
-    <main className={styles.page}>
-      <section className={styles.intro}>
-        <Link href="/" className={styles.logo}>
+    <main className="auth-page">
+      <section className="auth-intro">
+        <Link href="/" className="auth-logo">
           <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
           Klarisa
         </Link>
-        <div className={styles.introContent}>
+        <div className="auth-intro-content">
           <p>CLARITY BEFORE COMMITMENT</p>
           <h1>Masuk untuk memahami sebelum menyetujui.</h1>
           <span>
@@ -158,7 +157,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className={styles.formSide}>
+      <section className="auth-form-side">
         <Suspense fallback={<div>Memuat halaman...</div>}>
           <LoginFormContent />
         </Suspense>

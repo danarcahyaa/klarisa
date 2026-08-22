@@ -9,7 +9,6 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import GoogleIcon from '@/components/ui/google-icon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/useAuth'
-import styles from '../../auth.module.css'
 
 export default function RegisterPage() {
   const { handleRegister, handleGoogleLogin, isLoading, isAuthGoogle, error } = useAuth()
@@ -45,13 +44,13 @@ export default function RegisterPage() {
   const displayError = localError || error
 
   return (
-    <main className={styles.page}>
-      <section className={styles.intro}>
-        <Link href="/" className={styles.logo}>
+    <main className="auth-page">
+      <section className="auth-intro">
+        <Link href="/" className="auth-logo">
           <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
           Klarisa
         </Link>
-        <div className={styles.introContent}>
+        <div className="auth-intro-content">
           <p>MULAI DARI SATU DOKUMEN</p>
           <h1>Mulai dengan kontrak yang bisa dipahami.</h1>
           <span>
@@ -60,9 +59,9 @@ export default function RegisterPage() {
         </div>
       </section>
 
-      <section className={styles.formSide}>
-        <div className={styles.form}>
-          <Link href="/" className={`${styles.logo} ${styles.mobileLogo}`}>
+      <section className="auth-form-side">
+        <div className="auth-form">
+          <Link href="/" className="auth-logo auth-mobile-logo">
             <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
             Klarisa
           </Link>
@@ -79,7 +78,7 @@ export default function RegisterPage() {
             type="button"
             variant="outline"
             leftIcon={<GoogleIcon />}
-            className={styles.googleButton}
+            className="auth-google-button"
             onClick={() => handleGoogleLogin()}
             isLoading={isAuthGoogle && isLoading}
             disabled={!isAuthGoogle && isLoading}
@@ -87,15 +86,15 @@ export default function RegisterPage() {
             Lanjutkan dengan Google
           </SubmitButton>
 
-          <div className={styles.divider}>
-            <div className={styles.dividerLine}>
+          <div className="auth-divider">
+            <div className="auth-divider-line">
               <span />
             </div>
-            <span className={styles.dividerText}>atau</span>
+            <span className="auth-divider-text">atau</span>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className={styles.fields}>
+            <div className="auth-fields">
               <FormInput
                 name="full_name"
                 label="Nama lengkap"
@@ -136,14 +135,14 @@ export default function RegisterPage() {
             <SubmitButton
               type="submit"
               rightIcon={<ArrowRight />}
-              className={styles.submit}
+              className="auth-submit"
               isLoading={isLoading}
             >
               Buat akun Klarisa
             </SubmitButton>
           </form>
 
-          <p className={styles.switch}>
+          <p className="auth-switch">
             Sudah memiliki akun? <Link href="/login">Masuk</Link>
           </p>
         </div>
