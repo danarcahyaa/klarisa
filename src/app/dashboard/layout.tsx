@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FilePlus2, FileSearch, LayoutGrid, PanelLeftClose, Share2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
+import { createClient } from "@/lib/supabase/server";
 import styles from "./dashboard.module.css";
 
 const navigation = [
@@ -10,7 +12,16 @@ const navigation = [
   ["Draft dibagikan", "/dashboard/shared", Share2],
 ] as const;
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/dashboard");
+  }
+
   return (
     <main className={styles.shell}>
       <aside className={styles.sidebar}>

@@ -52,9 +52,9 @@ export interface UseAuthReturn {
   isLoading: boolean
   error: string | null
   isSuccess: boolean
-  handleLogin: (data: LoginDTO) => Promise<boolean>
+  handleLogin: (data: LoginDTO, redirectTo?: string) => Promise<boolean>
   handleRegister: (data: RegisterDTO) => Promise<boolean>
-  handleGoogleLogin: () => Promise<void>
+  handleGoogleLogin: (redirectTo?: string) => Promise<void>
   handleLogout: () => Promise<void>
   clearError: () => void
 }

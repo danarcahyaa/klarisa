@@ -44,28 +44,28 @@ export default function RegisterPage() {
   const displayError = localError || error
 
   return (
-    <main className="auth-page">
-      <section className="auth-intro">
-        <Link href="/" className="auth-logo">
+    <main className="grid min-h-svh bg-background text-foreground md:grid-cols-[1.05fr_.95fr]">
+      <section className="hidden min-h-full flex-col bg-slate-900 px-[clamp(2.125rem,7vw,6.25rem)] py-9 text-white md:flex">
+        <Link href="/" className="inline-flex w-max items-center gap-2.5 text-xl font-semibold tracking-[-.6px] text-white no-underline">
           <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
           Klarisa
         </Link>
-        <div className="auth-intro-content">
-          <p>MULAI DARI SATU DOKUMEN</p>
-          <h1>Mulai dengan kontrak yang bisa dipahami.</h1>
-          <span>
+        <div className="my-auto max-w-[580px]">
+          <p className="mb-[22px] text-[10px] font-bold tracking-[1.6px] text-indigo-300">MULAI DARI SATU DOKUMEN</p>
+          <h1 className="max-w-[600px] font-heading text-[clamp(3.25rem,5.3vw,5.125rem)] font-normal leading-[.93] tracking-[-5.5px] text-white">Mulai dengan kontrak yang bisa dipahami.</h1>
+          <span className="mt-7 block max-w-[410px] text-sm leading-[1.65] text-slate-400">
             Klarisa membantu menemukan risiko klausul kontrak. Klarisa membantu menyusun draft kontrak dengan cepat.
           </span>
         </div>
       </section>
 
-      <section className="auth-form-side">
-        <div className="auth-form">
-          <Link href="/" className="auth-logo auth-mobile-logo">
+      <section className="grid min-h-svh place-items-center px-6 py-10 md:min-h-0 md:px-[30px] md:py-11">
+        <div className="w-full max-w-[400px]">
+          <Link href="/" className="mb-6 inline-flex items-center gap-2.5 text-xl font-semibold tracking-[-.6px] text-foreground no-underline md:hidden">
             <img src="/klarisa/logo.png" alt="Klarisa Logo" width="20" height="20" />
             Klarisa
           </Link>
-          <h2>Buat akun Anda</h2>
+          <h2 className="mb-6 font-heading text-[clamp(2.125rem,3.1vw,2.875rem)] font-normal leading-none tracking-[-2.8px]">Buat akun Anda</h2>
           
           {displayError && (
             <Alert variant="destructive" className="mb-4">
@@ -78,7 +78,7 @@ export default function RegisterPage() {
             type="button"
             variant="outline"
             leftIcon={<GoogleIcon />}
-            className="auth-google-button"
+            className="w-full"
             onClick={() => handleGoogleLogin()}
             isLoading={isAuthGoogle && isLoading}
             disabled={!isAuthGoogle && isLoading}
@@ -86,15 +86,13 @@ export default function RegisterPage() {
             Lanjutkan dengan Google
           </SubmitButton>
 
-          <div className="auth-divider">
-            <div className="auth-divider-line">
-              <span />
-            </div>
-            <span className="auth-divider-text">atau</span>
+          <div className="relative my-6 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+            <span className="relative bg-background px-3 text-[11px] font-semibold tracking-[.05em] text-slate-400 uppercase">atau</span>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="auth-fields">
+            <div className="grid gap-[17px]">
               <FormInput
                 name="full_name"
                 label="Nama lengkap"
@@ -135,15 +133,15 @@ export default function RegisterPage() {
             <SubmitButton
               type="submit"
               rightIcon={<ArrowRight />}
-              className="auth-submit"
+              className="mt-6 w-full"
               isLoading={isLoading}
             >
               Buat akun Klarisa
             </SubmitButton>
           </form>
 
-          <p className="auth-switch">
-            Sudah memiliki akun? <Link href="/login">Masuk</Link>
+          <p className="mt-5 text-center text-[11px] text-slate-500">
+            Sudah memiliki akun? <Link className="font-bold text-klarisa-secondary" href="/login">Masuk</Link>
           </p>
         </div>
       </section>

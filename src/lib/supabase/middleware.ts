@@ -27,8 +27,40 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh auth session
-  await supabase.auth.getUser()
+  // Refresh and verify the authentication session before routing.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+  const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+  const isGuestOnlyRoute = pathname === '/login' || pathname === '/register'
+
+  const redirectWithRefreshedCookies = (url: URL) => {
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      redirectResponse.cookies.set(name, value, options)
+    })
+    return redirectResponse
+  }
+
+  if (!user && isDashboardRoute) {
+    const loginUrl = request.nextUrl.clone()
+    const destination = `${pathname}${request.nextUrl.search}`
+    loginUrl.pathname = '/login'
+    loginUrl.search = ''
+    loginUrl.searchParams.set('next', destination)
+    return redirectWithRefreshedCookies(loginUrl)
+  }
+
+  if (user && isGuestOnlyRoute) {
+    const requestedNext = request.nextUrl.searchParams.get('next')
+    const safeDestination =
+      requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
+        ? requestedNext
+        : '/dashboard'
+    return redirectWithRefreshedCookies(new URL(safeDestination, request.url))
+  }
 
   return supabaseResponse
 }

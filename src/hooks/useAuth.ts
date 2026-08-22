@@ -56,7 +56,7 @@ export function useAuth(): UseAuthReturn {
   /**
    * Handler for email & password login.
    */
-  const handleLogin = async (data: LoginDTO): Promise<boolean> => {
+  const handleLogin = async (data: LoginDTO, redirectTo = '/dashboard'): Promise<boolean> => {
     setIsLoading(true)
     setError(null)
     setIsSuccess(false)
@@ -76,7 +76,10 @@ export function useAuth(): UseAuthReturn {
 
       setIsSuccess(true)
       setIsLoading(false)
-      router.push('/dashboard')
+      const safeRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+        ? redirectTo
+        : '/dashboard'
+      router.push(safeRedirect)
       router.refresh()
       return true
     } catch (err: unknown) {
@@ -124,13 +127,13 @@ export function useAuth(): UseAuthReturn {
   /**
    * Handler for Google OAuth login.
    */
-  const handleGoogleLogin = async (): Promise<void> => {
+  const handleGoogleLogin = async (redirectTo = '/dashboard'): Promise<void> => {
     setIsAuthGoogle(true)
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await authService.loginWithGoogle()
+      const response = await authService.loginWithGoogle(redirectTo)
       if (!response.success) {
         setError(response.error || 'Failed to connect with Google.')
         setIsLoading(false)

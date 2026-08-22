@@ -2,10 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { HomeChatbot } from "@/components/home-chatbot";
 import { HomeWorkspacePreview } from "@/components/home-workspace-preview";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
 const audiences = ["Freelancer", "UMKM", "Kreator", "Pekerja kontrak"];
 const steps = [
@@ -17,122 +18,163 @@ const steps = [
   [
     "02",
     "Periksa struktur kontrak.",
-    "Elemen perjanjian diverifikasi sebelum analisis dimulai.",
+    "Elemen penting dalam kontrak diperiksa sebelum analisis dimulai.",
   ],
   [
     "03",
     "Pahami tingkat risiko.",
-    "Klausul diklasifikasikan sebagai tinggi, sedang, atau wajar.",
+    "Bagian kontrak dikelompokkan agar Anda tahu apa yang perlu dibahas.",
   ],
 ];
 
-function Logo() {
+function Logo({ inverse = false }: { inverse?: boolean }) {
   return (
-    <Link href="/" className="landing-logo" aria-label="Klarisa">
+    <Link
+      href="/"
+      className={
+        "inline-flex items-center gap-2.5 text-lg font-bold tracking-tight no-underline " +
+        (inverse ? "text-white" : "text-slate-900")
+      }
+    >
       <Image src="/klarisa/logo.png" alt="" width={24} height={24} priority />
       <span>Klarisa</span>
     </Link>
   );
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="landing-eyebrow">{children}</p>;
+function Label({
+  children,
+  inverse = false,
+}: {
+  children: React.ReactNode;
+  inverse?: boolean;
+}) {
+  return (
+    <p
+      className={
+        "m-0 text-[10px] font-bold tracking-[.15em] " +
+        (inverse ? "text-indigo-200" : "text-klarisa-secondary")
+      }
+    >
+      {children}
+    </p>
+  );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const reviewHref = user ? "/dashboard/search" : "/login?next=/dashboard/search";
+
   return (
-    <main className="landing-page">
-      <header className="landing-header">
+    <main className="overflow-x-clip bg-background text-foreground">
+      <header className="sticky top-0 z-50 flex h-18 items-center justify-between border-b border-slate-900/10 bg-white/90 px-5 backdrop-blur md:px-10 xl:px-[max(2.5rem,calc((100vw-1280px)/2))]">
         <Logo />
         <nav
           className="hidden items-center gap-7 md:flex"
           aria-label="Navigasi utama"
         >
-          <a className="landing-nav-link" href="#cara-kerja">
-            Cara kerja
-          </a>
-          <a className="landing-nav-link" href="#fitur">
-            Fitur
-          </a>
-          <a className="landing-nav-link" href="#untuk-siapa">
-            Untuk siapa
-          </a>
-          <a className="landing-nav-link" href="#keamanan">
-            Keamanan
-          </a>
+          {[
+            ["Cara kerja", "#cara-kerja"],
+            ["Fitur", "#fitur"],
+            ["Untuk siapa", "#untuk-siapa"],
+            ["Keamanan", "#keamanan"],
+          ].map(([name, href]) => (
+            <a
+              className="text-xs text-slate-500 transition hover:text-klarisa-secondary"
+              href={href}
+              key={href}
+            >
+              {name}
+            </a>
+          ))}
         </nav>
-        <div className="flex items-center gap-3 sm:gap-5">
-          <Link className="landing-nav-link hidden sm:inline" href="/login">
-            Masuk
-          </Link>
-          <Button asChild variant="blue" size="sm" className="landing-header-cta">
-            <Link href="/review">
-              Review kontrak <ArrowRight />
-            </Link>
-          </Button>
+        <div className="flex items-center gap-4">
+          {user ? (
+            <>
+              <span className="hidden max-w-40 truncate text-xs text-slate-500 sm:block">
+                {user.user_metadata?.full_name || user.email}
+              </span>
+              <Button asChild variant="blue" size="sm" className="min-h-11 px-4">
+                <Link href="/dashboard">Buka workspace <ArrowRight /></Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link className="hidden text-xs text-slate-500 hover:text-klarisa-secondary sm:block" href="/login">Masuk</Link>
+              <Button asChild variant="blue" size="sm" className="min-h-11 px-4">
+                <Link href="/register">Buat akun <ArrowRight /></Link>
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
-      <section className="landing-hero-section landing-shell grid items-center gap-12 py-18 lg:min-h-[690px] lg:grid-cols-[.9fr_1.1fr] lg:py-22">
-        <div className="landing-reveal">
-          <Eyebrow>LEGAL CLARITY, WITHOUT THE LEGAL DESK</Eyebrow>
-          <h1 className="landing-display mt-5 max-w-xl text-[clamp(3.15rem,6vw,5.5rem)] leading-[.94]">
-            Tinjau setiap klausul. <em>Pahami</em> risiko hukumnya.
+      <section className="mx-auto grid w-[min(100%-2.5rem,1280px)] items-center gap-12 py-20 lg:min-h-[690px] lg:grid-cols-[.9fr_1.1fr]">
+        <div>
+          <Label>LEGAL CLARITY, WITHOUT THE LEGAL DESK</Label>
+          <h1 className="mt-5 max-w-xl font-heading text-[clamp(3.15rem,6vw,5.5rem)] font-normal leading-[.94] tracking-[-.055em]">
+            Tinjau setiap klausul.{" "}
+            <em className="not-italic text-klarisa-secondary">Pahami</em> risiko
+            hukumnya.
           </h1>
           <p className="mt-7 max-w-md text-sm leading-7 text-slate-500">
-            Klarisa mengubah kontrak panjang menjadi keputusan yang bisa Anda
-            pertanggungjawabkan sebelum tanda tangan.
+            Klarisa membantu Anda melihat bagian kontrak yang penting sebelum
+            menandatangani.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Button asChild variant="blue" size="lg">
-              <Link href="/review">
+              <Link href={reviewHref}>
                 Mulai review kontrak <ArrowRight />
               </Link>
             </Button>
-            <a className="landing-text-link" href="#cara-kerja">
-              Lihat cara kerjanya <ArrowRight />
+            <a
+              className="inline-flex items-center gap-2 text-xs font-semibold transition hover:gap-3 hover:text-klarisa-secondary"
+              href="#cara-kerja"
+            >
+              Lihat cara kerjanya <ArrowRight className="size-4" />
             </a>
           </div>
         </div>
-        <div className="landing-hero-visual landing-reveal landing-delay-1">
-          <article className="landing-document landing-float">
+        <div className="relative min-h-105">
+          <article className="absolute top-0 left-0 w-[82%] rounded-lg border border-slate-300 bg-white p-6 shadow-[0_20px_50px_rgb(15_23_42_/_12%)] sm:left-8 sm:w-[78%] sm:p-8">
             <div className="flex items-start justify-between border-b border-slate-200 pb-4 text-[10px] tracking-[.16em] text-slate-500">
               <span>PERJANJIAN KERJA SAMA</span>
-              <b className="text-3xl font-normal tracking-normal text-[#2F5BD3]">
+              <b className="text-3xl font-normal tracking-normal text-klarisa-secondary">
                 04
               </b>
             </div>
-            <h2>Jasa Desain dan Pengembangan Situs Web</h2>
-            <p className="landing-flagged-line">
+            <h2 className="my-7 font-heading text-xl font-normal leading-tight">
+              Jasa Desain dan Pengembangan Situs Web
+            </h2>
+            <p className="border-l-[3px] border-red-500 bg-rose-50 p-3 font-serif text-xs leading-5">
               PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu apabila
               hasil pekerjaan dinilai belum memuaskan.
             </p>
-            <p>
+            <p className="mt-4 font-serif text-xs leading-5">
               Perubahan ruang lingkup wajib disepakati secara tertulis oleh
               kedua pihak.
             </p>
-            <p>
-              Hak atas hasil final berpindah setelah seluruh pembayaran
-              terpenuhi.
-            </p>
-            <footer>
+            <footer className="mt-7 flex justify-between border-t border-slate-200 pt-4 text-[10px] tracking-wide text-slate-500">
               <span>Kontrak_Kerja_Sama.docx</span>
               <span>04 / 12</span>
             </footer>
           </article>
-          <Card className="landing-risk-card landing-float-reverse">
-            <CardContent className="p-6">
+          <Card className="absolute right-0 bottom-0 w-[58%] border-0 bg-slate-900 text-white shadow-[0_20px_50px_rgb(15_23_42_/_22%)]">
+            <CardContent className="p-5 sm:p-6">
               <div className="flex items-start justify-between text-[10px] font-bold tracking-[.14em] text-indigo-200">
                 <span>PERLU DITINJAU</span>
-                <b className="text-5xl font-normal leading-none tracking-normal text-white">
+                <b className="text-4xl font-normal leading-none tracking-normal text-white">
                   68
                 </b>
               </div>
-              <span className="mt-8 block text-[10px] font-bold tracking-[.14em] text-indigo-200">
+              <span className="mt-6 block text-[10px] font-bold tracking-[.14em] text-indigo-200">
                 PASAL 4 / PEMBAYARAN
               </span>
-              <h3 className="mt-3 text-2xl leading-tight">
-                Satu pihak memegang seluruh ukuran keberhasilan.
+              <h3 className="mt-3 text-lg leading-tight">
+                Ukuran keberhasilan belum jelas.
               </h3>
               <p className="mt-3 text-xs leading-5 text-slate-300">
                 Tidak ada batas waktu atau kriteria penerimaan yang objektif.
@@ -142,264 +184,271 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="landing-audience-section bg-slate-900 text-white" id="untuk-siapa">
-        <div className="landing-shell grid gap-7 py-9 md:grid-cols-[1.1fr_1fr] md:items-center">
-          <div><Eyebrow>UNTUK SIAPA</Eyebrow><p className="mt-3 max-w-xl text-base leading-7">Klarisa dibuat untuk mereka yang menjalankan bisnis sendiri, tetapi tidak seharusnya menghadapi kontrak sendirian.</p></div>
+      <section className="bg-slate-900 text-white" id="untuk-siapa">
+        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-7 py-9 md:grid-cols-[1.1fr_1fr] md:items-center">
+          <div>
+            <Label inverse>UNTUK SIAPA</Label>
+            <p className="mt-3 max-w-xl text-base leading-7">
+              Klarisa dibuat untuk mereka yang menjalankan bisnis sendiri,
+              tetapi tidak seharusnya menghadapi kontrak sendirian.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-xs font-medium text-slate-300 sm:grid-cols-4">
-            {audiences.map((audience) => (
-              <span key={audience}>{audience}</span>
+            {audiences.map((item) => (
+              <span key={item}>{item}</span>
             ))}
           </div>
         </div>
       </section>
-      <section className="landing-summary-section">
-        <div className="landing-shell py-8">
-          <Eyebrow>RINGKASAN REVIEW</Eyebrow>
+
+      <section>
+        <div className="mx-auto w-[min(100%-2.5rem,1280px)] py-8">
+          <Label>RINGKASAN REVIEW</Label>
         </div>
-        <div className="landing-shell grid border-t border-slate-200 md:grid-cols-3">
+        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] overflow-hidden rounded-lg border border-slate-200 md:grid-cols-3">
           {[
             [
               "03",
-              "tingkat risiko untuk membedakan temuan kritis, perlu perhatian, dan klausul wajar.",
+              "tingkat risiko agar Anda tahu bagian yang perlu diperhatikan.",
             ],
-            [
-              "100%",
-              "teks kontrak ditinjau, bukan hanya kata kunci yang telah ditentukan.",
-            ],
-            [
-              "1",
-              "ruang kerja untuk dokumen, insight AI, dan pertanyaan lanjutan.",
-            ],
-          ].map(([stat, text]) => (
-            <article className="landing-stat" key={stat}>
-              <b>{stat}</b>
-              <span>{text}</span>
+            ["100%", "isi kontrak dibaca, bukan hanya kata tertentu."],
+            ["1", "ruang kerja untuk dokumen, temuan, dan diskusi."],
+          ].map(([number, text], index) => (
+            <article
+              className={
+                "flex min-h-29 items-center gap-5 p-6 " +
+                (index
+                  ? "border-t border-slate-200 md:border-t-0 md:border-l"
+                  : "")
+              }
+              key={number}
+            >
+              <b className="font-heading text-4xl font-normal tracking-tight">
+                {number}
+              </b>
+              <span className="max-w-50 text-xs leading-5 text-slate-500">
+                {text}
+              </span>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="landing-workflow-section landing-shell py-20 md:py-28" id="cara-kerja">
+      <section
+        className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28"
+        id="cara-kerja"
+      >
         <div className="grid gap-6 md:grid-cols-[.35fr_1fr]">
-          <Eyebrow>CARA KERJA</Eyebrow>
-            <h2 className="landing-heading">Dari dokumen panjang menjadi hal-hal penting yang mudah dipahami.</h2>
+          <Label>CARA KERJA</Label>
+          <h2 className="font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
+            Dari dokumen panjang menjadi hal-hal penting yang mudah dipahami.
+          </h2>
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {steps.map(([number, title, description], index) => (
+          {steps.map(([number, title, body], index) => (
             <Card
               className={
-                "landing-step-card landing-reveal landing-delay-" + (index + 1)
+                "min-h-62 border-slate-200 transition hover:-translate-y-1 hover:shadow-lg " +
+                (index === 1 ? "bg-slate-50" : index === 2 ? "bg-sky-100" : "")
               }
               key={number}
             >
-              <CardContent className="flex min-h-62 flex-col p-7">
-                <span className="text-xs font-bold tracking-widest text-[#2F5BD3]">
+              <CardContent className="flex h-full flex-col p-7">
+                <span className="text-xs font-bold tracking-widest text-klarisa-secondary">
                   {number}
                 </span>
-                <h3 className="mt-auto text-2xl leading-tight">{title}</h3>
-                <p className="mt-3 text-xs leading-5 text-slate-500">
-                  {description}
-                </p>
-                <ArrowRight className="mt-5 size-4 text-[#2F5BD3] transition-transform group-hover/card:translate-x-1" />
+                <h3 className="mt-auto text-2xl font-normal leading-tight">
+                  {title}
+                </h3>
+                <p className="mt-3 text-xs leading-5 text-slate-500">{body}</p>
+                <ArrowRight className="mt-5 size-4 text-klarisa-secondary" />
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      <section className="landing-features-section grid lg:grid-cols-2" id="fitur">
-        <div className="relative min-h-[480px] overflow-hidden">
+      <section className="grid lg:grid-cols-2" id="fitur">
+        <div className="relative min-h-120 overflow-hidden">
           <Image
-            className="object-cover transition-transform duration-700 hover:scale-105"
+            className="object-cover transition duration-700 hover:scale-105"
             src="/klarisa/hero-contract.jpeg"
             alt="Kontrak yang sedang ditinjau"
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
-          <Card className="landing-audit-card">
+          <Card className="absolute bottom-8 left-[8%] w-[80%] max-w-108 border-0 shadow-[12px_12px_0_#dbeafe]">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3"><Eyebrow>HASIL PEMERIKSAAN</Eyebrow><span className="text-[10px] font-semibold text-slate-400">PASAL 04</span></div>
-              <p className="landing-flagged-line mt-4">PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu apabila hasil pekerjaan dinilai belum memuaskan.</p>
-              <div className="landing-audit-note"><span>PERLU DIBAHAS</span><b>Belum ada batas waktu dan ukuran hasil yang disepakati.</b><small>Lihat alasan dan usulan perbaikan <ArrowRight /></small></div>
+              <div className="flex justify-between border-b border-slate-200 pb-3">
+                <Label>HASIL PEMERIKSAAN</Label>
+                <span className="text-[10px] font-semibold text-slate-400">
+                  PASAL 04
+                </span>
+              </div>
+              <p className="mt-4 border-l-[3px] border-red-500 bg-rose-50 p-3 text-sm leading-6">
+                Pembayaran dapat ditunda tanpa batas waktu.
+              </p>
+              <p className="mt-4 text-xs text-slate-600">
+                Perlu dibahas: belum ada batas waktu dan ukuran hasil yang
+                disepakati.
+              </p>
             </CardContent>
           </Card>
         </div>
-        <div className="bg-slate-900 px-7 py-18 text-white md:px-14">
-          <Eyebrow>BUKAN SEKADAR SKOR</Eyebrow>
-          <h2 className="landing-heading mt-5">
+        <div className="bg-slate-900 px-7 py-20 text-white md:px-14">
+          <Label inverse>BUKAN SEKADAR SKOR</Label>
+          <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
             Temukan klausul yang perlu diseimbangkan.
           </h2>
           <p className="mt-6 max-w-md text-sm leading-6 text-slate-300">
-            Klarisa mengevaluasi seluruh teks untuk menemukan klausul ambigu,
-            pembagian beban yang timpang, dan potensi benturan dengan hukum
-            Indonesia.
+            Klarisa membantu mencari kalimat yang ambigu, pembagian beban yang
+            timpang, dan bagian yang perlu dibahas bersama.
           </p>
-          <div className="mt-9">
-            {[
-              [
-                "01",
-                "Tepat pada klausul",
-                "Temuan dipisahkan dari teks yang memicunya.",
-              ],
-              [
-                "02",
-                "Dasar yang bisa ditelusuri",
-                "Pasal relevan ditampilkan bersama alasan analisisnya.",
-              ],
-              [
-                "03",
-                "Usulan yang lebih seimbang",
-                "Alternatif kalimat disusun untuk hasil yang adil.",
-              ],
-            ].map(([number, title, description]) => (
-              <article className="landing-audit-item" key={number}>
-                <span>{number}</span>
-                <div>
-                  <b>{title}</b>
-                  <small>{description}</small>
-                </div>
-              </article>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="landing-ai-section landing-shell py-20 md:py-28">
+      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28">
         <div className="grid gap-8 md:grid-cols-2">
           <div>
-            <Eyebrow>CARA KLARISA MEMBANTU</Eyebrow>
-            <h2 className="landing-heading mt-5">
+            <Label>CARA KLARISA MEMBANTU</Label>
+            <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
               Bantu pahami kontrak, tanpa bahasa yang rumit.
             </h2>
           </div>
           <p className="max-w-sm self-end text-sm leading-6 text-slate-500 md:justify-self-end">
-            Klarisa membaca isi kontrak, mencari konteks hukum yang sesuai,
-            lalu menjelaskan bagian pentingnya dengan bahasa yang lebih jelas.
+            Klarisa membaca isi kontrak, mencari konteks yang sesuai, lalu
+            menjelaskan bagian pentingnya dengan bahasa yang lebih jelas.
           </p>
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {[
-            [
-              "01",
-              "Dokumen diparsing",
-              "Teks dari klausul dibaca tanpa menyimpan file aslinya.",
-            ],
-            [
-              "02",
-              "RAG mencari konteks",
-              "Basis data mengambil pasal yang relevan untuk setiap temuan.",
-            ],
-            [
-              "03",
-              "AI membandingkan",
-              "Klausul dinilai bersama rujukan, tingkat risiko, dan usulan revisi.",
-            ],
+            ["01", "Dokumen dibaca", "Isi kontrak dibaca secara menyeluruh tanpa hanya mencari kata tertentu."],
+            ["02", "Konteks dicari", "Bagian penting dibandingkan dengan konteks pasal yang sesuai."],
+            ["03", "Temuan dijelaskan", "Anda mendapat alasan, tingkat perhatian, dan pilihan perbaikan yang mudah dipahami."],
           ].map(([number, title, description], index) => (
-            <Card
-              className={
-                "landing-ai-card " +
-                (index === 2 ? "bg-slate-900 text-white" : "")
-              }
-              key={number}
-            >
+            <Card className={"min-h-[205px] border-slate-200 transition hover:-translate-y-1 " + (index === 2 ? "bg-slate-900 text-white" : "")} key={number}>
               <CardContent className="p-7">
-                <span>{number}</span>
-                <h3>{title}</h3>
-                <p>{description}</p>
+                <span className="text-[11px] font-bold text-klarisa-secondary">{number}</span>
+                <h3 className="mt-12 text-lg font-medium">{title}</h3>
+                <p className={"mt-2 text-xs leading-5 " + (index === 2 ? "text-slate-300" : "text-slate-500")}>{description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
-
-      <section className="landing-workspace-section landing-shell py-20 md:py-28">
-        <Eyebrow>SATU RUANG KERJA</Eyebrow>
-        <h2 className="landing-heading mt-5">
+      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28">
+        <Label>SATU RUANG KERJA</Label>
+        <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
           Dokumen, temuan, dan diskusi berada di satu tempat.
         </h2>
-        <div className="mt-12"><HomeWorkspacePreview /></div>
+        <div className="mt-12">
+          <HomeWorkspacePreview />
+        </div>
       </section>
-
-      <section className="landing-security-section bg-slate-900 text-white" id="keamanan">
-        <div className="landing-shell grid gap-12 py-20 md:grid-cols-[1.15fr_.85fr] md:py-28">
+      <section className="bg-slate-900 text-white" id="keamanan">
+        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-12 py-20 md:grid-cols-[1.15fr_.85fr] md:py-28">
           <div>
-            <Eyebrow>PRIVASI SEJAK AWAL</Eyebrow>
-            <h2 className="landing-heading mt-5">
-              <em>0</em> file asli disimpan setelah analisis.
+            <Label inverse>PRIVASI SEJAK AWAL</Label>
+            <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
+              <em className="not-italic text-klarisa-secondary">0</em> file asli
+              disimpan setelah analisis.
             </h2>
           </div>
           <div className="pt-2">
-            <ShieldCheck className="size-8 text-indigo-200" />
+            <ShieldCheck className="size-7 text-indigo-200" />
             <p className="mt-5 text-sm leading-6 text-slate-300">
-              File asli tidak menjadi arsip Klarisa. Dokumen diparsing untuk
-              kebutuhan analisis, sementara desain enkripsi dan retensi konten
-              harus diverifikasi pada tahap implementasi.
+              File asli tidak menjadi arsip Klarisa. Dokumen diproses hanya
+              untuk membantu analisis, lalu hasilnya disajikan di ruang kerja
+              Anda.
             </p>
             <div className="mt-8">
-              <p className="landing-security-row">
-                <b>DOCX</b>Input terstruktur
-              </p>
-              <p className="landing-security-row">
-                <b>RAG</b>Konteks hukum relevan
-              </p>
+              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300"><b className="w-18 text-klarisa-secondary">DOCX</b>Dokumen dibaca sebagai input terstruktur</p>
+              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300"><b className="w-18 text-klarisa-secondary">RAG</b>Konteks hukum dicari sesuai bagian kontrak</p>
             </div>
           </div>
         </div>
       </section>
-      <section className="landing-faq-section landing-shell py-20 md:py-28" id="faq">
-        <div className="grid gap-8 md:grid-cols-[.8fr_1.2fr]">
-          <div><Eyebrow>PERTANYAAN UMUM</Eyebrow><h2 className="landing-heading mt-5">Hal yang sering ditanyakan sebelum mulai.</h2></div>
-          <div className="space-y-0">
-            {[
-              ["Apakah Klarisa menggantikan pengacara?", "Tidak. Klarisa membantu Anda memahami isi kontrak dan menyiapkan pertanyaan atau usulan. Untuk masalah hukum yang rumit, tetap konsultasikan kepada profesional hukum."],
-              ["Dokumen seperti apa yang bisa diperiksa?", "Saat ini Klarisa dirancang untuk membaca dokumen kontrak berformat DOCX."],
-              ["Apakah file kontrak saya disimpan?", "File asli diproses untuk analisis dan tidak dijadikan arsip. Informasi tentang retensi dan enkripsi akan dijelaskan saat fitur tersedia."],
-              ["Apa yang akan saya dapatkan setelah review?", "Anda akan melihat bagian yang perlu diperhatikan, penjelasan singkat, konteks terkait, dan pilihan kalimat yang lebih jelas untuk dibahas."],
-            ].map(([question, answer]) => <details className="landing-faq" key={question}><summary>{question}<ArrowRight /></summary><p>{answer}</p></details>)}
-          </div>
+      <section
+        className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-8 py-20 md:grid-cols-[.8fr_1.2fr] md:py-28"
+        id="faq"
+      >
+        <div>
+          <Label>PERTANYAAN UMUM</Label>
+          <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
+            Hal yang sering ditanyakan sebelum mulai.
+          </h2>
+        </div>
+        <div>
+          {[
+            [
+              "Apakah Klarisa menggantikan pengacara?",
+              "Tidak. Klarisa membantu Anda memahami isi kontrak. Untuk masalah hukum yang rumit, tetap konsultasikan kepada profesional hukum.",
+            ],
+            [
+              "Dokumen seperti apa yang bisa diperiksa?",
+              "Saat ini Klarisa dirancang untuk membaca dokumen kontrak berformat DOCX.",
+            ],
+            [
+              "Apakah file kontrak saya disimpan?",
+              "File asli diproses untuk analisis dan tidak dijadikan arsip.",
+            ],
+            [
+              "Apa yang saya dapatkan setelah review?",
+              "Anda akan melihat bagian yang perlu diperhatikan beserta penjelasan singkatnya.",
+            ],
+          ].map(([q, a]) => (
+            <details
+              className="grid grid-rows-[auto_0fr] overflow-hidden border-t border-slate-200 transition-[grid-template-rows] duration-300 open:grid-rows-[auto_1fr]"
+              key={q}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-sm font-semibold">
+                {q}
+                <ArrowRight className="size-4 transition duration-200 group-open:rotate-90" />
+              </summary>
+              <p className="overflow-hidden pb-5 text-sm leading-6 text-slate-500">
+                {a}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
-      <section className="landing-cta-section bg-[#EEF2FF]">
-        <div className="landing-shell py-18 md:py-22">
-          <Eyebrow>SEBELUM TANDA TANGAN</Eyebrow>
-          <h2 className="landing-heading mt-5 max-w-3xl">
+      <section className="bg-indigo-50">
+        <div className="mx-auto w-[min(100%-2.5rem,1280px)] py-20">
+          <Label>SEBELUM TANDA TANGAN</Label>
+          <h2 className="mt-5 max-w-3xl font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
             Ketahui risiko, dasar hukum, dan pilihan revisinya.
           </h2>
-          <div className="mt-8 flex flex-col justify-between gap-6 border-t border-indigo-200 pt-6 md:flex-row md:items-center">
-            <p className="max-w-md text-sm leading-6 text-slate-600">
-              Mulai dari satu dokumen. Klarisa membantu menyiapkan review;
-              kepastian akhirnya tetap berada pada para pihak.
-            </p>
-            <Button asChild size="lg">
-              <Link href="/review">
-                Review kontrak sekarang <ArrowRight />
-              </Link>
-            </Button>
-          </div>
+          <Button asChild size="lg" className="mt-8">
+            <Link href={reviewHref}>
+              Review kontrak sekarang <ArrowRight />
+            </Link>
+          </Button>
         </div>
       </section>
       <footer className="bg-slate-950 text-white">
-        <div className="landing-shell grid gap-10 py-14 md:grid-cols-[2fr_1fr_1fr]">
+        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-8 py-14 md:grid-cols-[2fr_1fr_1fr]">
           <div>
-            <Logo />
-            <p className="mt-5 max-w-60 text-base leading-6 text-slate-300">
+            <Logo inverse />
+            <p className="mt-5 max-w-60 text-sm leading-6 text-slate-300">
               Memahami kontrak sebelum mengambil keputusan.
             </p>
           </div>
-          <div className="landing-footer-links">
-            <b>PRODUK</b>
+          <div className="flex flex-col gap-3 text-xs text-slate-300">
+            <b className="text-[10px] tracking-widest text-indigo-200">
+              PRODUK
+            </b>
             <a href="#cara-kerja">Cara kerja</a>
             <a href="#fitur">Review kontrak</a>
           </div>
-          <div className="landing-footer-links">
-            <b>KEPERCAYAAN</b>
+          <div className="flex flex-col gap-3 text-xs text-slate-300">
+            <b className="text-[10px] tracking-widest text-indigo-200">
+              KEPERCAYAAN
+            </b>
             <a href="#keamanan">Keamanan</a>
-            <Link href="/login">Masuk</Link>
+            <Link href={user ? "/dashboard" : "/login"}>
+              {user ? "Buka workspace" : "Masuk"}
+            </Link>
           </div>
-          <small className="border-t border-white/10 pt-5 text-xs text-slate-500 md:col-span-3">
-            Klarisa membantu Anda memahami kontrak dan bukan pengganti nasihat
-            hukum profesional.
-          </small>
         </div>
       </footer>
       <HomeChatbot />

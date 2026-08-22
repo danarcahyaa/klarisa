@@ -36,12 +36,18 @@ export class AuthRepository {
   /**
    * Authenticate a user using an OAuth provider (Google).
    */
-  async signInWithOAuth(provider: 'google' = 'google') {
+  async signInWithOAuth(provider: 'google' = 'google', redirectTo = '/dashboard') {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const safeRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+      ? redirectTo
+      : '/dashboard'
+    const callbackUrl = new URL('/auth/callback', origin)
+    callbackUrl.searchParams.set('next', safeRedirect)
+
     return await this.supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
