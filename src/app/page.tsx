@@ -5,6 +5,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HomeChatbot } from "@/components/home-chatbot";
+import { HomeWorkspacePreview } from "@/components/home-workspace-preview";
 
 const audiences = ["Freelancer", "UMKM", "Kreator", "Pekerja kontrak"];
 const steps = [
@@ -72,7 +73,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="landing-shell grid items-center gap-12 py-18 lg:min-h-[690px] lg:grid-cols-[.9fr_1.1fr] lg:py-22">
+      <section className="landing-hero-section landing-shell grid items-center gap-12 py-18 lg:min-h-[690px] lg:grid-cols-[.9fr_1.1fr] lg:py-22">
         <div className="landing-reveal">
           <Eyebrow>LEGAL CLARITY, WITHOUT THE LEGAL DESK</Eyebrow>
           <h1 className="landing-display mt-5 max-w-xl text-[clamp(3.15rem,6vw,5.5rem)] leading-[.94]">
@@ -92,10 +93,6 @@ export default function HomePage() {
               Lihat cara kerjanya <ArrowRight />
             </a>
           </div>
-          <p className="mt-10 flex items-center gap-2 text-xs text-slate-500">
-            <ShieldCheck className="size-4 text-[#2F5BD3]" /> Dokumen Anda
-            diproses dengan privasi sebagai prioritas.
-          </p>
         </div>
         <div className="landing-hero-visual landing-reveal landing-delay-1">
           <article className="landing-document landing-float">
@@ -145,7 +142,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-slate-900 text-white" id="untuk-siapa">
+      <section className="landing-audience-section bg-slate-900 text-white" id="untuk-siapa">
         <div className="landing-shell grid gap-7 py-9 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div><Eyebrow>UNTUK SIAPA</Eyebrow><p className="mt-3 max-w-xl text-base leading-7">Klarisa dibuat untuk mereka yang menjalankan bisnis sendiri, tetapi tidak seharusnya menghadapi kontrak sendirian.</p></div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-xs font-medium text-slate-300 sm:grid-cols-4">
@@ -155,7 +152,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className="border-b border-slate-200">
+      <section className="landing-summary-section">
         <div className="landing-shell py-8">
           <Eyebrow>RINGKASAN REVIEW</Eyebrow>
         </div>
@@ -182,7 +179,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="landing-shell py-20 md:py-28" id="cara-kerja">
+      <section className="landing-workflow-section landing-shell py-20 md:py-28" id="cara-kerja">
         <div className="grid gap-6 md:grid-cols-[.35fr_1fr]">
           <Eyebrow>CARA KERJA</Eyebrow>
             <h2 className="landing-heading">Dari dokumen panjang menjadi hal-hal penting yang mudah dipahami.</h2>
@@ -210,7 +207,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid lg:grid-cols-2" id="fitur">
+      <section className="landing-features-section grid lg:grid-cols-2" id="fitur">
         <div className="relative min-h-[480px] overflow-hidden">
           <Image
             className="object-cover transition-transform duration-700 hover:scale-105"
@@ -221,20 +218,9 @@ export default function HomePage() {
           />
           <Card className="landing-audit-card">
             <CardContent className="p-6">
-              <Eyebrow>HASIL PEMERIKSAAN KLAUSUL</Eyebrow>
-              <p className="landing-flagged-line mt-5">
-                PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu
-                apabila hasil pekerjaan dinilai belum memuaskan.
-              </p>
-              <div className="mt-5 rounded bg-slate-900 p-4 text-xs leading-5 text-white">
-                <span className="text-[10px] font-bold tracking-widest text-indigo-200">
-                  BERISIKO
-                </span>
-                <b className="mt-1 block">
-                  Kriteria penerimaan tidak objektif dan tidak memiliki batas
-                  waktu.
-                </b>
-              </div>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3"><Eyebrow>HASIL PEMERIKSAAN</Eyebrow><span className="text-[10px] font-semibold text-slate-400">PASAL 04</span></div>
+              <p className="landing-flagged-line mt-4">PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu apabila hasil pekerjaan dinilai belum memuaskan.</p>
+              <div className="landing-audit-note"><span>PERLU DIBAHAS</span><b>Belum ada batas waktu dan ukuran hasil yang disepakati.</b><small>Lihat alasan dan usulan perbaikan <ArrowRight /></small></div>
             </CardContent>
           </Card>
         </div>
@@ -278,7 +264,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="landing-shell py-20 md:py-28">
+      <section className="landing-ai-section landing-shell py-20 md:py-28">
         <div className="grid gap-8 md:grid-cols-2">
           <div>
             <Eyebrow>CARA KLARISA MEMBANTU</Eyebrow>
@@ -326,19 +312,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="landing-shell py-20 md:py-28">
+      <section className="landing-workspace-section landing-shell py-20 md:py-28">
         <Eyebrow>SATU RUANG KERJA</Eyebrow>
         <h2 className="landing-heading mt-5">
           Dokumen, temuan, dan diskusi berada di satu tempat.
         </h2>
-        <div className="landing-workspace mt-12">
-          <div className="landing-workspace-document"><div className="landing-workspace-bar"><span>REVIEW KONTRAK</span><b>3 bagian perlu diperiksa</b></div><div className="p-6"><Eyebrow>DOKUMEN / 01</Eyebrow><h3 className="mt-4 text-2xl font-semibold leading-tight">Perjanjian Kerja Sama Jasa Digital</h3><p className="mt-5 text-sm leading-6 text-slate-600">Pasal 2: Pembayaran dan pencairan</p><p className="landing-flagged-line mt-3 text-sm leading-6">Pembayaran baru diterima setelah pihak lain menerima pembayaran dari klien utama.</p><p className="mt-5 text-xs leading-5 text-slate-500">Bagian ini dipilih agar Anda bisa melihat alasan, konteks, dan pilihan perbaikannya.</p></div></div>
-          <div className="landing-workspace-findings"><div className="landing-workspace-bar"><span>TEMUAN DALAM KONTEKS</span></div><div className="p-5"><h3 className="text-xl font-semibold">Bagian yang perlu Anda pahami.</h3><p className="mt-2 text-xs leading-5 text-slate-500">Pilih temuan untuk melihat penjelasan yang lebih lengkap.</p><button className="landing-finding active" type="button"><span>Pasal 02</span><b>Pembayaran menunggu pihak ketiga.</b><ArrowRight /></button><button className="landing-finding" type="button"><span>Pasal 03</span><b>Hak karya perlu memiliki batas yang jelas.</b><ArrowRight /></button></div></div>
-          <div className="landing-workspace-discussion"><Eyebrow>DISKUSI DOKUMEN</Eyebrow><p className="mt-3 text-xs leading-5 text-slate-500">Tanyakan isi pasal atau diskusikan dengan pihak terkait.</p><div className="mt-5 rounded-md bg-slate-100 p-3 text-xs text-slate-400">Tulis pertanyaan Anda...<div className="mt-10 flex justify-end"><span className="grid size-7 place-items-center rounded-full bg-slate-900 text-white"><ArrowRight className="size-3.5" /></span></div></div></div>
-        </div>
+        <div className="mt-12"><HomeWorkspacePreview /></div>
       </section>
 
-      <section className="bg-slate-900 text-white" id="keamanan">
+      <section className="landing-security-section bg-slate-900 text-white" id="keamanan">
         <div className="landing-shell grid gap-12 py-20 md:grid-cols-[1.15fr_.85fr] md:py-28">
           <div>
             <Eyebrow>PRIVASI SEJAK AWAL</Eyebrow>
@@ -364,7 +346,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className="landing-shell py-20 md:py-28" id="faq">
+      <section className="landing-faq-section landing-shell py-20 md:py-28" id="faq">
         <div className="grid gap-8 md:grid-cols-[.8fr_1.2fr]">
           <div><Eyebrow>PERTANYAAN UMUM</Eyebrow><h2 className="landing-heading mt-5">Hal yang sering ditanyakan sebelum mulai.</h2></div>
           <div className="space-y-0">
@@ -377,7 +359,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className="bg-[#EEF2FF]">
+      <section className="landing-cta-section bg-[#EEF2FF]">
         <div className="landing-shell py-18 md:py-22">
           <Eyebrow>SEBELUM TANDA TANGAN</Eyebrow>
           <h2 className="landing-heading mt-5 max-w-3xl">
