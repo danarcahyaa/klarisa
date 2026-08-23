@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 
-import { addDraftCommentAction, deleteDraftAction, deleteDraftCommentAction, inviteDraftCollaboratorAction, saveDraftAction, shareDraftAction } from "@/app/actions/draft.action";
-import type { AddDraftCommentDTO, ContractDetail, InviteDraftCollaboratorDTO, SaveDraftDTO } from "@/types/contract.type";
+import { addDraftCommentAction, deleteDraftAction, deleteDraftCommentAction, getDraftVersionAction, inviteDraftCollaboratorAction, removeDraftCollaboratorAction, restoreDraftVersionAction, saveDraftAction, setDraftCommentResolvedAction, shareDraftAction, updateDraftCollaboratorRoleAction, updateDraftCommentAction } from "@/app/actions/draft.action";
+import type { AddDraftCommentDTO, ContractDetail, InviteDraftCollaboratorDTO, SaveDraftDTO, UpdateDraftCollaboratorDTO, UpdateDraftCommentDTO } from "@/types/contract.type";
 
 export function useDraft(initialDraft: ContractDetail) {
   const [data, setData] = useState(initialDraft);
@@ -11,6 +11,9 @@ export function useDraft(initialDraft: ContractDetail) {
   const [isCommenting, setIsCommenting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoadingVersion, setIsLoadingVersion] = useState(false);
+  const [isRestoringVersion, setIsRestoringVersion] = useState(false);
+  const [isManagingAccess, setIsManagingAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const saveDraft = useCallback(async (input: SaveDraftDTO) => {
@@ -66,6 +69,46 @@ export function useDraft(initialDraft: ContractDetail) {
     }
   }, [data.id]);
 
+  const getDraftVersion = useCallback(async (versionId: string) => {
+    setIsLoadingVersion(true);
+    setError(null);
+    try {
+      const result = await getDraftVersionAction(data.id, versionId);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Versi draft gagal dimuat.");
+      return result.data;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Versi draft gagal dimuat.");
+      return null;
+    } finally {
+      setIsLoadingVersion(false);
+    }
+  }, [data.id]);
+
+  const restoreDraftVersion = useCallback(async (versionId: string) => {
+    setIsRestoringVersion(true);
+    setError(null);
+    try {
+      const result = await restoreDraftVersionAction(data.id, versionId);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Versi draft gagal dipulihkan.");
+      setData((current) => ({
+        ...current,
+        title: result.data!.title,
+        content: result.data!.content,
+        metadata: {
+          ...current.metadata,
+          version: result.data!.version,
+          discussion_anchor_after: result.data!.discussionAnchorAfter,
+        },
+      }));
+      return result.data;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Versi draft gagal dipulihkan.");
+      return null;
+    } finally {
+      setIsRestoringVersion(false);
+    }
+  }, [data.id]);
+
   const addComment = useCallback(async (input: AddDraftCommentDTO) => {
     setIsCommenting(true);
     setError(null);
@@ -81,6 +124,43 @@ export function useDraft(initialDraft: ContractDetail) {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Komentar gagal dikirim.");
       return null;
+    } finally {
+      setIsCommenting(false);
+    }
+  }, [data.id]);
+
+  const updateComment = useCallback(async (commentId: string, input: UpdateDraftCommentDTO) => {
+    setIsCommenting(true);
+    setError(null);
+    try {
+      const result = await updateDraftCommentAction(data.id, commentId, input);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Komentar gagal diperbarui.");
+      setData((current) => ({ ...current, comments: current.comments.map((item) => item.id === commentId ? result.data! : item) }));
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Komentar gagal diperbarui.");
+      return false;
+    } finally {
+      setIsCommenting(false);
+    }
+  }, [data.id]);
+
+  const setCommentResolved = useCallback(async (commentId: string, resolved: boolean) => {
+    setIsCommenting(true);
+    setError(null);
+    try {
+      const result = await setDraftCommentResolvedAction(data.id, commentId, resolved);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Status diskusi gagal diperbarui.");
+      setData((current) => ({
+        ...current,
+        comments: current.comments.map((item) => item.id === commentId
+          ? { ...item, isResolved: resolved, resolvedAt: resolved ? new Date().toISOString() : null }
+          : item),
+      }));
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Status diskusi gagal diperbarui.");
+      return false;
     } finally {
       setIsCommenting(false);
     }
@@ -136,5 +216,42 @@ export function useDraft(initialDraft: ContractDetail) {
     }
   }, [data.id]);
 
-  return { data, isSaving, isCommenting, isSharing, isDeleting, error, saveDraft, deleteDraft, addComment, deleteComment, shareDraft, inviteCollaborator, dismissError };
+  const updateCollaboratorRole = useCallback(async (input: UpdateDraftCollaboratorDTO) => {
+    setIsManagingAccess(true);
+    setError(null);
+    try {
+      const result = await updateDraftCollaboratorRoleAction(data.id, input);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Akses pihak terkait gagal diperbarui.");
+      setData((current) => ({ ...current, collaborators: current.collaborators.map((item) => item.userId === input.userId ? result.data! : item) }));
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Akses pihak terkait gagal diperbarui.");
+      return false;
+    } finally {
+      setIsManagingAccess(false);
+    }
+  }, [data.id]);
+
+  const removeCollaborator = useCallback(async (collaboratorId: string) => {
+    setIsManagingAccess(true);
+    setError(null);
+    try {
+      const result = await removeDraftCollaboratorAction(data.id, collaboratorId);
+      if (!result.success || !result.data) throw new Error(result.error ?? "Akses pihak terkait gagal dicabut.");
+      setData((current) => ({
+        ...current,
+        collaborators: current.collaborators.filter((item) => item.userId !== collaboratorId),
+        settings: current.settings ? { ...current.settings, status: result.data!.shared ? "shared" : "private" } : current.settings,
+        metadata: { ...current.metadata, shared: result.data!.shared, recipients: Math.max(0, current.collaborators.length - 1) },
+      }));
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Akses pihak terkait gagal dicabut.");
+      return false;
+    } finally {
+      setIsManagingAccess(false);
+    }
+  }, [data.id]);
+
+  return { data, isSaving, isCommenting, isSharing, isDeleting, isLoadingVersion, isRestoringVersion, isManagingAccess, error, saveDraft, deleteDraft, getDraftVersion, restoreDraftVersion, addComment, updateComment, deleteComment, setCommentResolved, shareDraft, inviteCollaborator, updateCollaboratorRole, removeCollaborator, dismissError };
 }

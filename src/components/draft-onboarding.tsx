@@ -118,14 +118,14 @@ export function DraftOnboarding() {
                 aria-pressed={category === item.id}
                 onClick={() => setCategory(item.id)}
                 className={cn(
-                  "grid min-h-24 grid-cols-[36px_1fr_20px] items-start gap-3 rounded-md border border-slate-200 bg-white p-4 text-left transition duration-200 hover:border-klarisa-secondary/50 hover:bg-slate-50",
+                  "grid min-h-20 grid-cols-[36px_1fr_20px] items-center gap-3 rounded-md border border-slate-200 bg-white p-4 text-left transition duration-200 hover:border-klarisa-secondary/50 hover:bg-slate-50",
                   category === item.id && "border-klarisa-secondary bg-[#f5f7ff]",
                 )}
               >
                 <span className="grid size-9 place-items-center rounded bg-[#edf2ff] text-[11px] font-bold text-klarisa-secondary">0{index + 1}</span>
                 <span>
                   <b className="block text-[13px]">{item.label}</b>
-                  <small className="mt-1.5 block text-[10px] leading-5 text-slate-500">{item.description}</small>
+                  <small className="mt-1 block text-[10px] leading-4 text-slate-500">{item.description}</small>
                 </span>
                 {category === item.id && <Check className="mt-0.5 size-4 text-klarisa-secondary" />}
               </button>

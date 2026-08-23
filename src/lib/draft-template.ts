@@ -1,7 +1,7 @@
 export const DEFAULT_DRAFT_TITLE = "Draft Perjanjian Baru";
 
 export const DEFAULT_DRAFT_CONTENT = `
-  <p><mark class="bg-amber-200 px-1">SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</mark></p>
+  <p>SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</p>
   <p class="mt-3">Nomor: [NOMOR_KONTRAK]/SPK/2026</p>
   <p class="mt-3">Pada hari ini, [HARI], tanggal [TANGGAL], disepakati perjanjian kerja sama antara:</p>
   <p class="mt-2 pl-6">[NAMA PIHAK PERTAMA] (selanjutnya disebut “PIHAK PERTAMA”)</p>

@@ -20,6 +20,7 @@ export interface ContractMetadata {
   draft_category?: string;
   draft_subtype?: string;
   generation_status?: "manual_outline" | "ai_generated";
+  discussion_anchor_after?: string;
   [key: string]: Json | undefined;
 }
 
@@ -36,11 +37,24 @@ export interface ContractListItem {
 
 export interface ContractDetail extends ContractListItem {
   content: string;
-  versions: DocumentDraftRow[];
+  versions: DraftVersion[];
   settings: DraftSettingsRow | null;
   collaborators: DraftCollaborator[];
   comments: DraftComment[];
   permission: "owner" | "editor" | "commenter" | "viewer";
+}
+
+export interface DraftVersion {
+  id: string;
+  title: string;
+  version: number;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface DraftVersionContent extends DraftVersion {
+  content: string;
+  discussionAnchorAfter?: string;
 }
 
 export interface DraftCollaborator {
@@ -61,6 +75,8 @@ export interface DraftComment {
   positionStart: number | null;
   positionEnd: number | null;
   createdAt: string;
+  resolvedAt: string | null;
+  isResolved: boolean;
   isOwn: boolean;
 }
 
@@ -92,6 +108,15 @@ export interface AddDraftCommentDTO {
 
 export interface InviteDraftCollaboratorDTO {
   email: string;
+}
+
+export interface UpdateDraftCollaboratorDTO {
+  userId: string;
+  role: "commenter" | "viewer";
+}
+
+export interface UpdateDraftCommentDTO {
+  body: string;
 }
 
 export type ContractResponse<T> = BaseResponse<T>;

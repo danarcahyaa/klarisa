@@ -1,17 +1,21 @@
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard-shell";
-import { createClient } from "@/lib/supabase/server";
+import { getDraftServerContext } from "@/lib/draft-context";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getDraftServerContext();
 
-  if (!user) {
+  if (!context) {
     redirect("/login?next=/dashboard");
   }
+
+  const { user, service } = context;
+  const recentResult = await service.list(user.id, { type: "draft" });
+  const recentDocuments = (recentResult.data ?? []).slice(0, 3).map((draft) => ({
+    id: draft.id,
+    title: draft.title,
+  }));
 
   const name =
     user.user_metadata?.full_name ??
@@ -28,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <DashboardShell
       user={{ name, email: user.email ?? "", initials: initials || "K" }}
+      recentDocuments={recentDocuments}
     >
       {children}
     </DashboardShell>

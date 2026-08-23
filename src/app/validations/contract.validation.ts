@@ -34,6 +34,21 @@ export const inviteDraftCollaboratorSchema = z.object({
   email: z.email("Alamat email tidak valid").trim().toLowerCase(),
 });
 
+export const draftVersionIdSchema = z.uuid("Versi draft tidak valid");
+
+export const draftEntityIdSchema = z.uuid("Data draft tidak valid");
+
+export const updateDraftCollaboratorSchema = z.object({
+  userId: draftEntityIdSchema,
+  role: z.enum(["commenter", "viewer"]),
+});
+
+export const updateDraftCommentSchema = z.object({
+  body: z.string().trim().min(1, "Komentar tidak boleh kosong").max(5000, "Komentar maksimal 5.000 karakter"),
+});
+
 export type SaveDraftInput = z.infer<typeof saveDraftSchema>;
 export type AddDraftCommentInput = z.infer<typeof addDraftCommentSchema>;
 export type InviteDraftCollaboratorInput = z.infer<typeof inviteDraftCollaboratorSchema>;
+export type UpdateDraftCollaboratorInput = z.infer<typeof updateDraftCollaboratorSchema>;
+export type UpdateDraftCommentInput = z.infer<typeof updateDraftCommentSchema>;

@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { addDraftCommentSchema, contractQuerySchema, createDraftSchema, inviteDraftCollaboratorSchema, saveDraftSchema } from "@/app/validations/contract.validation";
+import { addDraftCommentSchema, contractQuerySchema, createDraftSchema, draftEntityIdSchema, draftVersionIdSchema, inviteDraftCollaboratorSchema, saveDraftSchema, updateDraftCollaboratorSchema, updateDraftCommentSchema } from "@/app/validations/contract.validation";
 import { decryptContractContent, encryptContractContent } from "@/lib/contract-encryption";
 import { createErrorResponse, createSuccessResponse, mapSupabaseError } from "@/lib/response";
 import { sanitizeContractHtml } from "@/lib/utils";
 import { DEFAULT_DRAFT_CONTENT } from "@/lib/draft-template";
 import { ContractRepository, type ContractRecord } from "@/repositories/contract.repository";
-import type { AddDraftCommentDTO, ContractDetail, ContractListItem, ContractMetadata, ContractQuery, CreateDraftDTO, DraftCollaborator, DraftCollaboratorRow, DraftComment, DraftCommentRow, InviteDraftCollaboratorDTO, SaveDraftDTO } from "@/types/contract.type";
+import type { AddDraftCommentDTO, ContractDetail, ContractListItem, ContractMetadata, ContractQuery, CreateDraftDTO, DraftCollaborator, DraftCollaboratorRow, DraftComment, DraftCommentRow, DraftVersion, DraftVersionContent, DocumentDraftRow, InviteDraftCollaboratorDTO, SaveDraftDTO, UpdateDraftCollaboratorDTO, UpdateDraftCommentDTO } from "@/types/contract.type";
 import type { Database } from "@/types/database.type";
 
 function metadataOf(value: unknown): ContractMetadata {
@@ -43,6 +43,8 @@ function mapComment(record: DraftCommentRecord, userId: string): DraftComment {
     positionStart: record.position_start,
     positionEnd: record.position_end,
     createdAt: record.created_at,
+    resolvedAt: record.resolved_at,
+    isResolved: Boolean(record.resolved_at),
     isOwn: record.author_id === userId,
   };
 }
@@ -53,6 +55,16 @@ function mapCollaborator(record: DraftCollaboratorRecord): DraftCollaborator {
     name: record.profiles?.full_name || "Pengguna Klarisa",
     avatarUrl: record.profiles?.avatar_url ?? null,
     role: record.role,
+  };
+}
+
+function mapDraftVersion(record: DocumentDraftRow): DraftVersion {
+  return {
+    id: record.id,
+    title: record.title,
+    version: record.version,
+    createdAt: record.created_at,
+    createdBy: record.created_by,
   };
 }
 
@@ -138,6 +150,10 @@ export class ContractService {
     if (!current.data || current.data.type !== "draft") {
       return createErrorResponse<{ id: string }>("Draft tidak ditemukan atau Anda bukan pemiliknya.");
     }
+    const versionsResult = await this.repository.deleteDraftVersions(contractId);
+    if (versionsResult.error) {
+      return createErrorResponse<{ id: string }>(mapSupabaseError(versionsResult.error.message));
+    }
     const result = await this.repository.deleteContract(userId, contractId);
     if (result.error) return createErrorResponse<{ id: string }>(mapSupabaseError(result.error.message));
     return createSuccessResponse({ id: contractId }, "Draft berhasil dihapus.");
@@ -169,7 +185,7 @@ export class ContractService {
     const detail: ContractDetail = {
       ...listItem,
       content,
-      versions: versionsResult.data ?? [],
+      versions: (versionsResult.data ?? []).map(mapDraftVersion),
       settings: settingsResult.data,
       collaborators: ((collaboratorsResult.data ?? []) as DraftCollaboratorRecord[]).map(mapCollaborator),
       comments: ((commentsResult.data ?? []) as DraftCommentRecord[]).map((comment) => mapComment(comment, userId)),
@@ -201,6 +217,53 @@ export class ContractService {
       if (versionResult.error) return createErrorResponse(mapSupabaseError(versionResult.error.message));
     }
     return createSuccessResponse({ version: nextVersion }, "Draft berhasil disimpan.");
+  }
+
+  async getDraftVersion(userId: string, contractId: string, versionId: string) {
+    const validation = draftVersionIdSchema.safeParse(versionId);
+    if (!validation.success) return createErrorResponse<DraftVersionContent>(validation.error.issues[0]?.message ?? "Versi draft tidak valid.");
+    const current = await this.repository.findDraftById(contractId);
+    if (current.error || !current.data || current.data.type !== "draft") return createErrorResponse<DraftVersionContent>("Draft tidak ditemukan.");
+    if (current.data.user_id !== userId) {
+      const collaborator = await this.repository.findCollaborator(userId, contractId);
+      if (collaborator.error || !collaborator.data) return createErrorResponse<DraftVersionContent>("Anda tidak memiliki akses ke riwayat versi draft ini.");
+    }
+    const versionResult = await this.repository.findDraftVersion(contractId, validation.data);
+    if (versionResult.error || !versionResult.data) return createErrorResponse<DraftVersionContent>(mapSupabaseError(versionResult.error?.message ?? "Versi draft tidak ditemukan."));
+    let content = versionResult.data.body;
+    try { content = decryptContractContent(versionResult.data.body); } catch { content = versionResult.data.body; }
+    return createSuccessResponse({ ...mapDraftVersion(versionResult.data), content });
+  }
+
+  async restoreDraftVersion(userId: string, contractId: string, versionId: string) {
+    const validation = draftVersionIdSchema.safeParse(versionId);
+    if (!validation.success) return createErrorResponse<DraftVersionContent>(validation.error.issues[0]?.message ?? "Versi draft tidak valid.");
+    const current = await this.repository.findDraftById(contractId);
+    if (current.error || !current.data || current.data.type !== "draft" || current.data.user_id !== userId) {
+      return createErrorResponse<DraftVersionContent>("Hanya pemilik yang dapat memulihkan versi draft.");
+    }
+    const sourceVersion = await this.repository.findDraftVersion(contractId, validation.data);
+    if (sourceVersion.error || !sourceVersion.data) return createErrorResponse<DraftVersionContent>(mapSupabaseError(sourceVersion.error?.message ?? "Versi draft tidak ditemukan."));
+    let sourceContent = sourceVersion.data.body;
+    try { sourceContent = decryptContractContent(sourceVersion.data.body); } catch { sourceContent = sourceVersion.data.body; }
+    const content = sanitizeContractHtml(sourceContent);
+    const encrypted = encryptContractContent(content);
+    const draftRecord = (current.data as ContractRecord).contract_draft;
+    // Version snapshots contain contract content only. Existing discussions are preserved,
+    // but their anchors must not be rendered against a restored document revision.
+    const discussionAnchorAfter = new Date().toISOString();
+    const metadata = {
+      ...metadataOf(draftRecord?.metadata),
+      encryption: "aes-256-gcm",
+      version: sourceVersion.data.version,
+      discussion_anchor_after: discussionAnchorAfter,
+    };
+    const [titleResult, draftResult] = await Promise.all([
+      this.repository.updateTitle(contractId, sourceVersion.data.title),
+      this.repository.upsertDraft({ contract_id: contractId, content: encrypted, fairness_score: draftRecord?.fairness_score ?? null, total_clausul_risk: draftRecord?.total_clausul_risk ?? 0, metadata }),
+    ]);
+    if (titleResult.error || draftResult.error) return createErrorResponse<DraftVersionContent>(mapSupabaseError(titleResult.error?.message ?? draftResult.error?.message ?? "Gagal memulihkan versi draft."));
+    return createSuccessResponse({ ...mapDraftVersion(sourceVersion.data), content, discussionAnchorAfter }, "Draft dipulihkan ke versi pilihan.");
   }
 
   async shareDraft(userId: string, contractId: string) {
@@ -258,6 +321,49 @@ export class ContractService {
     return createSuccessResponse(mapCollaborator(collaboratorResult.data as DraftCollaboratorRecord), "Pihak terkait berhasil ditambahkan.");
   }
 
+  async updateCollaboratorRole(userId: string, contractId: string, input: UpdateDraftCollaboratorDTO) {
+    const validation = updateDraftCollaboratorSchema.safeParse(input);
+    if (!validation.success) return createErrorResponse<DraftCollaborator>(validation.error.issues[0]?.message ?? "Peran pihak terkait tidak valid.");
+    const current = await this.repository.findById(userId, contractId);
+    if (current.error || !current.data || current.data.type !== "draft") {
+      return createErrorResponse<DraftCollaborator>("Hanya pemilik yang dapat mengubah akses pihak terkait.");
+    }
+    const collaborator = await this.repository.updateCollaboratorRole(contractId, validation.data.userId, validation.data.role);
+    if (collaborator.error) return createErrorResponse<DraftCollaborator>(mapSupabaseError(collaborator.error.message));
+    if (!collaborator.data) return createErrorResponse<DraftCollaborator>("Pihak terkait tidak ditemukan.");
+    return createSuccessResponse(mapCollaborator(collaborator.data as DraftCollaboratorRecord), "Akses pihak terkait diperbarui.");
+  }
+
+  async removeCollaborator(userId: string, contractId: string, collaboratorId: string) {
+    const idValidation = draftEntityIdSchema.safeParse(collaboratorId);
+    if (!idValidation.success) return createErrorResponse<{ userId: string; shared: boolean }>(idValidation.error.issues[0]?.message ?? "Pihak terkait tidak valid.");
+    const current = await this.repository.findById(userId, contractId);
+    if (current.error || !current.data || current.data.type !== "draft") {
+      return createErrorResponse<{ userId: string; shared: boolean }>("Hanya pemilik yang dapat mencabut akses pihak terkait.");
+    }
+    const removed = await this.repository.deleteCollaborator(contractId, idValidation.data);
+    if (removed.error) return createErrorResponse<{ userId: string; shared: boolean }>(mapSupabaseError(removed.error.message));
+    const remaining = await this.repository.listCollaborators(contractId);
+    if (remaining.error) return createErrorResponse<{ userId: string; shared: boolean }>(mapSupabaseError(remaining.error.message));
+    const isShared = (remaining.data?.length ?? 0) > 0;
+    const settings = await this.repository.getDraftSettings(contractId);
+    if (settings.error) return createErrorResponse<{ userId: string; shared: boolean }>(mapSupabaseError(settings.error.message));
+    const settingsResult = await this.repository.upsertDraftSettings({
+      contract_id: contractId,
+      workspace_id: settings.data?.workspace_id ?? null,
+      status: isShared ? "shared" : "private",
+    });
+    if (settingsResult.error) return createErrorResponse<{ userId: string; shared: boolean }>(mapSupabaseError(settingsResult.error.message));
+    const metadata = metadataOf((current.data as ContractRecord).contract_draft?.metadata);
+    const draftResult = await this.repository.updateDraftMetadata(contractId, {
+      ...metadata,
+      shared: isShared,
+      recipients: remaining.data?.length ?? 0,
+    });
+    if (draftResult.error) return createErrorResponse<{ userId: string; shared: boolean }>(mapSupabaseError(draftResult.error.message));
+    return createSuccessResponse({ userId: idValidation.data, shared: isShared }, "Akses pihak terkait dicabut.");
+  }
+
   async addComment(userId: string, contractId: string, input: AddDraftCommentDTO) {
     const validation = addDraftCommentSchema.safeParse(input);
     if (!validation.success) return createErrorResponse<DraftComment>(validation.error.issues[0]?.message ?? "Komentar tidak valid.");
@@ -290,21 +396,60 @@ export class ContractService {
   }
 
   async deleteComment(userId: string, contractId: string, commentId: string) {
-    const current = await this.repository.findById(userId, contractId);
-    if (current.error || !current.data || current.data.type !== "draft") {
-      return createErrorResponse<{ id: string }>("Hanya pemilik draft yang dapat menghapus komentar beserta teks sumbernya.");
-    }
+    const idValidation = draftEntityIdSchema.safeParse(commentId);
+    if (!idValidation.success) return createErrorResponse<{ id: string }>(idValidation.error.issues[0]?.message ?? "Komentar tidak valid.");
+    const current = await this.repository.findDraftById(contractId);
+    if (current.error || !current.data) return createErrorResponse<{ id: string }>("Draft tidak ditemukan.");
     const comment = await this.repository.findComment(contractId, commentId);
     if (comment.error) return createErrorResponse<{ id: string }>(mapSupabaseError(comment.error.message));
     if (!comment.data) return createSuccessResponse({ id: commentId });
+    const isOwner = current.data.user_id === userId;
+    const collaborator = isOwner ? null : await this.repository.findCollaborator(userId, contractId);
+    if (!isOwner && !collaborator?.data) return createErrorResponse<{ id: string }>("Anda tidak memiliki akses ke diskusi draft ini.");
+    const commentRecord = comment.data as DraftCommentRecord;
+    const allComments = await this.repository.listComments(contractId);
+    if (allComments.error) return createErrorResponse<{ id: string }>(mapSupabaseError(allComments.error.message));
+    const replies = (allComments.data ?? []).filter((item) => item.parent_id === commentId);
+    if (!isOwner && commentRecord.author_id !== userId) return createErrorResponse<{ id: string }>("Anda hanya dapat menghapus komentar sendiri.");
+    if (!isOwner && replies.length > 0) return createErrorResponse<{ id: string }>("Komentar dengan balasan hanya dapat dihapus oleh pemilik draft.");
     const result = await this.repository.deleteComment(contractId, commentId);
     if (result.error) return createErrorResponse<{ id: string }>(mapSupabaseError(result.error.message));
     const metadata = metadataOf((current.data as ContractRecord).contract_draft?.metadata);
     await this.repository.updateDraftMetadata(contractId, {
       ...metadata,
-      comments: Math.max(0, Number(metadata.comments ?? 0) - 1),
+      comments: Math.max(0, Number(metadata.comments ?? 0) - 1 - replies.length),
     });
-    return createSuccessResponse({ id: commentId }, "Komentar yang kehilangan teks sumber telah dihapus.");
+    return createSuccessResponse({ id: commentId }, "Komentar berhasil dihapus.");
+  }
+
+  async updateComment(userId: string, contractId: string, commentId: string, input: UpdateDraftCommentDTO) {
+    const idValidation = draftEntityIdSchema.safeParse(commentId);
+    const validation = updateDraftCommentSchema.safeParse(input);
+    if (!idValidation.success || !validation.success) return createErrorResponse<DraftComment>(idValidation.error?.issues[0]?.message ?? validation.error?.issues[0]?.message ?? "Komentar tidak valid.");
+    const current = await this.repository.findDraftById(contractId);
+    if (current.error || !current.data) return createErrorResponse<DraftComment>("Draft tidak ditemukan.");
+    const collaborator = current.data.user_id === userId ? null : await this.repository.findCollaborator(userId, contractId);
+    if (current.data.user_id !== userId && !collaborator?.data) return createErrorResponse<DraftComment>("Anda tidak memiliki akses ke diskusi draft ini.");
+    const comment = await this.repository.findComment(contractId, idValidation.data);
+    if (comment.error) return createErrorResponse<DraftComment>(mapSupabaseError(comment.error.message));
+    if (!comment.data) return createErrorResponse<DraftComment>("Komentar tidak ditemukan.");
+    if (comment.data.author_id !== userId) return createErrorResponse<DraftComment>("Anda hanya dapat mengubah komentar sendiri.");
+    const result = await this.repository.updateComment(contractId, idValidation.data, validation.data.body);
+    if (result.error || !result.data) return createErrorResponse<DraftComment>(mapSupabaseError(result.error?.message ?? "Komentar gagal diperbarui."));
+    return createSuccessResponse(mapComment(result.data as DraftCommentRecord, userId), "Komentar diperbarui.");
+  }
+
+  async setCommentResolved(userId: string, contractId: string, commentId: string, resolved: boolean) {
+    const idValidation = draftEntityIdSchema.safeParse(commentId);
+    if (!idValidation.success) return createErrorResponse<{ id: string; resolved: boolean }>(idValidation.error.issues[0]?.message ?? "Komentar tidak valid.");
+    const current = await this.repository.findById(userId, contractId);
+    if (current.error || !current.data || current.data.type !== "draft") return createErrorResponse<{ id: string; resolved: boolean }>("Hanya pemilik yang dapat menandai diskusi selesai.");
+    const comment = await this.repository.findComment(contractId, idValidation.data);
+    if (comment.error) return createErrorResponse<{ id: string; resolved: boolean }>(mapSupabaseError(comment.error.message));
+    if (!comment.data || comment.data.parent_id) return createErrorResponse<{ id: string; resolved: boolean }>("Diskusi tidak ditemukan.");
+    const result = await this.repository.setCommentResolved(contractId, idValidation.data, resolved ? new Date().toISOString() : null, resolved ? userId : null);
+    if (result.error) return createErrorResponse<{ id: string; resolved: boolean }>(mapSupabaseError(result.error.message));
+    return createSuccessResponse({ id: idValidation.data, resolved }, resolved ? "Diskusi ditandai selesai." : "Diskusi dibuka kembali.");
   }
 
 }

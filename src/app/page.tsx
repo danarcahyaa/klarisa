@@ -398,7 +398,7 @@ export default async function HomePage() {
             ],
           ].map(([q, a]) => (
             <details
-              className="grid grid-rows-[auto_0fr] overflow-hidden border-t border-slate-200 transition-[grid-template-rows] duration-300 open:grid-rows-[auto_1fr]"
+              className="group grid grid-rows-[auto_0fr] overflow-hidden border-t border-slate-200 transition-[grid-template-rows] duration-300 open:grid-rows-[auto_1fr]"
               key={q}
             >
               <summary className="flex cursor-pointer list-none items-center justify-between py-5 text-sm font-semibold">

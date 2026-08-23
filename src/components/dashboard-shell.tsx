@@ -26,14 +26,9 @@ const navigation = [
   { label: "Draft dibagikan", href: "/dashboard/shared", icon: Share2, exact: false },
 ] as const;
 
-const recentDocuments = [
-  "Perjanjian Kerja Sama Desain",
-  "Draft Identitas Visual",
-  "Kontrak Freelancer Ilustrasi",
-];
-
 type DashboardShellProps = {
   children: React.ReactNode;
+  recentDocuments: Array<{ id: string; title: string }>;
   user: {
     name: string;
     email: string;
@@ -41,7 +36,7 @@ type DashboardShellProps = {
   };
 };
 
-export function DashboardShell({ children, user }: DashboardShellProps) {
+export function DashboardShell({ children, user, recentDocuments }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { handleLogout, isLoading } = useAuth();
@@ -90,14 +85,15 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         <b className="text-[9px] tracking-[0.18em] text-slate-400">TERKINI</b>
         {recentDocuments.map((document) => (
           <Link
-            key={document}
-            href="/dashboard/search"
+            key={document.id}
+            href={`/dashboard/create?id=${document.id}`}
             onClick={() => setIsOpen(false)}
             className="truncate transition-colors hover:text-klarisa-secondary"
           >
-            {document}
+            {document.title}
           </Link>
         ))}
+        {recentDocuments.length === 0 && <span className="leading-5 text-slate-400">Belum ada draft terbaru.</span>}
       </div>
 
       <div className="mt-auto flex items-center gap-2 border-t border-[#e7ebf1] px-2 pt-4">

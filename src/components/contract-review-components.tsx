@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, Scale, Send, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, FileText, Scale, Send } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export function FindingList({ detailed = false, activeFinding = "payment", onSel
   if (detailed) return <section className="bg-white">
     <header className="border-b border-slate-200 p-6"><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">CATATAN UNTUK PASAL 02</p><h2 className="mt-4 font-heading text-2xl font-semibold leading-none tracking-[-.03em]">Pembayaran menunggu pihak ketiga.</h2><p className="mt-4 text-xs leading-5 text-slate-500">Hak pembayaran PIHAK KEDUA bergantung pada pihak di luar perjanjian dan belum memiliki batas waktu yang pasti.</p></header>
     <div className="grid gap-4 p-6">
-      <article className="border border-blue-100 border-l-2 border-l-klarisa-secondary p-4"><div className="flex items-center gap-2"><Sparkles className="size-4 text-klarisa-secondary"/><b className="text-xs">Analisis Klarisa</b></div><p className="mt-3 text-[11px] text-slate-500">Catatan dibuat dari kalimat yang dipilih pada pasal ini.</p><button type="button" onClick={() => document.querySelector('[aria-pressed="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat kalimat sumber<ArrowRight className="size-3"/></button></article>
+      <article className="border border-blue-100 border-l-2 border-l-klarisa-secondary p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={20} height={20} className="size-5 object-contain"/><b className="text-xs">Analisis Klarisa</b></div><p className="mt-3 text-[11px] text-slate-500">Catatan dibuat dari kalimat yang dipilih pada pasal ini.</p><button type="button" onClick={() => document.querySelector('[aria-pressed="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat kalimat sumber<ArrowRight className="size-3"/></button></article>
       <article className="border border-red-100 border-l-2 border-l-orange-500 p-4"><div className="flex items-center gap-2"><Scale className="size-4 text-orange-500"/><b className="text-xs">Konteks hukum</b></div><p className="mt-3 text-[11px] leading-5 text-slate-600"><b>KUHPerdata Pasal 1338 ayat (3)</b> digunakan sebagai konteks, bukan putusan pelanggaran.</p><button type="button" className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat pertimbangan<ArrowRight className="size-3"/></button></article>
       <article className="border border-blue-100 border-l-2 border-l-klarisa-secondary p-4"><p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">✦ REKOMENDASI REDAKSI</p><p className="mt-4 text-xs leading-6 text-slate-600">Pelunasan dilakukan maksimal 14 hari kerja setelah hasil diterima tertulis oleh PIHAK PERTAMA, terlepas dari pembayaran klien utama.</p></article>
     </div>

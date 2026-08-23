@@ -87,6 +87,24 @@ export class ContractRepository {
       .single();
   }
 
+  async updateCollaboratorRole(contractId: string, userId: string, role: "commenter" | "viewer") {
+    return this.supabase
+      .from("draft_collaborators")
+      .update({ role })
+      .eq("contract_id", contractId)
+      .eq("user_id", userId)
+      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
+      .maybeSingle();
+  }
+
+  async deleteCollaborator(contractId: string, userId: string) {
+    return this.supabase
+      .from("draft_collaborators")
+      .delete()
+      .eq("contract_id", contractId)
+      .eq("user_id", userId);
+  }
+
   async findAuthUserByEmail(email: string) {
     const result = await this.supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (result.error) return { data: null, error: result.error };
@@ -115,10 +133,28 @@ export class ContractRepository {
   async findComment(contractId: string, commentId: string) {
     return this.supabase
       .from("draft_comments")
-      .select("id, contract_id, parent_id")
+      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
       .eq("id", commentId)
       .eq("contract_id", contractId)
       .maybeSingle();
+  }
+
+  async updateComment(contractId: string, commentId: string, body: string) {
+    return this.supabase
+      .from("draft_comments")
+      .update({ body })
+      .eq("id", commentId)
+      .eq("contract_id", contractId)
+      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
+      .maybeSingle();
+  }
+
+  async setCommentResolved(contractId: string, commentId: string, resolvedAt: string | null, resolvedBy: string | null) {
+    return this.supabase
+      .from("draft_comments")
+      .update({ resolved_at: resolvedAt, resolved_by: resolvedBy })
+      .eq("id", commentId)
+      .eq("contract_id", contractId);
   }
 
   async deleteComment(contractId: string, commentId: string) {
@@ -172,6 +208,22 @@ export class ContractRepository {
       .select("*")
       .eq("document_id", contractId)
       .order("version", { ascending: false });
+  }
+
+  async findDraftVersion(contractId: string, versionId: string) {
+    return this.supabase
+      .from("document_drafts")
+      .select("*")
+      .eq("document_id", contractId)
+      .eq("id", versionId)
+      .maybeSingle();
+  }
+
+  async deleteDraftVersions(contractId: string) {
+    return this.supabase
+      .from("document_drafts")
+      .delete()
+      .eq("document_id", contractId);
   }
 
   async updateTitle(contractId: string, title: string) {

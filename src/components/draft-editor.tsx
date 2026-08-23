@@ -6,14 +6,14 @@ import {
   AlignRight,
   Bold,
   Check,
-  Highlighter,
+  History,
   Italic,
   Link2,
   List,
   ListOrdered,
   MoreHorizontal,
   Redo2,
-  Reply,
+  RotateCcw,
   Save,
   Search,
   Send,
@@ -29,10 +29,12 @@ import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { useDraft } from "@/hooks/useDraft";
-import type { ContractDetail, DraftComment } from "@/types/contract.type";
+import { DraftDiscussionThread } from "@/components/draft-discussion-thread";
+import type { ContractDetail, DraftComment, DraftVersionContent } from "@/types/contract.type";
 
-const DRAFT_KEY = "klarisa:draft:content";
-const TITLE_KEY = "klarisa:draft:title";
+const DRAFT_BACKUP_KEY = "klarisa:draft:backup";
+const LEGACY_DRAFT_KEY = "klarisa:draft:content";
+const LEGACY_TITLE_KEY = "klarisa:draft:title";
 
 const toolbar = [
   ["Tebal (Ctrl+B)", Bold, "bold"],
@@ -46,7 +48,7 @@ const toolbar = [
 ] as const;
 
 const defaultDocument = `
-  <p><mark class="bg-amber-200 px-1">SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</mark></p>
+  <p>SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</p>
   <p class="mt-3">Nomor: [NOMOR_KONTRAK]/SPK/2026</p>
   <p class="mt-3">Pada hari ini, [HARI], tanggal [TANGGAL], disepakati perjanjian kerja sama antara:</p>
   <p class="mt-2 pl-6">[NAMA PIHAK PERTAMA] (selanjutnya disebut “PIHAK PERTAMA”)</p>
@@ -61,9 +63,22 @@ const defaultDocument = `
   <p class="mt-2 pl-6">Pekerjaan dinyatakan selesai setelah PIHAK PERTAMA menyetujui hasil akhir dan menandatangani tanda terima pekerjaan.</p>
 `;
 
-type SaveStatus = "saved" | "saving";
+type SaveStatus = "saved" | "saving" | "error";
 type SidebarTab = "conversation" | "discussion";
 type AiMessage = { role: "assistant" | "user"; body: string };
+type LocalDraftBackup = { content: string; title: string; savedAt: string };
+
+function readLocalDraftBackup(draftId: string) {
+  try {
+    const value = localStorage.getItem(`${DRAFT_BACKUP_KEY}:${draftId}`);
+    if (!value) return null;
+    const backup = JSON.parse(value) as Partial<LocalDraftBackup>;
+    if (typeof backup.content !== "string" || typeof backup.title !== "string" || typeof backup.savedAt !== "string") return null;
+    return backup as LocalDraftBackup;
+  } catch {
+    return null;
+  }
+}
 
 function findTextRange(root: HTMLElement, start: number, end: number) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -96,23 +111,67 @@ function findTextRange(root: HTMLElement, start: number, end: number) {
 }
 
 function wrapCommentRange(range: Range, commentId: string) {
-  const marker = document.createElement("mark");
-  marker.dataset.draftCommentId = commentId;
-  marker.className = "rounded-sm bg-amber-200 px-0.5 ring-1 ring-amber-300";
-  marker.append(range.extractContents());
-  range.insertNode(marker);
-  return marker;
+  const nodes: Text[] = [];
+  const root = range.commonAncestorContainer;
+  if (root.nodeType === Node.TEXT_NODE) nodes.push(root as Text);
+  else {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let current = walker.nextNode();
+    while (current) {
+      if (range.intersectsNode(current)) nodes.push(current as Text);
+      current = walker.nextNode();
+    }
+  }
+  let firstMarker: HTMLElement | null = null;
+  for (const node of nodes) {
+    const start = node === range.startContainer ? range.startOffset : 0;
+    const end = node === range.endContainer ? range.endOffset : node.data.length;
+    if (start >= end) continue;
+    const segment = document.createRange();
+    segment.setStart(node, start);
+    segment.setEnd(node, end);
+    const marker = document.createElement("span");
+    marker.dataset.draftCommentId = commentId;
+    marker.className = "draft-comment-anchor rounded-sm bg-amber-200 px-0.5 ring-1 ring-amber-300";
+    segment.surroundContents(marker);
+    firstMarker ??= marker;
+  }
+  return firstMarker;
+}
+
+function removeCommentAnchors(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>("[data-draft-comment-id]").forEach((marker) => {
+    if (!marker.textContent?.trim()) {
+      marker.remove();
+      return;
+    }
+    marker.replaceWith(...Array.from(marker.childNodes));
+  });
+}
+
+function getPersistableContent(editor: HTMLElement) {
+  const clone = editor.cloneNode(true) as HTMLElement;
+  removeCommentAnchors(clone);
+  return clone.innerHTML;
 }
 
 function renderCommentAnchors(editor: HTMLElement, comments: DraftComment[]) {
+  removeCommentAnchors(editor);
   const anchored = comments
     .filter((item) => !item.parentId && item.positionStart !== null && item.positionEnd !== null)
     .sort((a, b) => (b.positionStart ?? 0) - (a.positionStart ?? 0));
   for (const comment of anchored) {
-    if (editor.querySelector(`[data-draft-comment-id="${comment.id}"]`)) continue;
     const range = findTextRange(editor, comment.positionStart!, comment.positionEnd!);
-    if (range && !range.collapsed) wrapCommentRange(range, comment.id);
+    const sourceText = range?.toString().replace(/\s+/g, " ").trim();
+    const selectedText = comment.selectedText?.replace(/\s+/g, " ").trim();
+    if (range && !range.collapsed && sourceText === selectedText) wrapCommentRange(range, comment.id);
   }
+}
+
+function commentsAnchoredInCurrentRevision(comments: DraftComment[], discussionAnchorAfter?: string) {
+  const cutoff = discussionAnchorAfter ? Date.parse(discussionAnchorAfter) : Number.NaN;
+  if (!Number.isFinite(cutoff)) return comments;
+  return comments.filter((comment) => Date.parse(comment.createdAt) >= cutoff);
 }
 
 export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) {
@@ -123,25 +182,37 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     isCommenting,
     isSharing,
     isDeleting,
+    isLoadingVersion,
+    isRestoringVersion,
+    isManagingAccess,
     error: remoteError,
     saveDraft: saveRemoteDraft,
     deleteDraft,
+    getDraftVersion,
+    restoreDraftVersion,
     addComment,
+    updateComment,
     deleteComment,
+    setCommentResolved,
     inviteCollaborator,
+    updateCollaboratorRole,
+    removeCollaborator,
     dismissError,
   } = useDraft(initialDraft);
   const editorRef = useRef<HTMLElement>(null);
   const selectionRangeRef = useRef<Range | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localBackupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchIndexRef = useRef(0);
   const orphanSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveStatusRef = useRef<SaveStatus>("saved");
+  const preserveSelectionOnNextChangeRef = useRef(false);
   const [title, setTitle] = useState(initialDraft.title);
+  const titleRef = useRef(initialDraft.title);
   const [message, setMessage] = useState("");
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("conversation");
   const aiMessages: AiMessage[] = [{ role: "assistant", body: "Percakapan Klarisa AI akan tersedia setelah layanan Gemini dan sumber hukum terhubung." }];
   const [activeCommands, setActiveCommands] = useState<Set<string>>(new Set());
-  const [isHighlighted, setIsHighlighted] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFeedback, setSearchFeedback] = useState("");
@@ -150,12 +221,30 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isVersionsOpen, setIsVersionsOpen] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<DraftVersionContent | null>(null);
+  const [versionToRestore, setVersionToRestore] = useState<DraftVersionContent | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedDraftText, setSelectedDraftText] = useState("");
   const [selectedTextPosition, setSelectedTextPosition] = useState<{ start: number; end: number } | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const canEdit = remoteDraft.permission === "owner";
   const canComment = canEdit || remoteDraft.permission === "commenter";
+
+  const setEditorSaveStatus = useCallback((status: SaveStatus) => {
+    saveStatusRef.current = status;
+    setSaveStatus(status);
+  }, []);
+
+  const clearLocalBackup = useCallback(() => {
+    localStorage.removeItem(`${DRAFT_BACKUP_KEY}:${remoteDraft.id}`);
+    localStorage.removeItem(`${LEGACY_DRAFT_KEY}:${remoteDraft.id}`);
+    localStorage.removeItem(`${LEGACY_TITLE_KEY}:${remoteDraft.id}`);
+  }, [remoteDraft.id]);
+
+  const currentRevisionComments = useCallback((comments: DraftComment[]) => (
+    commentsAnchoredInCurrentRevision(comments, remoteDraft.metadata.discussion_anchor_after)
+  ), [remoteDraft.metadata.discussion_anchor_after]);
 
   useEffect(() => {
     if (!notice && !remoteError) return;
@@ -167,25 +256,37 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
   }, [dismissError, notice, remoteError]);
 
   const persistLocally = useCallback(() => {
-    if (!editorRef.current) return;
-    localStorage.setItem(`${DRAFT_KEY}:${remoteDraft.id}`, editorRef.current.innerHTML);
-    localStorage.setItem(`${TITLE_KEY}:${remoteDraft.id}`, title);
-    setSaveStatus("saved");
-  }, [remoteDraft.id, title]);
+    if (!canEdit || !editorRef.current) return;
+    const backup: LocalDraftBackup = {
+      content: getPersistableContent(editorRef.current),
+      title: titleRef.current,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(`${DRAFT_BACKUP_KEY}:${remoteDraft.id}`, JSON.stringify(backup));
+  }, [canEdit, remoteDraft.id]);
+
+  const scheduleLocalBackup = useCallback(() => {
+    if (localBackupTimerRef.current) clearTimeout(localBackupTimerRef.current);
+    localBackupTimerRef.current = setTimeout(persistLocally, 350);
+  }, [persistLocally]);
 
   const saveDraft = useCallback(async (createVersion = false) => {
-    persistLocally();
     if (!editorRef.current || !remoteDraft || !canEdit) return false;
-    const saved = await saveRemoteDraft({ title, content: editorRef.current.innerHTML, createVersion });
-    if (saved) setNotice(createVersion ? "Versi baru draft berhasil disimpan." : "Draft berhasil disimpan.");
+    persistLocally();
+    const saved = await saveRemoteDraft({ title: titleRef.current, content: getPersistableContent(editorRef.current), createVersion });
+    setEditorSaveStatus(saved ? "saved" : "error");
+    if (saved) {
+      clearLocalBackup();
+      setNotice(createVersion ? "Versi baru draft berhasil disimpan." : "Draft berhasil disimpan.");
+    }
     return saved;
-  }, [canEdit, persistLocally, remoteDraft, saveRemoteDraft, title]);
+  }, [canEdit, clearLocalBackup, persistLocally, remoteDraft, saveRemoteDraft, setEditorSaveStatus]);
 
   const scheduleSave = useCallback(() => {
-    setSaveStatus("saving");
+    setEditorSaveStatus("saving");
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void saveDraft(false); }, 900);
-  }, [saveDraft]);
+  }, [saveDraft, setEditorSaveStatus]);
 
   const updateActiveCommands = useCallback(() => {
     const selection = window.getSelection();
@@ -203,8 +304,9 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
       prefixRange.setEnd(range.startContainer, range.startOffset);
       const start = prefixRange.toString().length;
       setSelectedDraftText(selectedText);
-      setSelectedTextPosition({ start, end: start + range.toString().length });
-    } else if (document.activeElement === editorRef.current) {
+      const end = start + range.toString().length;
+      setSelectedTextPosition((current) => current?.start === start && current.end === end ? current : { start, end });
+    } else if (document.activeElement === editorRef.current && !preserveSelectionOnNextChangeRef.current) {
       setSelectedDraftText("");
       setSelectedTextPosition(null);
     }
@@ -212,13 +314,10 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     toolbar.forEach(([, , command]) => {
       if (document.queryCommandState(command)) next.add(command);
     });
-    setActiveCommands(next);
-    const highlightColor = String(document.queryCommandValue("hiliteColor")).toLowerCase();
-    setIsHighlighted(
-      highlightColor.includes("253, 230, 138")
-      || highlightColor.includes("fde68a")
-      || highlightColor.includes("rgb(253, 230, 138)"),
-    );
+    setActiveCommands((current) => {
+      const unchanged = current.size === next.size && [...next].every((command) => current.has(command));
+      return unchanged ? current : next;
+    });
   }, []);
 
   const restoreEditorSelection = useCallback(() => {
@@ -233,20 +332,37 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
   }, []);
 
   useEffect(() => {
-    const savedContent = localStorage.getItem(`${DRAFT_KEY}:${initialDraft.id}`);
-    const savedTitle = localStorage.getItem(`${TITLE_KEY}:${initialDraft.id}`);
+    const backup = canEdit ? readLocalDraftBackup(initialDraft.id) : null;
+    const backupTime = backup ? Date.parse(backup.savedAt) : Number.NaN;
+    const remoteTime = Date.parse(initialDraft.updatedAt);
+    const shouldRecoverBackup = Boolean(backup && Number.isFinite(backupTime) && backupTime > remoteTime);
     if (editorRef.current) {
-      editorRef.current.innerHTML = savedContent || initialDraft.content || defaultDocument;
-      renderCommentAnchors(editorRef.current, initialDraft.comments);
+      editorRef.current.innerHTML = shouldRecoverBackup ? backup!.content : initialDraft.content || defaultDocument;
+      renderCommentAnchors(editorRef.current, commentsAnchoredInCurrentRevision(initialDraft.comments, initialDraft.metadata.discussion_anchor_after));
     }
-    queueMicrotask(() => setTitle(savedTitle || initialDraft.title));
+    queueMicrotask(() => {
+      const recoveredTitle = shouldRecoverBackup ? backup!.title : initialDraft.title;
+      titleRef.current = recoveredTitle;
+      setTitle(recoveredTitle);
+      if (shouldRecoverBackup) {
+        setNotice("Perubahan lokal yang belum tersimpan berhasil dipulihkan.");
+        void saveRemoteDraft({ title: backup!.title, content: backup!.content, createVersion: false }).then((saved) => {
+          setEditorSaveStatus(saved ? "saved" : "error");
+          if (saved) clearLocalBackup();
+        });
+      } else if (backup) {
+        clearLocalBackup();
+      }
+    });
     document.addEventListener("selectionchange", updateActiveCommands);
     return () => {
+      if (canEdit && saveStatusRef.current !== "saved") persistLocally();
       document.removeEventListener("selectionchange", updateActiveCommands);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (localBackupTimerRef.current) clearTimeout(localBackupTimerRef.current);
       if (orphanSyncTimerRef.current) clearTimeout(orphanSyncTimerRef.current);
     };
-  }, [initialDraft.comments, initialDraft.content, initialDraft.id, initialDraft.title, updateActiveCommands]);
+  }, [canEdit, clearLocalBackup, initialDraft.comments, initialDraft.content, initialDraft.id, initialDraft.metadata.discussion_anchor_after, initialDraft.title, initialDraft.updatedAt, persistLocally, saveRemoteDraft, setEditorSaveStatus, updateActiveCommands]);
 
   const runCommand = (command: string, value?: string) => {
     restoreEditorSelection();
@@ -263,21 +379,6 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     }
     const url = window.prompt("Masukkan alamat tautan:", "https://");
     if (url?.startsWith("https://") || url?.startsWith("http://")) runCommand("createLink", url);
-  };
-
-  const toggleHighlight = () => {
-    if (!restoreEditorSelection() || selectionRangeRef.current?.collapsed) {
-      setNotice("Pilih teks terlebih dahulu untuk memberi atau menghapus sorotan.");
-      return;
-    }
-    const currentColor = String(document.queryCommandValue("hiliteColor")).toLowerCase();
-    const hasHighlight = currentColor.includes("253, 230, 138") || currentColor.includes("fde68a");
-    const color = hasHighlight ? "transparent" : "#fde68a";
-    const applied = document.execCommand("hiliteColor", false, color);
-    if (!applied) document.execCommand("backColor", false, color);
-    setIsHighlighted(!hasHighlight);
-    updateActiveCommands();
-    scheduleSave();
   };
 
   const findNext = () => {
@@ -335,10 +436,32 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
   const confirmDeleteDraft = async () => {
     const deleted = await deleteDraft();
     if (!deleted) return;
-    localStorage.removeItem(`${DRAFT_KEY}:${remoteDraft.id}`);
-    localStorage.removeItem(`${TITLE_KEY}:${remoteDraft.id}`);
+    clearLocalBackup();
     router.push("/dashboard/search");
     router.refresh();
+  };
+
+  const previewVersion = async (versionId: string) => {
+    const version = await getDraftVersion(versionId);
+    if (version) setSelectedVersion(version);
+  };
+
+  const confirmRestoreVersion = async () => {
+    if (!versionToRestore) return;
+    const restored = await restoreDraftVersion(versionToRestore.id);
+    if (!restored) return;
+    titleRef.current = restored.title;
+    setTitle(restored.title);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = restored.content;
+      renderCommentAnchors(editorRef.current, []);
+    }
+    clearLocalBackup();
+    setEditorSaveStatus("saved");
+    setVersionToRestore(null);
+    setSelectedVersion(null);
+    setIsVersionsOpen(false);
+    setNotice(`Draft dipulihkan ke versi ${String(restored.version).padStart(2, "0")}.`);
   };
 
   const submitInvitation = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -349,6 +472,38 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     setInviteEmail("");
     setIsShareOpen(false);
     setNotice("Pihak terkait ditambahkan dan tautan draft disalin.");
+  };
+
+  const changeCollaboratorRole = async (userId: string, role: "commenter" | "viewer") => {
+    const updated = await updateCollaboratorRole({ userId, role });
+    if (updated) setNotice("Akses pihak terkait diperbarui.");
+  };
+
+  const revokeCollaboratorAccess = async (userId: string) => {
+    const removed = await removeCollaborator(userId);
+    if (removed) setNotice("Akses pihak terkait dicabut.");
+  };
+
+  const updateDiscussionComment = async (commentId: string, body: string) => {
+    const updated = await updateComment(commentId, { body });
+    if (updated) setNotice("Komentar diperbarui.");
+    return updated;
+  };
+
+  const deleteDiscussionComment = async (commentId: string) => {
+    const deleted = await deleteComment(commentId);
+    if (deleted) {
+      const remainingComments = remoteDraft.comments.filter((item) => item.id !== commentId && item.parentId !== commentId);
+      if (editorRef.current) renderCommentAnchors(editorRef.current, currentRevisionComments(remainingComments));
+      setNotice("Komentar dan sorotan teksnya dihapus.");
+    }
+    return deleted;
+  };
+
+  const setDiscussionResolved = async (commentId: string, resolved: boolean) => {
+    const updated = await setCommentResolved(commentId, resolved);
+    if (updated) setNotice(resolved ? "Diskusi ditandai selesai." : "Diskusi dibuka kembali.");
+    return updated;
   };
 
   const sendMessage = async () => {
@@ -371,14 +526,12 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
             positionEnd: selectedTextPosition!.end,
           });
       if (!comment) return;
-      if (!replyToId && restoreEditorSelection() && selectionRangeRef.current) {
-        const marker = wrapCommentRange(selectionRangeRef.current, comment.id);
-        marker.scrollIntoView({ behavior: "smooth", block: "center" });
-        scheduleSave();
+      if (!replyToId && editorRef.current) {
+        renderCommentAnchors(editorRef.current, currentRevisionComments([...remoteDraft.comments, comment]));
+        editorRef.current.querySelector<HTMLElement>(`[data-draft-comment-id="${comment.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       setReplyToId(null);
-      setSelectedDraftText("");
-      setSelectedTextPosition(null);
+      clearSelectedDraftText();
     }
     setMessage("");
   };
@@ -395,69 +548,89 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
 
   const syncOrphanedComments = useCallback(() => {
     if (!editorRef.current || remoteDraft.permission !== "owner") return;
-    const anchoredComments = remoteDraft.comments.filter((item) => !item.parentId && item.positionStart !== null);
+    const anchoredComments = currentRevisionComments(remoteDraft.comments).filter((item) => !item.parentId && item.positionStart !== null);
     for (const comment of anchoredComments) {
       const marker = editorRef.current.querySelector<HTMLElement>(`[data-draft-comment-id="${comment.id}"]`);
       if (!marker || !marker.textContent?.trim()) void deleteComment(comment.id);
     }
-  }, [deleteComment, remoteDraft.comments, remoteDraft.permission]);
+  }, [currentRevisionComments, deleteComment, remoteDraft.comments, remoteDraft.permission]);
 
   const handleEditorInput = () => {
+    if (!canEdit) return;
+    scheduleLocalBackup();
     scheduleSave();
     if (orphanSyncTimerRef.current) clearTimeout(orphanSyncTimerRef.current);
     orphanSyncTimerRef.current = setTimeout(syncOrphanedComments, 350);
   };
 
-  const rootComments = remoteDraft.comments.filter((item) => !item.parentId);
+  const preserveDraftSelectionForComment = () => {
+    // Clicking the composer collapses the browser selection before focus moves.
+    // Keep the stored range so the comment still targets the selected text.
+    preserveSelectionOnNextChangeRef.current = true;
+    window.setTimeout(() => {
+      preserveSelectionOnNextChangeRef.current = false;
+    }, 0);
+  };
+
+  const clearSelectedDraftText = () => {
+    selectionRangeRef.current = null;
+    setSelectedDraftText("");
+    setSelectedTextPosition(null);
+  };
+
   const replyTarget = replyToId ? remoteDraft.comments.find((item) => item.id === replyToId) : null;
 
   return <div className="min-h-[calc(100svh-57px)] bg-white">
     <header className="flex min-h-[68px] flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
       <span className="grid min-w-0 flex-1 gap-1">
-        <input value={title} readOnly={!canEdit} onChange={(event) => { setTitle(event.target.value); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary read-only:cursor-default"/>
-        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {isSaving || saveStatus === "saving" ? "Menyimpan..." : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
+        <input value={title} readOnly={!canEdit} onChange={(event) => { titleRef.current = event.target.value; setTitle(event.target.value); scheduleLocalBackup(); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary read-only:cursor-default"/>
+        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
       {canEdit && <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>}
+      {canEdit && <button type="button" onClick={() => { setSelectedVersion(null); setIsVersionsOpen(true); }} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary"><History className="size-4"/><span className="hidden sm:inline">Riwayat versi</span></button>}
       {remoteDraft.permission === "owner" && <button type="button" onClick={shareDraft} disabled={isSharing} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary disabled:cursor-wait disabled:opacity-60"><Share2 className="size-4"/>{isSharing ? "Menyiapkan..." : "Bagikan"}</button>}
       {remoteDraft.permission === "owner" && <div className="relative"><button type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)} className="grid size-10 place-items-center rounded-md border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"><MoreHorizontal className="size-4"/></button>{isActionsOpen && <div className="absolute top-12 right-0 z-50 w-44 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg"><button type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="flex w-full items-center gap-2 rounded px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="size-4"/>Hapus draft</button></div>}</div>}
     </header>
 
     {(notice || remoteError) && <div role={remoteError ? "alert" : "status"} className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg"><Check className="size-4 text-klarisa-secondary"/><span>{remoteError || notice}</span><button type="button" onClick={() => { setNotice(""); dismissError(); }} aria-label="Tutup pemberitahuan" className="grid size-7 shrink-0 place-items-center rounded hover:bg-slate-100"><X className="size-4 text-slate-400"/></button></div>}
 
-    {isShareOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup panel bagikan" onClick={() => setIsShareOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p><h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2><p className="mt-2 text-xs leading-5 text-slate-500">Pengguna yang diundang dapat menyorot teks, berdiskusi, dan meninjau draft, tetapi tidak dapat mengubah isi kontrak.</p></div><button type="button" onClick={() => setIsShareOpen(false)} aria-label="Tutup" className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><form onSubmit={submitInvitation} className="mt-6 grid gap-4"><label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna<input type="email" required value={inviteEmail} onChange={(event)=>setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10"/></label><div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600"><b className="text-klarisa-secondary">Akses pihak terkait:</b> komentar dan review tanpa izin menyunting.</div><div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setIsShareOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold">Batal</button><button type="submit" disabled={isSharing} className="min-h-10 rounded-md bg-[#172031] px-4 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{isSharing ? "Menambahkan..." : "Undang dan salin tautan"}</button></div></form></section></div>}
+    {isShareOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup panel bagikan" onClick={() => setIsShareOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p><h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2><p className="mt-2 text-xs leading-5 text-slate-500">Atur siapa yang dapat melihat atau memberi komentar pada draft ini.</p></div><button type="button" onClick={() => setIsShareOpen(false)} aria-label="Tutup" className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><form onSubmit={submitInvitation} className="mt-6 grid gap-4"><label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna<input type="email" required value={inviteEmail} onChange={(event)=>setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10"/></label><div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600"><b className="text-klarisa-secondary">Komentator</b> dapat berdiskusi. <b className="text-klarisa-secondary">Peninjau</b> hanya dapat membaca isi draft.</div><div className="flex justify-end gap-2"><button type="submit" disabled={isSharing} className="min-h-10 rounded-md bg-[#172031] px-4 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{isSharing ? "Menambahkan..." : "Undang dan salin tautan"}</button></div></form>{remoteDraft.collaborators.length > 0 && <div className="mt-6 border-t border-slate-200 pt-4"><p className="text-[9px] font-bold tracking-[.14em] text-slate-500">ORANG YANG MEMILIKI AKSES</p><div className="mt-3 grid max-h-48 gap-2 overflow-y-auto pr-1">{remoteDraft.collaborators.map((collaborator) => <div key={collaborator.userId} className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5"><span className="grid size-7 place-items-center rounded-full bg-[#edf2ff] text-[8px] font-bold text-klarisa-secondary">{collaborator.name.split(" ").slice(0,2).map((part)=>part[0]).join("").toUpperCase()}</span><span className="min-w-0 flex-1"><b className="block truncate text-[10px]">{collaborator.name}</b><small className="block text-[9px] text-slate-400">{collaborator.role === "commenter" ? "Dapat berkomentar" : "Hanya melihat"}</small></span><select aria-label={`Peran ${collaborator.name}`} value={collaborator.role === "commenter" ? "commenter" : "viewer"} disabled={isManagingAccess} onChange={(event) => void changeCollaboratorRole(collaborator.userId, event.target.value as "commenter" | "viewer")} className="h-8 rounded border border-slate-200 bg-white px-1.5 text-[9px] font-semibold outline-none"><option value="commenter">Komentator</option><option value="viewer">Peninjau</option></select><button type="button" disabled={isManagingAccess} onClick={() => void revokeCollaboratorAccess(collaborator.userId)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50" aria-label={`Cabut akses ${collaborator.name}`}><X className="size-3.5"/></button></div>)}</div></div>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setIsShareOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold">Selesai</button></div></section></div>}
+
+    {isVersionsOpen && <div className="fixed inset-0 z-[65] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup riwayat versi" onClick={() => setIsVersionsOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="version-history-title" className="relative grid max-h-[min(720px,calc(100svh-2rem))] w-full max-w-4xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl md:grid-cols-[260px_minmax(0,1fr)]"><div className="border-b border-slate-200 p-5 md:border-r md:border-b-0"><div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">RIWAYAT DRAFT</p><h2 id="version-history-title" className="mt-2 text-lg font-semibold tracking-[-.03em]">Versi tersimpan</h2></div><button type="button" onClick={() => setIsVersionsOpen(false)} aria-label="Tutup" className="grid size-8 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Pilih versi untuk melihat isi sebelumnya.</p><div className="mt-5 grid max-h-64 gap-1 overflow-y-auto md:max-h-[510px]">{remoteDraft.versions.map((version) => <button key={version.id} type="button" onClick={() => void previewVersion(version.id)} disabled={isLoadingVersion} className={cn("grid gap-1 rounded-md px-3 py-3 text-left transition-colors hover:bg-[#f5f7ff] disabled:cursor-wait", selectedVersion?.id === version.id && "bg-[#edf2ff] text-klarisa-secondary")}><span className="flex items-center justify-between gap-3"><b className="text-[11px]">Versi {String(version.version).padStart(2, "0")}</b><time className="text-[9px] text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time></span><small className="truncate text-[10px] text-slate-500">{version.title}</small></button>)}{remoteDraft.versions.length === 0 && <p className="px-3 py-5 text-[10px] leading-5 text-slate-400">Belum ada versi tersimpan.</p>}</div></div><div className="flex min-h-0 flex-col bg-slate-50/60"><div className="border-b border-slate-200 bg-white px-6 py-5"><p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">PRATINJAU VERSI</p><h3 className="mt-2 text-base font-semibold">{selectedVersion ? selectedVersion.title : "Pilih versi draft"}</h3></div>{selectedVersion ? <><article dangerouslySetInnerHTML={{ __html: selectedVersion.content }} className="min-h-0 flex-1 overflow-y-auto px-6 py-6 text-xs leading-6 text-slate-700 [&_h2]:mt-6 [&_h2]:font-sans [&_h2]:text-xs [&_h2]:font-bold [&_p]:mt-3"/><div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4"><small className="text-[10px] leading-4 text-slate-500">Pemulihan mengganti isi draft tanpa menambah riwayat. Diskusi lama tetap tersimpan, tetapi sorotannya tidak dipasang pada versi ini.</small><button type="button" onClick={() => setVersionToRestore(selectedVersion)} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary"><RotateCcw className="size-4"/>Pulihkan versi ini</button></div></> : <div className="grid flex-1 place-items-center px-6 text-center"><p className="max-w-xs text-xs leading-5 text-slate-400">Pilih salah satu versi di sebelah kiri untuk melihat isi dan memulihkannya bila diperlukan.</p></div>}</div></section></div>}
+
+    {versionToRestore && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Batal memulihkan versi" onClick={() => setVersionToRestore(null)} className="absolute inset-0"/><section role="alertdialog" aria-modal="true" aria-labelledby="restore-version-title" aria-describedby="restore-version-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><span className="grid size-10 place-items-center rounded-full bg-[#edf2ff] text-klarisa-secondary"><RotateCcw className="size-4"/></span><h2 id="restore-version-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Pulihkan versi {String(versionToRestore.version).padStart(2, "0")}?</h2><p id="restore-version-description" className="mt-2 text-xs leading-5 text-slate-500">Isi draft saat ini akan diganti dengan versi pilihan tanpa membuat versi baru. Diskusi sebelumnya tetap tersimpan, tetapi sorotan teksnya tidak dibawa ke versi yang dipulihkan.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={isRestoringVersion} onClick={() => setVersionToRestore(null)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold disabled:opacity-50">Batal</button><button type="button" disabled={isRestoringVersion} onClick={() => void confirmRestoreVersion()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary disabled:cursor-wait disabled:opacity-60"><RotateCcw className="size-4"/>{isRestoringVersion ? "Memulihkan..." : "Pulihkan versi"}</button></div></section></div>}
 
     {isDeleteOpen && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Batal menghapus draft" onClick={() => setIsDeleteOpen(false)} className="absolute inset-0"/><section role="alertdialog" aria-modal="true" aria-labelledby="delete-draft-title" aria-describedby="delete-draft-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600"><Trash2 className="size-4"/></span><h2 id="delete-draft-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Hapus draft ini?</h2><p id="delete-draft-description" className="mt-2 text-xs leading-5 text-slate-500">Draft, versi tersimpan, komentar, dan akses pihak terkait akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold disabled:opacity-50">Batal</button><button type="button" disabled={isDeleting} onClick={() => void confirmDeleteDraft()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-red-600 px-4 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"><Trash2 className="size-4"/>{isDeleting ? "Menghapus..." : "Hapus permanen"}</button></div></section></div>}
 
-    <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_290px]">
+    <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">
         <div className="sticky top-16 z-20 border-b border-slate-200 bg-white lg:top-[57px]">
           {isSearchOpen && <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 sm:px-6"><Search className="size-4 text-klarisa-secondary"/><input autoFocus value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); searchIndexRef.current = 0; setSearchFeedback(""); }} onKeyDown={(event) => { if (event.key === "Enter") findNext(); if (event.key === "Escape") setIsSearchOpen(false); }} placeholder="Cari di dalam kontrak..." className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none"/><span className="text-[9px] text-slate-400">{searchFeedback}</span><button type="button" onClick={findNext} className="h-8 rounded bg-[#172031] px-3 text-[9px] font-bold text-white">Cari berikutnya</button><button type="button" onClick={() => setIsSearchOpen(false)} aria-label="Tutup pencarian" className="grid size-8 place-items-center"><X className="size-4"/></button></div>}
           <div className="flex min-h-13 items-center gap-1 overflow-x-auto px-3 py-2 sm:px-6">
             <button type="button" aria-label="Cari dalam dokumen" onClick={() => setIsSearchOpen((current) => !current)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", isSearchOpen && "bg-[#edf2ff] text-klarisa-secondary")}><Search className="size-4"/></button>
-            <span className="mx-1 h-6 w-px shrink-0 bg-slate-200"/>
+            {canEdit && <><span className="mx-1 h-6 w-px shrink-0 bg-slate-200"/>
             <button type="button" aria-label="Urungkan" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("undo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Undo2 className="size-4"/></button>
             <button type="button" aria-label="Ulangi" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("redo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Redo2 className="size-4"/></button>
             <select aria-label="Gaya paragraf" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)} className="mx-2 h-9 shrink-0 rounded border border-slate-200 bg-white px-2 text-[10px] outline-none"><option value="p">Paragraf</option><option value="h2">Judul pasal</option><option value="blockquote">Kutipan</option></select>
             {toolbar.map(([label, Icon, command]) => <button key={label} type="button" title={label} aria-label={label} aria-pressed={activeCommands.has(command)} onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand(command)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", activeCommands.has(command) && "bg-[#eaf0ff] text-klarisa-secondary")}><Icon className="size-4"/></button>)}
-            <button type="button" title="Sorot kuning" aria-label="Sorot teks dengan warna kuning" aria-pressed={isHighlighted} onMouseDown={(event) => event.preventDefault()} onClick={toggleHighlight} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-amber-100", isHighlighted && "bg-amber-200 text-amber-900")}><Highlighter className="size-4"/></button>
-            <button type="button" aria-label="Tambahkan tautan" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Link2 className="size-4"/></button>
+            <button type="button" aria-label="Tambahkan tautan" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Link2 className="size-4"/></button></>}
           </div>
         </div>
 
         <article ref={editorRef} contentEditable={canEdit} suppressContentEditableWarning spellCheck onInput={handleEditorInput} onKeyDown={handleEditorKeyDown} onMouseUp={updateActiveCommands} onKeyUp={updateActiveCommands} dangerouslySetInnerHTML={{ __html: initialDraft.content }} className="mx-auto min-h-[calc(100svh-178px)] max-w-[900px] px-5 py-8 text-sm leading-7 outline-none selection:bg-[#dce6ff] empty:before:text-slate-400 empty:before:content-['Mulai_tulis_kontrak_Anda...'] sm:px-10 lg:px-14 [&_a]:text-klarisa-secondary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-klarisa-secondary [&_blockquote]:pl-4 [&_h2]:mt-7 [&_h2]:font-sans [&_h2]:text-sm [&_h2]:font-bold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:min-h-[1.25rem] [&_ul]:list-disc"/>
       </section>
 
-      <aside className="flex min-h-[440px] flex-col bg-white p-5">
+      <aside className="flex min-h-[440px] flex-col bg-white p-5 xl:sticky xl:top-[57px] xl:h-[calc(100svh-125px)] xl:overflow-hidden [&>div:nth-last-child(2)]:mb-6">
         <div className="flex gap-1 border-b border-slate-200 pb-3"><button type="button" aria-pressed={activeSidebarTab === "conversation"} onClick={() => { setActiveSidebarTab("conversation"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "conversation" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Percakapan</button><button type="button" aria-pressed={activeSidebarTab === "discussion"} onClick={() => { setActiveSidebarTab("discussion"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "discussion" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Diskusi</button></div>
         {activeSidebarTab === "conversation" ? <>
           <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain"/><b className="text-[11px]">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain"/></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
           <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-[9px] font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain"/> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-[11px]">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
         </> : <>
           <div className="mt-5"><p className="text-[10px] font-bold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-5 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
-          {selectedDraftText && !replyToId && <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3"><p className="text-[9px] font-bold tracking-[.12em] text-amber-700">TEKS DIPILIH</p><p className="mt-1 line-clamp-3 text-[10px] leading-5 text-slate-600">“{selectedDraftText}”</p></div>}
-          <div className="mt-5 grid gap-4">{rootComments.map((item)=><article key={item.id} className="grid grid-cols-[30px_1fr] gap-3"><span className="grid size-8 place-items-center overflow-hidden rounded-full bg-[#edf2ff] text-[9px] font-bold text-klarisa-secondary">{item.avatarUrl ? <Image src={item.avatarUrl} alt="" width={32} height={32} className="size-8 object-cover"/> : item.authorName.split(" ").slice(0,2).map((part)=>part[0]).join("").toUpperCase()}</span><span><button type="button" onClick={()=>focusCommentSource(item.id)} className="text-left"><b className="text-[11px]">{item.isOwn ? "Anda" : item.authorName}</b>{item.selectedText && <small className="mt-1 block border-l-2 border-amber-300 pl-2 text-[9px] leading-4 text-slate-400">“{item.selectedText}”</small>}<small className="mt-2 block text-[10px] leading-5 text-slate-600">{item.body}</small></button><span className="mt-1 flex items-center gap-3"><time className="text-[9px] text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))}</time><button type="button" onClick={()=>{setReplyToId(item.id);setMessage("");}} className="inline-flex items-center gap-1 text-[9px] font-bold text-klarisa-secondary"><Reply className="size-3"/>Balas</button></span>{remoteDraft.comments.filter((reply)=>reply.parentId===item.id).map((reply)=><span key={reply.id} className="mt-3 grid grid-cols-[24px_1fr] gap-2 border-l border-slate-200 pl-3"><i className="grid size-6 place-items-center rounded-full bg-slate-100 text-[8px] font-bold not-italic text-slate-500">{reply.authorName.split(" ").slice(0,2).map((part)=>part[0]).join("").toUpperCase()}</i><span><b className="text-[10px]">{reply.isOwn?"Anda":reply.authorName}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{reply.body}</small></span></span>)}</span></article>)}{rootComments.length === 0 && <p className="rounded-md border border-dashed border-slate-200 px-3 py-5 text-center text-[10px] leading-5 text-slate-400">Pilih teks kontrak, lalu tulis komentar pertama.</p>}</div>
+          {selectedDraftText && !replyToId && <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3"><div className="flex items-center justify-between gap-3"><p className="text-[9px] font-bold tracking-[.12em] text-amber-700">TEKS UNTUK DIKOMENTARI</p><button type="button" onClick={clearSelectedDraftText} className="grid size-5 place-items-center rounded text-amber-700 hover:bg-amber-100" aria-label="Batalkan teks yang dipilih"><X className="size-3"/></button></div><p className="mt-1 line-clamp-3 text-[10px] leading-5 text-slate-600">“{selectedDraftText}”</p></div>}
+          <DraftDiscussionThread comments={remoteDraft.comments} canManage={canEdit} canComment={canComment} isPending={isCommenting} onFocusSource={focusCommentSource} onReply={(commentId) => { setReplyToId(commentId); setMessage(""); }} onUpdate={updateDiscussionComment} onDelete={deleteDiscussionComment} onSetResolved={setDiscussionResolved}/>
         </>}
-        <div className="mt-auto rounded-lg bg-slate-100 p-4">{activeSidebarTab === "discussion" && replyTarget && <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[9px] text-slate-500"><span>Membalas {replyTarget.isOwn?"komentar Anda":replyTarget.authorName}</span><button type="button" onClick={()=>setReplyToId(null)} aria-label="Batal membalas"><X className="size-3"/></button></div>}<textarea value={message} disabled={activeSidebarTab === "conversation" || !canComment} onChange={(event)=>setMessage(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void sendMessage();}}} placeholder={activeSidebarTab === "conversation" ? "Percakapan AI belum diaktifkan..." : !canComment ? "Anda hanya dapat melihat diskusi ini" : replyToId ? "Tulis balasan..." : selectedDraftText ? "Tulis komentar untuk teks yang dipilih..." : "Pilih teks kontrak untuk mulai berkomentar"} className="min-h-20 w-full resize-none bg-transparent text-xs outline-none disabled:cursor-not-allowed"/><button type="button" disabled={activeSidebarTab === "conversation" || isCommenting || !canComment || (!replyToId && !selectedDraftText)} onClick={() => void sendMessage()} aria-label={activeSidebarTab === "conversation" ? "Kirim pertanyaan ke Klarisa AI" : "Kirim komentar diskusi"} className="ml-auto grid size-9 place-items-center rounded-full bg-[#172031] text-white hover:bg-klarisa-secondary disabled:cursor-not-allowed disabled:opacity-50"><Send className="size-4"/></button></div>
+        <div className="mt-auto rounded-lg bg-slate-100 p-4">{activeSidebarTab === "discussion" && replyTarget && <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[9px] text-slate-500"><span>Membalas {replyTarget.isOwn?"komentar Anda":replyTarget.authorName}</span><button type="button" onClick={()=>setReplyToId(null)} aria-label="Batal membalas"><X className="size-3"/></button></div>}<textarea value={message} disabled={activeSidebarTab === "conversation" || !canComment} onPointerDown={activeSidebarTab === "discussion" ? preserveDraftSelectionForComment : undefined} onChange={(event)=>setMessage(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void sendMessage();}}} placeholder={activeSidebarTab === "conversation" ? "Percakapan AI belum diaktifkan..." : !canComment ? "Anda hanya dapat melihat diskusi ini" : replyToId ? "Tulis balasan..." : selectedDraftText ? "Tulis komentar untuk teks yang dipilih..." : "Pilih teks kontrak untuk mulai berkomentar"} className="min-h-20 w-full resize-none bg-transparent text-xs outline-none disabled:cursor-not-allowed"/><button type="button" disabled={activeSidebarTab === "conversation" || isCommenting || !canComment || (!replyToId && !selectedDraftText)} onClick={() => void sendMessage()} aria-label={activeSidebarTab === "conversation" ? "Kirim pertanyaan ke Klarisa AI" : "Kirim komentar diskusi"} className="ml-auto grid size-9 place-items-center rounded-full bg-[#172031] text-white hover:bg-klarisa-secondary disabled:cursor-not-allowed disabled:opacity-50"><Send className="size-4"/></button></div>
       </aside>
     </div>
   </div>;
