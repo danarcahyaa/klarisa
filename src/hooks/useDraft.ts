@@ -22,7 +22,7 @@ export function useDraft(initialDraft: ContractDetail) {
     try {
       const result = await saveDraftAction(data.id, input);
       if (!result.success) throw new Error(result.error ?? "Draft gagal disimpan.");
-      setData((current) => ({ ...current, title: input.title, content: input.content, metadata: { ...current.metadata, version: result.data?.version ?? current.metadata.version } }));
+      setData((current) => ({ ...current, title: input.title, content: input.content, metadata: { ...current.metadata, version: result.data?.version ?? current.metadata.version, active_version_id: result.data?.activeVersionId ?? current.metadata.active_version_id } }));
       return true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Draft gagal disimpan.");
@@ -97,7 +97,7 @@ export function useDraft(initialDraft: ContractDetail) {
         metadata: {
           ...current.metadata,
           version: result.data!.version,
-          discussion_anchor_after: result.data!.discussionAnchorAfter,
+          active_version_id: result.data!.id,
         },
       }));
       return result.data;

@@ -67,7 +67,7 @@ export async function setDraftCommentResolvedAction(contractId: string, commentI
 
 export async function saveDraftAction(contractId: string, input: SaveDraftDTO) {
   const context = await getDraftServerContext();
-  if (!context) return createErrorResponse<{ version: number }>("Sesi Anda telah berakhir.");
+  if (!context) return createErrorResponse<{ version: number; activeVersionId?: string }>("Sesi Anda telah berakhir.");
   const result = await context.service.saveDraft(context.user.id, contractId, input);
   if (result.success) {
     revalidatePath("/dashboard");

@@ -20,7 +20,7 @@ export interface ContractMetadata {
   draft_category?: string;
   draft_subtype?: string;
   generation_status?: "manual_outline" | "ai_generated";
-  discussion_anchor_after?: string;
+  active_version_id?: string;
   [key: string]: Json | undefined;
 }
 
@@ -54,7 +54,6 @@ export interface DraftVersion {
 
 export interface DraftVersionContent extends DraftVersion {
   content: string;
-  discussionAnchorAfter?: string;
 }
 
 export interface DraftCollaborator {
@@ -74,6 +73,7 @@ export interface DraftComment {
   selectedText: string | null;
   positionStart: number | null;
   positionEnd: number | null;
+  documentVersionId: string | null;
   createdAt: string;
   resolvedAt: string | null;
   isResolved: boolean;

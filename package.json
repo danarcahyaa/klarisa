@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "node --env-file=.env scripts/seed.mjs"
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "seed:reset": "node --env-file=.env scripts/seed.mjs --clear-all-drafts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

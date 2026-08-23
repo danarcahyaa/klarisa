@@ -168,12 +168,6 @@ function renderCommentAnchors(editor: HTMLElement, comments: DraftComment[]) {
   }
 }
 
-function commentsAnchoredInCurrentRevision(comments: DraftComment[], discussionAnchorAfter?: string) {
-  const cutoff = discussionAnchorAfter ? Date.parse(discussionAnchorAfter) : Number.NaN;
-  if (!Number.isFinite(cutoff)) return comments;
-  return comments.filter((comment) => Date.parse(comment.createdAt) >= cutoff);
-}
-
 export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) {
   const router = useRouter();
   const {
@@ -241,10 +235,6 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     localStorage.removeItem(`${LEGACY_DRAFT_KEY}:${remoteDraft.id}`);
     localStorage.removeItem(`${LEGACY_TITLE_KEY}:${remoteDraft.id}`);
   }, [remoteDraft.id]);
-
-  const currentRevisionComments = useCallback((comments: DraftComment[]) => (
-    commentsAnchoredInCurrentRevision(comments, remoteDraft.metadata.discussion_anchor_after)
-  ), [remoteDraft.metadata.discussion_anchor_after]);
 
   useEffect(() => {
     if (!notice && !remoteError) return;
@@ -338,7 +328,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     const shouldRecoverBackup = Boolean(backup && Number.isFinite(backupTime) && backupTime > remoteTime);
     if (editorRef.current) {
       editorRef.current.innerHTML = shouldRecoverBackup ? backup!.content : initialDraft.content || defaultDocument;
-      renderCommentAnchors(editorRef.current, commentsAnchoredInCurrentRevision(initialDraft.comments, initialDraft.metadata.discussion_anchor_after));
+      renderCommentAnchors(editorRef.current, initialDraft.comments);
     }
     queueMicrotask(() => {
       const recoveredTitle = shouldRecoverBackup ? backup!.title : initialDraft.title;
@@ -362,7 +352,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
       if (localBackupTimerRef.current) clearTimeout(localBackupTimerRef.current);
       if (orphanSyncTimerRef.current) clearTimeout(orphanSyncTimerRef.current);
     };
-  }, [canEdit, clearLocalBackup, initialDraft.comments, initialDraft.content, initialDraft.id, initialDraft.metadata.discussion_anchor_after, initialDraft.title, initialDraft.updatedAt, persistLocally, saveRemoteDraft, setEditorSaveStatus, updateActiveCommands]);
+  }, [canEdit, clearLocalBackup, initialDraft.comments, initialDraft.content, initialDraft.id, initialDraft.title, initialDraft.updatedAt, persistLocally, saveRemoteDraft, setEditorSaveStatus, updateActiveCommands]);
 
   const runCommand = (command: string, value?: string) => {
     restoreEditorSelection();
@@ -494,7 +484,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     const deleted = await deleteComment(commentId);
     if (deleted) {
       const remainingComments = remoteDraft.comments.filter((item) => item.id !== commentId && item.parentId !== commentId);
-      if (editorRef.current) renderCommentAnchors(editorRef.current, currentRevisionComments(remainingComments));
+      if (editorRef.current) renderCommentAnchors(editorRef.current, remainingComments);
       setNotice("Komentar dan sorotan teksnya dihapus.");
     }
     return deleted;
@@ -527,7 +517,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
           });
       if (!comment) return;
       if (!replyToId && editorRef.current) {
-        renderCommentAnchors(editorRef.current, currentRevisionComments([...remoteDraft.comments, comment]));
+        renderCommentAnchors(editorRef.current, [...remoteDraft.comments, comment]);
         editorRef.current.querySelector<HTMLElement>(`[data-draft-comment-id="${comment.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       setReplyToId(null);
@@ -548,12 +538,12 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
 
   const syncOrphanedComments = useCallback(() => {
     if (!editorRef.current || remoteDraft.permission !== "owner") return;
-    const anchoredComments = currentRevisionComments(remoteDraft.comments).filter((item) => !item.parentId && item.positionStart !== null);
+    const anchoredComments = remoteDraft.comments.filter((item) => !item.parentId && item.positionStart !== null);
     for (const comment of anchoredComments) {
       const marker = editorRef.current.querySelector<HTMLElement>(`[data-draft-comment-id="${comment.id}"]`);
       if (!marker || !marker.textContent?.trim()) void deleteComment(comment.id);
     }
-  }, [currentRevisionComments, deleteComment, remoteDraft.comments, remoteDraft.permission]);
+  }, [deleteComment, remoteDraft.comments, remoteDraft.permission]);
 
   const handleEditorInput = () => {
     if (!canEdit) return;

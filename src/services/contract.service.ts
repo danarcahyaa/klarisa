@@ -42,6 +42,7 @@ function mapComment(record: DraftCommentRecord, userId: string): DraftComment {
     selectedText: record.selected_text,
     positionStart: record.position_start,
     positionEnd: record.position_end,
+    documentVersionId: record.document_version_id,
     createdAt: record.created_at,
     resolvedAt: record.resolved_at,
     isResolved: Boolean(record.resolved_at),
@@ -127,6 +128,14 @@ export class ContractService {
       await this.repository.deleteContract(userId, contractId);
       return createErrorResponse<{ id: string }>(mapSupabaseError(versionResult.error.message));
     }
+    const metadataResult = await this.repository.updateDraftMetadata(contractId, {
+      ...metadataOf(draftResult.data.metadata),
+      active_version_id: versionResult.data.id,
+    });
+    if (metadataResult.error) {
+      await this.repository.deleteContract(userId, contractId);
+      return createErrorResponse<{ id: string }>(mapSupabaseError(metadataResult.error.message));
+    }
     const workspaceResult = await this.repository.findOwnedWorkspace(userId);
     if (workspaceResult.error) {
       await this.repository.deleteContract(userId, contractId);
@@ -182,13 +191,17 @@ export class ContractService {
     let content = "";
     try { content = encryptedContent ? decryptContractContent(encryptedContent) : ""; } catch { content = encryptedContent; }
     const permission = record.user_id === userId ? "owner" : "commenter";
+    const versions = versionsResult.data ?? [];
+    const activeVersionId = listItem.metadata.active_version_id ?? versions[0]?.id;
     const detail: ContractDetail = {
       ...listItem,
       content,
-      versions: (versionsResult.data ?? []).map(mapDraftVersion),
+      versions: versions.map(mapDraftVersion),
       settings: settingsResult.data,
       collaborators: ((collaboratorsResult.data ?? []) as DraftCollaboratorRecord[]).map(mapCollaborator),
-      comments: ((commentsResult.data ?? []) as DraftCommentRecord[]).map((comment) => mapComment(comment, userId)),
+      comments: ((commentsResult.data ?? []) as DraftCommentRecord[])
+        .filter((comment) => !activeVersionId || comment.document_version_id === activeVersionId)
+        .map((comment) => mapComment(comment, userId)),
       permission,
     };
     return createSuccessResponse(detail);
@@ -206,17 +219,22 @@ export class ContractService {
     const currentVersion = versions.data?.[0]?.version ?? 0;
     const nextVersion = validation.data.createVersion ? currentVersion + 1 : Math.max(currentVersion, 1);
     const draftRecord = (current.data as ContractRecord).contract_draft;
-    const metadata = { ...metadataOf(draftRecord?.metadata), encryption: "aes-256-gcm", version: nextVersion };
+    let metadata = { ...metadataOf(draftRecord?.metadata), encryption: "aes-256-gcm", version: nextVersion };
     const [titleResult, draftResult] = await Promise.all([
       this.repository.updateTitle(contractId, validation.data.title),
       this.repository.upsertDraft({ contract_id: contractId, content: encrypted, fairness_score: draftRecord?.fairness_score ?? null, total_clausul_risk: draftRecord?.total_clausul_risk ?? 0, metadata }),
     ]);
     if (titleResult.error || draftResult.error) return createErrorResponse(mapSupabaseError(titleResult.error?.message ?? draftResult.error?.message ?? "Gagal menyimpan draft."));
+    let activeVersionId = metadata.active_version_id;
     if (validation.data.createVersion || currentVersion === 0) {
       const versionResult = await this.repository.createDraftVersion({ document_id: contractId, title: validation.data.title, body: encrypted, version: nextVersion, created_by: userId });
       if (versionResult.error) return createErrorResponse(mapSupabaseError(versionResult.error.message));
+      activeVersionId = versionResult.data.id;
+      metadata = { ...metadata, active_version_id: activeVersionId };
+      const metadataResult = await this.repository.updateDraftMetadata(contractId, metadata);
+      if (metadataResult.error) return createErrorResponse(mapSupabaseError(metadataResult.error.message));
     }
-    return createSuccessResponse({ version: nextVersion }, "Draft berhasil disimpan.");
+    return createSuccessResponse<{ version: number; activeVersionId?: string }>({ version: nextVersion, activeVersionId }, "Draft berhasil disimpan.");
   }
 
   async getDraftVersion(userId: string, contractId: string, versionId: string) {
@@ -249,21 +267,18 @@ export class ContractService {
     const content = sanitizeContractHtml(sourceContent);
     const encrypted = encryptContractContent(content);
     const draftRecord = (current.data as ContractRecord).contract_draft;
-    // Version snapshots contain contract content only. Existing discussions are preserved,
-    // but their anchors must not be rendered against a restored document revision.
-    const discussionAnchorAfter = new Date().toISOString();
     const metadata = {
       ...metadataOf(draftRecord?.metadata),
       encryption: "aes-256-gcm",
       version: sourceVersion.data.version,
-      discussion_anchor_after: discussionAnchorAfter,
+      active_version_id: sourceVersion.data.id,
     };
     const [titleResult, draftResult] = await Promise.all([
       this.repository.updateTitle(contractId, sourceVersion.data.title),
       this.repository.upsertDraft({ contract_id: contractId, content: encrypted, fairness_score: draftRecord?.fairness_score ?? null, total_clausul_risk: draftRecord?.total_clausul_risk ?? 0, metadata }),
     ]);
     if (titleResult.error || draftResult.error) return createErrorResponse<DraftVersionContent>(mapSupabaseError(titleResult.error?.message ?? draftResult.error?.message ?? "Gagal memulihkan versi draft."));
-    return createSuccessResponse({ ...mapDraftVersion(sourceVersion.data), content, discussionAnchorAfter }, "Draft dipulihkan ke versi pilihan.");
+    return createSuccessResponse({ ...mapDraftVersion(sourceVersion.data), content }, "Draft dipulihkan ke versi pilihan.");
   }
 
   async shareDraft(userId: string, contractId: string) {
@@ -372,13 +387,21 @@ export class ContractService {
     const collaborator = current.data.user_id === userId ? null : await this.repository.findCollaborator(userId, contractId);
     const canComment = current.data.user_id === userId || Boolean(collaborator?.data);
     if (!canComment) return createErrorResponse<DraftComment>("Anda tidak memiliki izin untuk menulis komentar.");
+    let parentVersionId: string | null = null;
     if (validation.data.parentId) {
       const parent = await this.repository.findComment(contractId, validation.data.parentId);
       if (parent.error) return createErrorResponse<DraftComment>(mapSupabaseError(parent.error.message));
       if (!parent.data || parent.data.parent_id) return createErrorResponse<DraftComment>("Komentar yang ingin dibalas tidak ditemukan.");
+      parentVersionId = parent.data.document_version_id;
     }
+    const currentMetadata = metadataOf((current.data as ContractRecord).contract_draft?.metadata);
+    const activeVersionId = validation.data.parentId
+      ? parentVersionId
+      : currentMetadata.active_version_id;
+    if (!activeVersionId) return createErrorResponse<DraftComment>("Versi aktif draft tidak ditemukan. Muat ulang halaman lalu coba lagi.");
     const result = await this.repository.createComment({
       contract_id: contractId,
+      document_version_id: activeVersionId,
       author_id: userId,
       body: validation.data.body,
       parent_id: validation.data.parentId ?? null,
@@ -387,7 +410,6 @@ export class ContractService {
       position_end: validation.data.positionEnd ?? null,
     });
     if (result.error || !result.data) return createErrorResponse<DraftComment>(mapSupabaseError(result.error?.message ?? "Komentar gagal dikirim."));
-    const currentMetadata = metadataOf((current.data as ContractRecord).contract_draft?.metadata);
     await this.repository.updateDraftMetadata(contractId, {
       ...currentMetadata,
       comments: Number(currentMetadata.comments ?? 0) + 1,

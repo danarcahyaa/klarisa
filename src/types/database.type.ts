@@ -278,6 +278,7 @@ export type Database = {
           body: string
           contract_id: string
           created_at: string
+          document_version_id: string | null
           id: string
           parent_id: string | null
           position_end: number | null
@@ -292,6 +293,7 @@ export type Database = {
           body: string
           contract_id: string
           created_at?: string
+          document_version_id?: string | null
           id?: string
           parent_id?: string | null
           position_end?: number | null
@@ -306,6 +308,7 @@ export type Database = {
           body?: string
           contract_id?: string
           created_at?: string
+          document_version_id?: string | null
           id?: string
           parent_id?: string | null
           position_end?: number | null
@@ -328,6 +331,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_comments_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_drafts"
             referencedColumns: ["id"]
           },
           {

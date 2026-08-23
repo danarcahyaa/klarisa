@@ -1,13 +1,26 @@
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
+
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const encryptionKey = process.env.CONTRACT_ENCRYPTION_KEY;
-if (!url || !serviceRoleKey || !encryptionKey) throw new Error("Konfigurasi Supabase server belum tersedia.");
+const targetEmail = process.env.SEED_USER_EMAIL?.trim().toLocaleLowerCase("id-ID");
+const seedSlugs = ["identity", "photography"];
+const clearAllDrafts = process.argv.includes("--clear-all-drafts");
 
-const supabase = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+if (!url || !serviceRoleKey || !encryptionKey) {
+  throw new Error("Konfigurasi Supabase server belum tersedia.");
+}
+
 const key = Buffer.from(encryptionKey, "hex");
+if (key.length !== 32) {
+  throw new Error("CONTRACT_ENCRYPTION_KEY harus berupa 64 karakter heksadesimal.");
+}
+
+const supabase = createClient(url, serviceRoleKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 function stableUuid(seed) {
   const hex = createHash("sha256").update(seed).digest("hex").slice(0, 32).split("");
@@ -50,135 +63,126 @@ async function ensureWorkspace(user) {
   return workspaceId;
 }
 
-async function backfillDraftSettings(userId, workspaceId) {
-  const { data: ownedDrafts, error } = await supabase
+async function clearSeededDrafts(userId) {
+  const candidateIds = seedSlugs.map((slug) => stableUuid(`${userId}:draft:${slug}`));
+  let query = supabase
     .from("contracts")
     .select("id, contract_draft(metadata)")
     .eq("user_id", userId)
     .eq("type", "draft");
+  if (!clearAllDrafts) query = query.in("id", candidateIds);
+  const { data: drafts, error } = await query;
   if (error) throw new Error(`contracts: ${error.message}`);
 
-  for (const draft of ownedDrafts) {
-    const metadata = draft.contract_draft?.metadata || {};
-    const { error: settingsError } = await supabase.from("draft_settings").upsert({
-      contract_id: draft.id,
-      workspace_id: workspaceId,
-      status: metadata.shared ? "shared" : "private",
-    }, { onConflict: "contract_id" });
-    if (settingsError) throw new Error(`draft_settings: ${settingsError.message}`);
+  const contractIds = (drafts ?? []).map((draft) => draft.id);
+
+  if (contractIds.length) {
+    for (const table of ["draft_comments", "draft_collaborators", "draft_settings"]) {
+      const { error: deleteError } = await supabase.from(table).delete().in("contract_id", contractIds);
+      if (deleteError) throw new Error(`${table}: ${deleteError.message}`);
+    }
   }
+
+  const versionDocumentIds = clearAllDrafts ? contractIds : candidateIds;
+  const { error: versionError } = await supabase.from("document_drafts").delete().in("document_id", versionDocumentIds);
+  if (versionError) throw new Error(`document_drafts: ${versionError.message}`);
+
+  if (contractIds.length) {
+    const { error: detailError } = await supabase.from("contract_draft").delete().in("contract_id", contractIds);
+    if (detailError) throw new Error(`contract_draft: ${detailError.message}`);
+    const { error: contractError } = await supabase.from("contracts").delete().in("id", contractIds).eq("user_id", userId);
+    if (contractError) throw new Error(`contracts: ${contractError.message}`);
+  }
+  return contractIds.length;
 }
 
 async function seedDraft(user, workspaceId, draft, collaborator) {
-  const userId = user.id;
-  const { data: existing, error: findError } = await supabase
-    .from("contracts")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", "draft")
-    .eq("title", draft.title)
-    .maybeSingle();
-  if (findError) throw new Error(`contracts: ${findError.message}`);
+  const contractId = stableUuid(`${user.id}:draft:${draft.slug}`);
+  const encrypted = encryptContent(draft.content);
+  const versionId = stableUuid(`${contractId}:v1`);
+  const commentCount = draft.shared && collaborator && collaborator.id !== user.id ? 2 : 0;
 
-  const contractId = existing?.id || stableUuid(`${userId}:draft:${draft.slug}`);
-  let encrypted;
-  if (!existing) {
-    const { error: contractError } = await supabase.from("contracts").upsert({
-      id: contractId,
-      user_id: userId,
-      title: draft.title,
-      type: "draft",
-      is_pinned: draft.isPinned,
-    }, { onConflict: "id" });
-    if (contractError) throw new Error(`contracts: ${contractError.message}`);
+  const { error: contractError } = await supabase.from("contracts").insert({
+    id: contractId,
+    user_id: user.id,
+    title: draft.title,
+    type: "draft",
+    is_pinned: draft.isPinned,
+  });
+  if (contractError) throw new Error(`contracts: ${contractError.message}`);
 
-    encrypted = encryptContent(draft.content);
-    const { error: detailError } = await supabase.from("contract_draft").upsert({
-      id: stableUuid(`${contractId}:detail`),
-      contract_id: contractId,
-      fairness_score: null,
-      total_clausul_risk: 0,
-      content: encrypted,
-      metadata: {
-        encryption: "aes-256-gcm",
-        shared: draft.shared,
-        recipients: draft.shared && collaborator ? 1 : 0,
-        comments: draft.shared && collaborator ? 2 : 0,
-        version: 1,
-        seeded_by: "klarisa-draft-v3",
-      },
-    }, { onConflict: "contract_id" });
-    if (detailError) throw new Error(`contract_draft: ${detailError.message}`);
-  }
+  const { error: detailError } = await supabase.from("contract_draft").insert({
+    id: stableUuid(`${contractId}:detail`),
+    contract_id: contractId,
+    fairness_score: null,
+    total_clausul_risk: 0,
+    content: encrypted,
+    metadata: {
+      encryption: "aes-256-gcm",
+      shared: draft.shared,
+      recipients: draft.shared && collaborator ? 1 : 0,
+      comments: commentCount,
+      version: 1,
+      active_version_id: versionId,
+      seeded_by: "klarisa-draft-v4",
+    },
+  });
+  if (detailError) throw new Error(`contract_draft: ${detailError.message}`);
 
-  const { error: settingsError } = await supabase.from("draft_settings").upsert({
+  const { error: settingsError } = await supabase.from("draft_settings").insert({
     contract_id: contractId,
     workspace_id: workspaceId,
     status: draft.shared ? "shared" : "private",
-  }, { onConflict: "contract_id" });
+  });
   if (settingsError) throw new Error(`draft_settings: ${settingsError.message}`);
 
-  const { data: version, error: versionFindError } = await supabase
-    .from("document_drafts")
-    .select("id")
-    .eq("document_id", contractId)
-    .eq("version", 1)
-    .maybeSingle();
-  if (versionFindError) throw new Error(`document_drafts: ${versionFindError.message}`);
-  if (!version && encrypted) {
-    const { error: versionError } = await supabase.from("document_drafts").insert({
-      id: stableUuid(`${contractId}:v1`),
-      document_id: contractId,
-      title: draft.title,
-      body: encrypted,
-      version: 1,
-      created_by: userId,
-    });
-    if (versionError) throw new Error(`document_drafts: ${versionError.message}`);
-  }
+  const { error: versionError } = await supabase.from("document_drafts").upsert({
+    id: versionId,
+    document_id: contractId,
+    title: draft.title,
+    body: encrypted,
+    version: 1,
+    created_by: user.id,
+  }, { onConflict: "id" });
+  if (versionError) throw new Error(`document_drafts: ${versionError.message}`);
 
-  if (draft.shared && collaborator && collaborator.id !== userId) {
-    const { error: collaboratorError } = await supabase.from("draft_collaborators").upsert({
-      contract_id: contractId,
-      user_id: collaborator.id,
-      invited_by: userId,
-      role: "commenter",
-    }, { onConflict: "contract_id,user_id" });
-    if (collaboratorError) throw new Error(`draft_collaborators: ${collaboratorError.message}`);
+  if (!draft.shared || !collaborator || collaborator.id === user.id) return;
 
-    const ownerCommentId = stableUuid(`${contractId}:comment:owner`);
-    const replyCommentId = stableUuid(`${contractId}:comment:reply`);
-    const { error: ownerCommentError } = await supabase.from("draft_comments").upsert({
-      id: ownerCommentId,
-      contract_id: contractId,
-      author_id: userId,
-      body: "Mohon periksa batas waktu pembayaran pada bagian ini.",
-      selected_text: "Pembayaran dilakukan maksimal 7 hari kerja.",
-    }, { onConflict: "id" });
-    if (ownerCommentError) throw new Error(`draft_comments: ${ownerCommentError.message}`);
-    const { error: replyError } = await supabase.from("draft_comments").upsert({
-      id: replyCommentId,
-      contract_id: contractId,
-      author_id: collaborator.id,
-      parent_id: ownerCommentId,
-      body: "Sudah jelas. Saya setuju menggunakan batas 7 hari kerja.",
-    }, { onConflict: "id" });
-    if (replyError) throw new Error(`draft_comments: ${replyError.message}`);
+  const { error: collaboratorError } = await supabase.from("draft_collaborators").insert({
+    contract_id: contractId,
+    user_id: collaborator.id,
+    invited_by: user.id,
+    role: "commenter",
+  });
+  if (collaboratorError) throw new Error(`draft_collaborators: ${collaboratorError.message}`);
 
-    const { data: detail, error: detailFindError } = await supabase
-      .from("contract_draft")
-      .select("metadata")
-      .eq("contract_id", contractId)
-      .single();
-    if (detailFindError) throw new Error(`contract_draft: ${detailFindError.message}`);
-    const { error: metadataError } = await supabase.from("contract_draft").update({
-      metadata: { ...(detail.metadata || {}), shared: true, recipients: 1, comments: 2 },
-    }).eq("contract_id", contractId);
-    if (metadataError) throw new Error(`contract_draft: ${metadataError.message}`);
-  }
+  const selectedText = "Pembayaran dilakukan maksimal 7 hari kerja";
+  const start = draft.content.indexOf(selectedText);
+  const ownerCommentId = stableUuid(`${contractId}:comment:owner`);
+  const { error: ownerCommentError } = await supabase.from("draft_comments").insert({
+    id: ownerCommentId,
+    contract_id: contractId,
+    document_version_id: versionId,
+    author_id: user.id,
+    body: "Mohon periksa batas waktu pembayaran pada bagian ini.",
+    selected_text: selectedText,
+    position_start: start,
+    position_end: start + selectedText.length,
+  });
+  if (ownerCommentError) throw new Error(`draft_comments: ${ownerCommentError.message}`);
+
+  const { error: replyError } = await supabase.from("draft_comments").insert({
+    id: stableUuid(`${contractId}:comment:reply`),
+    contract_id: contractId,
+    document_version_id: versionId,
+    author_id: collaborator.id,
+    parent_id: ownerCommentId,
+    body: "Sudah jelas. Saya setuju menggunakan batas 7 hari kerja.",
+  });
+  if (replyError) throw new Error(`draft_comments: ${replyError.message}`);
 }
 
-const draftContent = `<p><mark class="bg-amber-200 px-1">SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</mark></p><p>Nomor: 001/SPK/2026</p><h2>PASAL 1: RUANG LINGKUP &amp; BIAYA</h2><p>PIHAK KEDUA melaksanakan pekerjaan desain identitas visual dengan nilai imbalan Rp20.000.000.</p><h2>PASAL 2: HAK CIPTA &amp; KERAHASIAAN</h2><p>Hak moral tetap melekat pada PIHAK KEDUA dan hak penggunaan komersial berlaku setelah pembayaran lunas.</p>`;
+const draftContent = `<p>SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</p><p>Nomor: 001/SPK/2026</p><h2>PASAL 1: RUANG LINGKUP &amp; BIAYA</h2><p>PIHAK KEDUA melaksanakan pekerjaan desain identitas visual dengan nilai imbalan Rp20.000.000.</p><p>Pembayaran dilakukan maksimal 7 hari kerja setelah pekerjaan diserahkan.</p><h2>PASAL 2: HAK CIPTA &amp; KERAHASIAAN</h2><p>Hak moral tetap melekat pada PIHAK KEDUA dan hak penggunaan komersial berlaku setelah pembayaran lunas.</p>`;
 const drafts = [
   { slug: "identity", title: "Perjanjian Jasa Identitas Visual", content: draftContent, shared: false, isPinned: true },
   { slug: "photography", title: "Draft Kerja Sama Fotografi", content: draftContent, shared: true, isPinned: false },
@@ -188,16 +192,20 @@ const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 
 if (error) throw error;
 if (!data.users.length) throw new Error("Buat minimal satu akun Klarisa sebelum menjalankan seed.");
 
-const workspaces = new Map();
-for (const user of data.users) {
+const users = targetEmail
+  ? data.users.filter((user) => user.email?.toLocaleLowerCase("id-ID") === targetEmail)
+  : data.users.length === 1 ? data.users : [];
+if (!users.length) {
+  throw new Error("Isi SEED_USER_EMAIL dengan email akun uji agar seed hanya mengubah data dummy pada akun tersebut.");
+}
+
+let deletedDrafts = 0;
+for (const user of users) deletedDrafts += await clearSeededDrafts(user.id);
+
+for (const user of users) {
   const workspaceId = await ensureWorkspace(user);
-  workspaces.set(user.id, workspaceId);
-  await backfillDraftSettings(user.id, workspaceId);
+  const collaborator = data.users.find((candidate) => candidate.id !== user.id) ?? null;
+  for (const draft of drafts) await seedDraft(user, workspaceId, draft, collaborator);
 }
 
-for (const [index, user] of data.users.entries()) {
-  const collaborator = data.users.length > 1 ? data.users[(index + 1) % data.users.length] : null;
-  for (const draft of drafts) await seedDraft(user, workspaces.get(user.id), draft, collaborator);
-}
-
-console.log(`Seed draft, workspace, kolaborator, dan diskusi selesai untuk ${data.users.length} akun tanpa membuat data review.`);
+console.log(`Seed selesai: ${deletedDrafts} draft ${clearAllDrafts ? "lama" : "dummy lama"} dibersihkan dan ${drafts.length * users.length} draft dummy baru dibuat. Tidak ada tabel review atau RAG yang diubah.`);
