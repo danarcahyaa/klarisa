@@ -112,7 +112,7 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <section className="mx-auto grid w-[min(100%-2.5rem,1280px)] items-center gap-12 py-20 lg:min-h-[690px] lg:grid-cols-[.9fr_1.1fr]">
+      <section className="mx-auto grid w-[min(100%-2.5rem,1280px)] items-center gap-12 pt-20 pb-16 lg:pb-20 lg:grid-cols-[.9fr_1.1fr]">
         <div>
           <Label>LEGAL CLARITY, WITHOUT THE LEGAL DESK</Label>
           <h1 className="mt-5 max-w-xl font-heading text-[clamp(3.15rem,6vw,5.5rem)] font-normal leading-[.94] tracking-[-.055em]">
@@ -138,47 +138,57 @@ export default async function HomePage() {
             </a>
           </div>
         </div>
-        <div className="relative min-h-105">
-          <article className="absolute top-0 left-0 w-[82%] rounded-lg border border-slate-300 bg-white p-6 shadow-[0_20px_50px_rgb(15_23_42_/_12%)] sm:left-8 sm:w-[78%] sm:p-8">
-            <div className="flex items-start justify-between border-b border-slate-200 pb-4 text-[10px] tracking-[.16em] text-slate-500">
-              <span>PERJANJIAN KERJA SAMA</span>
-              <b className="text-3xl font-normal tracking-normal text-klarisa-secondary">
-                04
-              </b>
+        <div className="relative isolate -mb-16 min-h-[390px] overflow-hidden sm:min-h-[510px] lg:-mb-20">
+          <article className="absolute top-4 left-0 z-20 w-[42%] max-w-[17rem] rounded-xl border border-slate-200 bg-white p-3 sm:top-6 sm:w-[44%] sm:p-5">
+            <div className="flex items-start justify-between gap-3 text-[9px] font-bold tracking-[.14em] text-klarisa-secondary">
+              <span>DOKUMEN / 01</span>
+              <span>04</span>
             </div>
-            <h2 className="my-7 font-heading text-xl font-normal leading-tight">
-              Jasa Desain dan Pengembangan Situs Web
-            </h2>
-            <p className="border-l-[3px] border-red-500 bg-rose-50 p-3 font-serif text-xs leading-5">
-              PIHAK PERTAMA berhak menunda pembayaran tanpa batas waktu apabila
-              hasil pekerjaan dinilai belum memuaskan.
-            </p>
-            <p className="mt-4 font-serif text-xs leading-5">
-              Perubahan ruang lingkup wajib disepakati secara tertulis oleh
-              kedua pihak.
-            </p>
-            <footer className="mt-7 flex justify-between border-t border-slate-200 pt-4 text-[10px] tracking-wide text-slate-500">
-              <span>Kontrak_Kerja_Sama.docx</span>
-              <span>04 / 12</span>
-            </footer>
-          </article>
-          <Card className="absolute right-0 bottom-0 w-[58%] border-0 bg-slate-900 text-white shadow-[0_20px_50px_rgb(15_23_42_/_22%)]">
-            <CardContent className="p-5 sm:p-6">
-              <div className="flex items-start justify-between text-[10px] font-bold tracking-[.14em] text-indigo-200">
-                <span>PERLU DITINJAU</span>
-                <b className="text-4xl font-normal leading-none tracking-normal text-white">
-                  68
-                </b>
-              </div>
-              <span className="mt-6 block text-[10px] font-bold tracking-[.14em] text-indigo-200">
-                PASAL 4 / PEMBAYARAN
-              </span>
-              <h3 className="mt-3 text-lg leading-tight">
-                Ukuran keberhasilan belum jelas.
-              </h3>
-              <p className="mt-3 text-xs leading-5 text-slate-300">
-                Tidak ada batas waktu atau kriteria penerimaan yang objektif.
+            <div className="mt-3 border-t border-slate-200 pt-3 sm:mt-5 sm:pt-4">
+              <p className="text-xs font-semibold leading-5 text-slate-900 sm:text-sm">
+                Perjanjian kerja sama
               </p>
+              <p className="mt-2 hidden text-[10px] leading-4 text-slate-500 sm:block">
+                Bagian penting siap ditinjau bersama.
+              </p>
+            </div>
+          </article>
+
+          <Image
+            src="/klarisa/hero-professional-casual.png"
+            alt="Profesional membawa laptop"
+            width={1024}
+            height={1536}
+            priority
+            className="absolute right-[12%] bottom-[-8%] z-10 h-[82%] w-auto max-w-none object-contain sm:right-[22%] sm:h-[88%]"
+          />
+
+          <Card className="absolute right-0 bottom-8 z-20 w-[44%] max-w-[19rem] border-0 bg-slate-900 text-white sm:bottom-10 sm:w-[46%] sm:max-w-[21rem]">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/klarisa/logo-ai.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={24}
+                  height={24}
+                  className="size-4 rounded-md bg-white/10 object-contain p-0.5 sm:size-5"
+                />
+                <span className="text-[8px] font-bold tracking-[.12em] text-indigo-200 sm:text-[9px] sm:tracking-[.14em]">
+                  ANALISIS KLARISA
+                </span>
+              </div>
+              <div className="mt-3 flex items-end justify-between gap-2 sm:mt-4 sm:gap-3">
+                <div>
+                  <span className="text-[8px] font-bold tracking-[.12em] text-indigo-200 sm:text-[9px] sm:tracking-[.14em]">
+                    PASAL 04
+                  </span>
+                  <p className="mt-1 text-[10px] leading-[.875rem] sm:text-sm sm:leading-4">
+                    Pembayaran menunggu pihak ketiga.
+                  </p>
+                </div>
+                <b className="font-heading text-2xl font-normal leading-none text-white sm:text-3xl">68</b>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -277,21 +287,22 @@ export default async function HomePage() {
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
-          <Card className="absolute bottom-8 left-[8%] w-[80%] max-w-108 border-0 shadow-[12px_12px_0_#dbeafe]">
+          <Card className="absolute bottom-8 left-[8%] w-[80%] max-w-108 border border-white/80 shadow-[12px_12px_0_#dbeafe]">
             <CardContent className="p-6">
-              <div className="flex justify-between border-b border-slate-200 pb-3">
-                <Label>HASIL PEMERIKSAAN</Label>
-                <span className="text-[10px] font-semibold text-slate-400">
-                  PASAL 04
-                </span>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" />
+                  <Label>ANALISIS KLARISA</Label>
+                </div>
+                <Image src="/klarisa/ai.png" alt="" aria-hidden width={15} height={15} className="size-4 object-contain" />
               </div>
               <p className="mt-4 border-l-[3px] border-red-500 bg-rose-50 p-3 text-sm leading-6">
                 Pembayaran dapat ditunda tanpa batas waktu.
               </p>
-              <p className="mt-4 text-xs text-slate-600">
-                Perlu dibahas: belum ada batas waktu dan ukuran hasil yang
-                disepakati.
+              <p className="mt-4 text-xs leading-5 text-slate-600">
+                Klarisa melihat belum ada batas waktu dan ukuran hasil yang disepakati.
               </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat penjelasan <ArrowRight className="size-3" /></span>
             </CardContent>
           </Card>
         </div>
