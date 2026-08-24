@@ -66,7 +66,9 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const reviewHref = user ? "/dashboard/search" : "/login?next=/dashboard/search";
+  const reviewHref = user
+    ? "/dashboard/search"
+    : "/login?next=/dashboard/search";
 
   return (
     <main className="overflow-x-clip bg-background text-foreground">
@@ -97,15 +99,34 @@ export default async function HomePage() {
               <span className="hidden max-w-40 truncate text-xs text-slate-500 sm:block">
                 {user.user_metadata?.full_name || user.email}
               </span>
-              <Button asChild variant="blue" size="sm" className="min-h-11 px-4">
-                <Link href="/dashboard">Buka workspace <ArrowRight /></Link>
+              <Button
+                asChild
+                variant="blue"
+                size="sm"
+                className="min-h-11 px-4"
+              >
+                <Link href="/dashboard">
+                  Buka workspace <ArrowRight />
+                </Link>
               </Button>
             </>
           ) : (
             <>
-              <Link className="hidden text-xs text-slate-500 hover:text-klarisa-secondary sm:block" href="/login">Masuk</Link>
-              <Button asChild variant="blue" size="sm" className="min-h-11 px-4">
-                <Link href="/register">Buat akun <ArrowRight /></Link>
+              <Link
+                className="hidden text-xs text-slate-500 hover:text-klarisa-secondary sm:block"
+                href="/login"
+              >
+                Masuk
+              </Link>
+              <Button
+                asChild
+                variant="blue"
+                size="sm"
+                className="min-h-11 px-4"
+              >
+                <Link href="/register">
+                  Buat akun <ArrowRight />
+                </Link>
               </Button>
             </>
           )}
@@ -138,8 +159,8 @@ export default async function HomePage() {
             </a>
           </div>
         </div>
-        <div className="relative isolate -mb-16 min-h-[390px] overflow-hidden sm:min-h-[510px] lg:-mb-20">
-          <article className="absolute top-4 left-0 z-20 w-[42%] max-w-[17rem] rounded-xl border border-slate-200 bg-white p-3 sm:top-6 sm:w-[44%] sm:p-5">
+        <div className="relative isolate -mb-16 min-h-[390px] overflow-hidden sm:min-h-[510px] lg:-mb-20 min-[1440px]:self-end">
+          <article className="absolute top-4 left-0 z-20 w-[38%] max-w-[12rem] rounded-xl border border-slate-200 bg-white p-3 sm:top-6 sm:w-[40%] sm:max-w-[14rem] sm:p-5">
             <div className="flex items-start justify-between gap-3 text-[9px] font-bold tracking-[.14em] text-klarisa-secondary">
               <span>DOKUMEN / 01</span>
               <span>04</span>
@@ -155,12 +176,12 @@ export default async function HomePage() {
           </article>
 
           <Image
-            src="/klarisa/hero-professional-casual.png"
-            alt="Profesional membawa laptop"
+            src="/klarisa/hero-professional-woman-full.png"
+            alt="Profesional perempuan membawa laptop"
             width={1024}
             height={1536}
             priority
-            className="absolute right-[12%] bottom-[-8%] z-10 h-[82%] w-auto max-w-none object-contain sm:right-[22%] sm:h-[88%]"
+            className="absolute right-[7%] bottom-[-10%] z-10 h-[92%] w-auto max-w-none object-contain sm:right-[24%] sm:h-[101%] lg:right-[27%] lg:h-[108%] xl:bottom-[-12%] xl:h-[112%]"
           />
 
           <Card className="absolute right-0 bottom-8 z-20 w-[44%] max-w-[19rem] border-0 bg-slate-900 text-white sm:bottom-10 sm:w-[46%] sm:max-w-[21rem]">
@@ -187,7 +208,9 @@ export default async function HomePage() {
                     Pembayaran menunggu pihak ketiga.
                   </p>
                 </div>
-                <b className="font-heading text-2xl font-normal leading-none text-white sm:text-3xl">68</b>
+                <b className="font-heading text-2xl font-normal leading-none text-white sm:text-3xl">
+                  68
+                </b>
               </div>
             </CardContent>
           </Card>
@@ -291,18 +314,34 @@ export default async function HomePage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" />
+                  <Image
+                    src="/klarisa/logo-ai.png"
+                    alt="Klarisa AI"
+                    width={28}
+                    height={28}
+                    className="size-7 object-contain"
+                  />
                   <Label>ANALISIS KLARISA</Label>
                 </div>
-                <Image src="/klarisa/ai.png" alt="" aria-hidden width={15} height={15} className="size-4 object-contain" />
+                <Image
+                  src="/klarisa/ai.png"
+                  alt=""
+                  aria-hidden
+                  width={15}
+                  height={15}
+                  className="size-4 object-contain"
+                />
               </div>
               <p className="mt-4 border-l-[3px] border-red-500 bg-rose-50 p-3 text-sm leading-6">
                 Pembayaran dapat ditunda tanpa batas waktu.
               </p>
               <p className="mt-4 text-xs leading-5 text-slate-600">
-                Klarisa melihat belum ada batas waktu dan ukuran hasil yang disepakati.
+                Klarisa melihat belum ada batas waktu dan ukuran hasil yang
+                disepakati.
               </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">Lihat penjelasan <ArrowRight className="size-3" /></span>
+              <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">
+                Lihat penjelasan <ArrowRight className="size-3" />
+              </span>
             </CardContent>
           </Card>
         </div>
@@ -333,15 +372,42 @@ export default async function HomePage() {
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {[
-            ["01", "Dokumen dibaca", "Isi kontrak dibaca secara menyeluruh tanpa hanya mencari kata tertentu."],
-            ["02", "Konteks dicari", "Bagian penting dibandingkan dengan konteks pasal yang sesuai."],
-            ["03", "Temuan dijelaskan", "Anda mendapat alasan, tingkat perhatian, dan pilihan perbaikan yang mudah dipahami."],
+            [
+              "01",
+              "Dokumen dibaca",
+              "Isi kontrak dibaca secara menyeluruh tanpa hanya mencari kata tertentu.",
+            ],
+            [
+              "02",
+              "Konteks dicari",
+              "Bagian penting dibandingkan dengan konteks pasal yang sesuai.",
+            ],
+            [
+              "03",
+              "Temuan dijelaskan",
+              "Anda mendapat alasan, tingkat perhatian, dan pilihan perbaikan yang mudah dipahami.",
+            ],
           ].map(([number, title, description], index) => (
-            <Card className={"min-h-[205px] border-slate-200 transition hover:-translate-y-1 " + (index === 2 ? "bg-slate-900 text-white" : "")} key={number}>
+            <Card
+              className={
+                "min-h-[205px] border-slate-200 transition hover:-translate-y-1 " +
+                (index === 2 ? "bg-slate-900 text-white" : "")
+              }
+              key={number}
+            >
               <CardContent className="p-7">
-                <span className="text-[11px] font-bold text-klarisa-secondary">{number}</span>
+                <span className="text-[11px] font-bold text-klarisa-secondary">
+                  {number}
+                </span>
                 <h3 className="mt-12 text-lg font-medium">{title}</h3>
-                <p className={"mt-2 text-xs leading-5 " + (index === 2 ? "text-slate-300" : "text-slate-500")}>{description}</p>
+                <p
+                  className={
+                    "mt-2 text-xs leading-5 " +
+                    (index === 2 ? "text-slate-300" : "text-slate-500")
+                  }
+                >
+                  {description}
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -373,8 +439,14 @@ export default async function HomePage() {
               Anda.
             </p>
             <div className="mt-8">
-              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300"><b className="w-18 text-klarisa-secondary">DOCX</b>Dokumen dibaca sebagai input terstruktur</p>
-              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300"><b className="w-18 text-klarisa-secondary">RAG</b>Konteks hukum dicari sesuai bagian kontrak</p>
+              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300">
+                <b className="w-18 text-klarisa-secondary">DOCX</b>Dokumen
+                dibaca sebagai input terstruktur
+              </p>
+              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300">
+                <b className="w-18 text-klarisa-secondary">RAG</b>Konteks hukum
+                dicari sesuai bagian kontrak
+              </p>
             </div>
           </div>
         </div>
