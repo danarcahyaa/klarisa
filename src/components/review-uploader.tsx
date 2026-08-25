@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, FileText, ShieldCheck, Upload } from "lucide-react";
+import { Button, SubmitButton } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 
 const steps = [
@@ -46,23 +47,27 @@ export function ReviewUploader() {
               setFileName(event.target.files?.[0]?.name ?? fileName)
             }
           />
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="default"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-5 text-xs font-bold transition-colors hover:bg-slate-50"
+            className="flex-1"
           >
             <Upload className="size-4" />
             {fileName !== "Kontrak_Kerja_Sama_Desain.docx" ? fileName : "Pilih DOCX"}
-          </button>
-          <button
+          </Button>
+          <SubmitButton
             type="button"
+            variant="default"
+            size="default"
+            isLoading={isStarting}
+            loadingText="Memeriksa..."
             onClick={startReview}
-            disabled={isStarting}
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-3 whitespace-nowrap rounded-md bg-[#172031] px-6 text-xs font-bold text-white transition-colors hover:bg-klarisa-secondary min-[420px]:min-w-[168px] disabled:opacity-60"
+            rightIcon={<ArrowRight className="size-4" />}
           >
-            {isStarting ? "Memeriksa..." : "Mulai review"}
-            <ArrowRight className="size-4" />
-          </button>
+            Mulai review
+          </SubmitButton>
         </div>
       </section>
 

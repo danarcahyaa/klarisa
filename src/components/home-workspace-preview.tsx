@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { Button, SubmitButton } from "@/components/ui/button";
 
 const findings = [
   {
@@ -67,13 +68,10 @@ export function HomeWorkspacePreview() {
             Pilih temuan untuk melihat penjelasan dan bagian dokumennya.
           </p>
           {findings.map((finding, index) => (
-            <button
-              className={
-                "mt-3 grid min-h-16 w-full grid-cols-[3.8rem_1fr_1rem] items-center gap-2 border-t border-slate-200 px-2 py-3 text-left transition hover:translate-x-0.5 hover:bg-indigo-50 " +
-                (index === activeIndex
-                  ? "border-l-2 border-l-klarisa-secondary bg-indigo-50 pl-3"
-                  : "")
-              }
+            <Button
+              variant="outline"
+              size="default"
+              className="mt-3 w-full justify-between"
               type="button"
               onClick={() => setActiveIndex(index)}
               key={finding.clause}
@@ -81,11 +79,11 @@ export function HomeWorkspacePreview() {
               <span className="text-[10px] leading-4 text-slate-400">
                 {finding.clause}
               </span>
-              <b className="text-xs leading-5 font-semibold text-slate-900">
+              <b className="truncate text-xs leading-5 font-semibold text-slate-900">
                 {finding.title}
               </b>
               <ArrowRight className="size-3.5 text-slate-700" />
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -121,13 +119,15 @@ export function HomeWorkspacePreview() {
         </div>
         <div className="mt-3 grid min-h-26 grid-rows-[1fr_auto] rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-400">
           <span>Tulis pertanyaan Anda...</span>
-          <button
-            className="grid size-8 place-items-center justify-self-end rounded-full bg-slate-900 text-white transition hover:bg-klarisa-secondary"
+          <SubmitButton
+            variant="default"
+            size="icon-sm"
             type="button"
             aria-label="Kirim pertanyaan"
+            className="justify-self-end"
           >
             <ArrowRight className="size-3.5" />
-          </button>
+          </SubmitButton>
         </div>
       </div>
     </div>

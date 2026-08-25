@@ -28,6 +28,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import { Button, SubmitButton } from "@/components/ui/button";
 import { useDraft } from "@/hooks/useDraft";
 import { DraftDiscussionThread } from "@/components/draft-discussion-thread";
 import type { ContractDetail, DraftComment, DraftVersionContent } from "@/types/contract.type";
@@ -576,51 +577,260 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         <input value={title} readOnly={!canEdit} onChange={(event) => { titleRef.current = event.target.value; setTitle(event.target.value); scheduleLocalBackup(); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary read-only:cursor-default"/>
         <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
-      {canEdit && <button type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary disabled:opacity-50"><Save className="size-4"/><span className="hidden sm:inline">Simpan versi</span></button>}
-      {canEdit && <button type="button" onClick={() => { setSelectedVersion(null); setIsVersionsOpen(true); }} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-klarisa-secondary hover:text-klarisa-secondary"><History className="size-4"/><span className="hidden sm:inline">Riwayat versi</span></button>}
-      {remoteDraft.permission === "owner" && <button type="button" onClick={shareDraft} disabled={isSharing} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary disabled:cursor-wait disabled:opacity-60"><Share2 className="size-4"/>{isSharing ? "Menyiapkan..." : "Bagikan"}</button>}
-      {remoteDraft.permission === "owner" && <div className="relative"><button type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)} className="grid size-10 place-items-center rounded-md border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"><MoreHorizontal className="size-4"/></button>{isActionsOpen && <div className="absolute top-12 right-0 z-50 w-44 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg"><button type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="flex w-full items-center gap-2 rounded px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="size-4"/>Hapus draft</button></div>}</div>}
+      {canEdit && (
+        <Button variant="outline" size="sm" type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="hidden sm:inline-flex">
+          <Save className="size-4" />
+          <span className="hidden sm:inline">Simpan versi</span>
+        </Button>
+      )}
+      {canEdit && (
+        <Button variant="outline" size="sm" type="button" onClick={() => { setSelectedVersion(null); setIsVersionsOpen(true); }} className="hidden sm:inline-flex">
+          <History className="size-4" />
+          <span className="hidden sm:inline">Riwayat versi</span>
+        </Button>
+      )}
+      {remoteDraft.permission === "owner" && (
+        <SubmitButton variant="default" size="sm" type="button" isLoading={isSharing} loadingText="Menyiapkan..." onClick={shareDraft} leftIcon={<Share2 className="size-4" />}>
+          Bagikan
+        </SubmitButton>
+      )}
+      {remoteDraft.permission === "owner" && (
+        <div className="relative">
+          <Button variant="outline" size="icon-sm" type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)}>
+            <MoreHorizontal className="size-4" />
+          </Button>
+          {isActionsOpen && (
+            <div className="absolute top-12 right-0 z-50 w-44 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
+              <Button variant="destructive" size="xs" type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="w-full justify-start">
+                <Trash2 className="size-4" />Hapus draft
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
 
-    {(notice || remoteError) && <div role={remoteError ? "alert" : "status"} className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg"><Check className="size-4 text-klarisa-secondary"/><span>{remoteError || notice}</span><button type="button" onClick={() => { setNotice(""); dismissError(); }} aria-label="Tutup pemberitahuan" className="grid size-7 shrink-0 place-items-center rounded hover:bg-slate-100"><X className="size-4 text-slate-400"/></button></div>}
+    {(notice || remoteError) && (
+      <div role={remoteError ? "alert" : "status"} className="fixed top-20 right-4 z-50 flex max-w-xs items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-xs font-semibold shadow-lg">
+        <Check className="size-4 text-klarisa-secondary" />
+        <span>{remoteError || notice}</span>
+        <Button variant="ghost" size="icon-xs" type="button" onClick={() => { setNotice(""); dismissError(); }} aria-label="Tutup pemberitahuan">
+          <X className="size-4 text-slate-400" />
+        </Button>
+      </div>
+    )}
 
-    {isShareOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup panel bagikan" onClick={() => setIsShareOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p><h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2><p className="mt-2 text-xs leading-5 text-slate-500">Atur siapa yang dapat melihat atau memberi komentar pada draft ini.</p></div><button type="button" onClick={() => setIsShareOpen(false)} aria-label="Tutup" className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><form onSubmit={submitInvitation} className="mt-6 grid gap-4"><label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna<input type="email" required value={inviteEmail} onChange={(event)=>setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10"/></label><div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600"><b className="text-klarisa-secondary">Komentator</b> dapat berdiskusi. <b className="text-klarisa-secondary">Peninjau</b> hanya dapat membaca isi draft.</div><div className="flex justify-end gap-2"><button type="submit" disabled={isSharing} className="min-h-10 rounded-md bg-[#172031] px-4 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{isSharing ? "Menambahkan..." : "Undang dan salin tautan"}</button></div></form>{remoteDraft.collaborators.length > 0 && <div className="mt-6 border-t border-slate-200 pt-4"><p className="text-[9px] font-bold tracking-[.14em] text-slate-500">ORANG YANG MEMILIKI AKSES</p><div className="mt-3 grid max-h-48 gap-2 overflow-y-auto pr-1">{remoteDraft.collaborators.map((collaborator) => <div key={collaborator.userId} className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5"><span className="grid size-7 place-items-center rounded-full bg-[#edf2ff] text-[8px] font-bold text-klarisa-secondary">{collaborator.name.split(" ").slice(0,2).map((part)=>part[0]).join("").toUpperCase()}</span><span className="min-w-0 flex-1"><b className="block truncate text-[10px]">{collaborator.name}</b><small className="block text-[9px] text-slate-400">{collaborator.role === "commenter" ? "Dapat berkomentar" : "Hanya melihat"}</small></span><select aria-label={`Peran ${collaborator.name}`} value={collaborator.role === "commenter" ? "commenter" : "viewer"} disabled={isManagingAccess} onChange={(event) => void changeCollaboratorRole(collaborator.userId, event.target.value as "commenter" | "viewer")} className="h-8 rounded border border-slate-200 bg-white px-1.5 text-[9px] font-semibold outline-none"><option value="commenter">Komentator</option><option value="viewer">Peninjau</option></select><button type="button" disabled={isManagingAccess} onClick={() => void revokeCollaboratorAccess(collaborator.userId)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50" aria-label={`Cabut akses ${collaborator.name}`}><X className="size-3.5"/></button></div>)}</div></div>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setIsShareOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold">Selesai</button></div></section></div>}
+    {isShareOpen && (
+      <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]">
+        <button type="button" aria-label="Tutup panel bagikan" onClick={() => setIsShareOpen(false)} className="absolute inset-0" />
+        <section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p>
+              <h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2>
+              <p className="mt-2 text-xs leading-5 text-slate-500">Atur siapa yang dapat melihat atau memberi komentar pada draft ini.</p>
+            </div>
+            <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsShareOpen(false)} aria-label="Tutup">
+              <X className="size-4" />
+            </Button>
+          </div>
+          <form onSubmit={submitInvitation} className="mt-6 grid gap-4">
+            <label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna
+              <input type="email" required value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10" />
+            </label>
+            <div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600">
+              <b className="text-klarisa-secondary">Komentator</b> dapat berdiskusi. <b className="text-klarisa-secondary">Peninjau</b> hanya dapat membaca isi draft.
+            </div>
+            <div className="flex justify-end gap-2">
+              <SubmitButton variant="default" size="sm" type="submit" isLoading={isSharing} loadingText="Menambahkan...">
+                Undang dan salin tautan
+              </SubmitButton>
+            </div>
+          </form>
+          {remoteDraft.collaborators.length > 0 && (
+            <div className="mt-6 border-t border-slate-200 pt-4">
+              <p className="text-[9px] font-bold tracking-[.14em] text-slate-500">ORANG YANG MEMILIKI AKSES</p>
+              <div className="mt-3 grid max-h-48 gap-2 overflow-y-auto pr-1">
+                {remoteDraft.collaborators.map((collaborator) => (
+                  <div key={collaborator.userId} className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5">
+                    <span className="grid size-7 place-items-center rounded-full bg-[#edf2ff] text-[8px] font-bold text-klarisa-secondary">{collaborator.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
+                    <span className="min-w-0 flex-1">
+                      <b className="block truncate text-[10px]">{collaborator.name}</b>
+                      <small className="block text-[9px] text-slate-400">{collaborator.role === "commenter" ? "Dapat berkomentar" : "Hanya melihat"}</small>
+                    </span>
+                    <select aria-label={`Peran ${collaborator.name}`} value={collaborator.role === "commenter" ? "commenter" : "viewer"} disabled={isManagingAccess} onChange={(event) => void changeCollaboratorRole(collaborator.userId, event.target.value as "commenter" | "viewer")} className="h-8 rounded border border-slate-200 bg-white px-1.5 text-[9px] font-semibold outline-none">
+                      <option value="commenter">Komentator</option>
+                      <option value="viewer">Peninjau</option>
+                    </select>
+                    <Button variant="ghost" size="icon-xs" type="button" disabled={isManagingAccess} onClick={() => void revokeCollaboratorAccess(collaborator.userId)} aria-label={`Cabut akses ${collaborator.name}`}>
+                      <X className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-6 flex justify-end">
+            <Button variant="outline" size="sm" type="button" onClick={() => setIsShareOpen(false)}>Selesai</Button>
+          </div>
+        </section>
+      </div>
+    )}
 
-    {isVersionsOpen && <div className="fixed inset-0 z-[65] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Tutup riwayat versi" onClick={() => setIsVersionsOpen(false)} className="absolute inset-0"/><section role="dialog" aria-modal="true" aria-labelledby="version-history-title" className="relative grid max-h-[min(720px,calc(100svh-2rem))] w-full max-w-4xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl md:grid-cols-[260px_minmax(0,1fr)]"><div className="border-b border-slate-200 p-5 md:border-r md:border-b-0"><div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">RIWAYAT DRAFT</p><h2 id="version-history-title" className="mt-2 text-lg font-semibold tracking-[-.03em]">Versi tersimpan</h2></div><button type="button" onClick={() => setIsVersionsOpen(false)} aria-label="Tutup" className="grid size-8 place-items-center rounded-md hover:bg-slate-100"><X className="size-4"/></button></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Pilih versi untuk melihat isi sebelumnya.</p><div className="mt-5 grid max-h-64 gap-1 overflow-y-auto md:max-h-[510px]">{remoteDraft.versions.map((version) => <button key={version.id} type="button" onClick={() => void previewVersion(version.id)} disabled={isLoadingVersion} className={cn("grid gap-1 rounded-md px-3 py-3 text-left transition-colors hover:bg-[#f5f7ff] disabled:cursor-wait", selectedVersion?.id === version.id && "bg-[#edf2ff] text-klarisa-secondary")}><span className="flex items-center justify-between gap-3"><b className="text-[11px]">Versi {String(version.version).padStart(2, "0")}</b><time className="text-[9px] text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time></span><small className="truncate text-[10px] text-slate-500">{version.title}</small></button>)}{remoteDraft.versions.length === 0 && <p className="px-3 py-5 text-[10px] leading-5 text-slate-400">Belum ada versi tersimpan.</p>}</div></div><div className="flex min-h-0 flex-col bg-slate-50/60"><div className="border-b border-slate-200 bg-white px-6 py-5"><p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">PRATINJAU VERSI</p><h3 className="mt-2 text-base font-semibold">{selectedVersion ? selectedVersion.title : "Pilih versi draft"}</h3></div>{selectedVersion ? <><article dangerouslySetInnerHTML={{ __html: selectedVersion.content }} className="min-h-0 flex-1 overflow-y-auto px-6 py-6 text-xs leading-6 text-slate-700 [&_h2]:mt-6 [&_h2]:font-sans [&_h2]:text-xs [&_h2]:font-bold [&_p]:mt-3"/><div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4"><small className="text-[10px] leading-4 text-slate-500">Pemulihan mengganti isi draft tanpa menambah riwayat. Diskusi lama tetap tersimpan, tetapi sorotannya tidak dipasang pada versi ini.</small><button type="button" onClick={() => setVersionToRestore(selectedVersion)} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary"><RotateCcw className="size-4"/>Pulihkan versi ini</button></div></> : <div className="grid flex-1 place-items-center px-6 text-center"><p className="max-w-xs text-xs leading-5 text-slate-400">Pilih salah satu versi di sebelah kiri untuk melihat isi dan memulihkannya bila diperlukan.</p></div>}</div></section></div>}
+    {isVersionsOpen && (
+      <div className="fixed inset-0 z-[65] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-[2px]">
+        <button type="button" aria-label="Tutup riwayat versi" onClick={() => setIsVersionsOpen(false)} className="absolute inset-0" />
+        <section role="dialog" aria-modal="true" aria-labelledby="version-history-title" className="relative grid max-h-[min(720px,calc(100svh-2rem))] w-full max-w-4xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl md:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="border-b border-slate-200 p-5 md:border-r md:border-b-0">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">RIWAYAT DRAFT</p>
+                <h2 id="version-history-title" className="mt-2 text-lg font-semibold tracking-[-.03em]">Versi tersimpan</h2>
+              </div>
+              <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsVersionsOpen(false)} aria-label="Tutup">
+                <X className="size-4" />
+              </Button>
+            </div>
+            <p className="mt-3 text-[10px] leading-5 text-slate-500">Pilih versi untuk melihat isi sebelumnya.</p>
+            <div className="mt-5 grid max-h-64 gap-1 overflow-y-auto md:max-h-[510px]">
+              {remoteDraft.versions.map((version) => (
+                <button key={version.id} type="button" onClick={() => void previewVersion(version.id)} disabled={isLoadingVersion} className={cn("grid gap-1 rounded-md px-3 py-3 text-left transition-colors hover:bg-[#f5f7ff] disabled:cursor-wait", selectedVersion?.id === version.id && "bg-[#edf2ff] text-klarisa-secondary")}>
+                  <span className="flex items-center justify-between gap-3">
+                    <b className="text-[11px]">Versi {String(version.version).padStart(2, "0")}</b>
+                    <time className="text-[9px] text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time>
+                  </span>
+                  <small className="truncate text-[10px] text-slate-500">{version.title}</small>
+                </button>
+              ))}
+              {remoteDraft.versions.length === 0 && <p className="px-3 py-5 text-[10px] leading-5 text-slate-400">Belum ada versi tersimpan.</p>}
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-col bg-slate-50/60">
+            <div className="border-b border-slate-200 bg-white px-6 py-5">
+              <p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">PRATINJAU VERSI</p>
+              <h3 className="mt-2 text-base font-semibold">{selectedVersion ? selectedVersion.title : "Pilih versi draft"}</h3>
+            </div>
+            {selectedVersion ? (
+              <>
+                <article dangerouslySetInnerHTML={{ __html: selectedVersion.content }} className="min-h-0 flex-1 overflow-y-auto px-6 py-6 text-xs leading-6 text-slate-700 [&_h2]:mt-6 [&_h2]:font-sans [&_h2]:text-xs [&_h2]:font-bold [&_p]:mt-3" />
+                <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4">
+                  <small className="text-[10px] leading-4 text-slate-500">Pemulihan mengganti isi draft tanpa menambah riwayat. Diskusi lama tetap tersimpan, tetapi sorotannya tidak dipasang pada versi ini.</small>
+                  <Button variant="default" size="sm" type="button" onClick={() => setVersionToRestore(selectedVersion)}>
+                    <RotateCcw className="size-4" />Pulihkan versi ini
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="grid flex-1 place-items-center px-6 text-center">
+                <p className="max-w-xs text-xs leading-5 text-slate-400">Pilih salah satu versi di sebelah kiri untuk melihat isi dan memulihkannya bila diperlukan.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    )}
 
-    {versionToRestore && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Batal memulihkan versi" onClick={() => setVersionToRestore(null)} className="absolute inset-0"/><section role="alertdialog" aria-modal="true" aria-labelledby="restore-version-title" aria-describedby="restore-version-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><span className="grid size-10 place-items-center rounded-full bg-[#edf2ff] text-klarisa-secondary"><RotateCcw className="size-4"/></span><h2 id="restore-version-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Pulihkan versi {String(versionToRestore.version).padStart(2, "0")}?</h2><p id="restore-version-description" className="mt-2 text-xs leading-5 text-slate-500">Isi draft saat ini akan diganti dengan versi pilihan tanpa membuat versi baru. Diskusi sebelumnya tetap tersimpan, tetapi sorotan teksnya tidak dibawa ke versi yang dipulihkan.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={isRestoringVersion} onClick={() => setVersionToRestore(null)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold disabled:opacity-50">Batal</button><button type="button" disabled={isRestoringVersion} onClick={() => void confirmRestoreVersion()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white hover:bg-klarisa-secondary disabled:cursor-wait disabled:opacity-60"><RotateCcw className="size-4"/>{isRestoringVersion ? "Memulihkan..." : "Pulihkan versi"}</button></div></section></div>}
+    {versionToRestore && (
+      <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-[2px]">
+        <button type="button" aria-label="Batal memulihkan versi" onClick={() => setVersionToRestore(null)} className="absolute inset-0" />
+        <section role="alertdialog" aria-modal="true" aria-labelledby="restore-version-title" aria-describedby="restore-version-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl">
+          <span className="grid size-10 place-items-center rounded-full bg-[#edf2ff] text-klarisa-secondary"><RotateCcw className="size-4" /></span>
+          <h2 id="restore-version-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Pulihkan versi {String(versionToRestore.version).padStart(2, "0")}?</h2>
+          <p id="restore-version-description" className="mt-2 text-xs leading-5 text-slate-500">Isi draft saat ini akan diganti dengan versi pilihan tanpa membuat versi baru. Diskusi sebelumnya tetap tersimpan, tetapi sorotan teksnya tidak dibawa ke versi yang dipulihkan.</p>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="outline" size="sm" type="button" disabled={isRestoringVersion} onClick={() => setVersionToRestore(null)}>Batal</Button>
+            <SubmitButton variant="default" size="sm" type="button" isLoading={isRestoringVersion} loadingText="Memulihkan..." onClick={() => void confirmRestoreVersion()} leftIcon={<RotateCcw className="size-4" />}>
+              Pulihkan versi
+            </SubmitButton>
+          </div>
+        </section>
+      </div>
+    )}
 
-    {isDeleteOpen && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 px-4 backdrop-blur-[2px]"><button type="button" aria-label="Batal menghapus draft" onClick={() => setIsDeleteOpen(false)} className="absolute inset-0"/><section role="alertdialog" aria-modal="true" aria-labelledby="delete-draft-title" aria-describedby="delete-draft-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl"><span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600"><Trash2 className="size-4"/></span><h2 id="delete-draft-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Hapus draft ini?</h2><p id="delete-draft-description" className="mt-2 text-xs leading-5 text-slate-500">Draft, versi tersimpan, komentar, dan akses pihak terkait akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)} className="min-h-10 rounded-md border border-slate-200 px-4 text-xs font-bold disabled:opacity-50">Batal</button><button type="button" disabled={isDeleting} onClick={() => void confirmDeleteDraft()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-red-600 px-4 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"><Trash2 className="size-4"/>{isDeleting ? "Menghapus..." : "Hapus permanen"}</button></div></section></div>}
+    {isDeleteOpen && (
+      <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 px-4 backdrop-blur-[2px]">
+        <button type="button" aria-label="Batal menghapus draft" onClick={() => setIsDeleteOpen(false)} className="absolute inset-0" />
+        <section role="alertdialog" aria-modal="true" aria-labelledby="delete-draft-title" aria-describedby="delete-draft-description" className="relative w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl">
+          <span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600"><Trash2 className="size-4" /></span>
+          <h2 id="delete-draft-title" className="mt-4 text-xl font-semibold tracking-[-.03em]">Hapus draft ini?</h2>
+          <p id="delete-draft-description" className="mt-2 text-xs leading-5 text-slate-500">Draft, versi tersimpan, komentar, dan akses pihak terkait akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="outline" size="sm" type="button" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)}>Batal</Button>
+            <SubmitButton variant="destructive" size="sm" type="button" isLoading={isDeleting} loadingText="Menghapus..." onClick={() => void confirmDeleteDraft()} leftIcon={<Trash2 className="size-4" />}>
+              Hapus permanen
+            </SubmitButton>
+          </div>
+        </section>
+      </div>
+    )}
 
     <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">
         <div className="sticky top-16 z-20 border-b border-slate-200 bg-white lg:top-[57px]">
-          {isSearchOpen && <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 sm:px-6"><Search className="size-4 text-klarisa-secondary"/><input autoFocus value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); searchIndexRef.current = 0; setSearchFeedback(""); }} onKeyDown={(event) => { if (event.key === "Enter") findNext(); if (event.key === "Escape") setIsSearchOpen(false); }} placeholder="Cari di dalam kontrak..." className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none"/><span className="text-[9px] text-slate-400">{searchFeedback}</span><button type="button" onClick={findNext} className="h-8 rounded bg-[#172031] px-3 text-[9px] font-bold text-white">Cari berikutnya</button><button type="button" onClick={() => setIsSearchOpen(false)} aria-label="Tutup pencarian" className="grid size-8 place-items-center"><X className="size-4"/></button></div>}
+          {isSearchOpen && (
+            <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 sm:px-6">
+              <Search className="size-4 text-klarisa-secondary" />
+              <input autoFocus value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); searchIndexRef.current = 0; setSearchFeedback(""); }} onKeyDown={(event) => { if (event.key === "Enter") findNext(); if (event.key === "Escape") setIsSearchOpen(false); }} placeholder="Cari di dalam kontrak..." className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" />
+              <span className="text-[9px] text-slate-400">{searchFeedback}</span>
+              <Button variant="default" size="xs" type="button" onClick={findNext}>Cari berikutnya</Button>
+              <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsSearchOpen(false)} aria-label="Tutup pencarian"><X className="size-4" /></Button>
+            </div>
+          )}
           <div className="flex min-h-13 items-center gap-1 overflow-x-auto px-3 py-2 sm:px-6">
-            <button type="button" aria-label="Cari dalam dokumen" onClick={() => setIsSearchOpen((current) => !current)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", isSearchOpen && "bg-[#edf2ff] text-klarisa-secondary")}><Search className="size-4"/></button>
-            {canEdit && <><span className="mx-1 h-6 w-px shrink-0 bg-slate-200"/>
-            <button type="button" aria-label="Urungkan" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("undo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Undo2 className="size-4"/></button>
-            <button type="button" aria-label="Ulangi" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("redo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Redo2 className="size-4"/></button>
-            <select aria-label="Gaya paragraf" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)} className="mx-2 h-9 shrink-0 rounded border border-slate-200 bg-white px-2 text-[10px] outline-none"><option value="p">Paragraf</option><option value="h2">Judul pasal</option><option value="blockquote">Kutipan</option></select>
-            {toolbar.map(([label, Icon, command]) => <button key={label} type="button" title={label} aria-label={label} aria-pressed={activeCommands.has(command)} onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand(command)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", activeCommands.has(command) && "bg-[#eaf0ff] text-klarisa-secondary")}><Icon className="size-4"/></button>)}
-            <button type="button" aria-label="Tambahkan tautan" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Link2 className="size-4"/></button></>}
+            <button type="button" aria-label="Cari dalam dokumen" onClick={() => setIsSearchOpen((current) => !current)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", isSearchOpen && "bg-[#edf2ff] text-klarisa-secondary")}><Search className="size-4" /></button>
+            {canEdit && (
+              <>
+                <span className="mx-1 h-6 w-px shrink-0 bg-slate-200" />
+                <button type="button" aria-label="Urungkan" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("undo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Undo2 className="size-4" /></button>
+                <button type="button" aria-label="Ulangi" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("redo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Redo2 className="size-4" /></button>
+                <select aria-label="Gaya paragraf" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)} className="mx-2 h-9 shrink-0 rounded border border-slate-200 bg-white px-2 text-[10px] outline-none"><option value="p">Paragraf</option><option value="h2">Judul pasal</option><option value="blockquote">Kutipan</option></select>
+                {toolbar.map(([label, Icon, command]) => <button key={label} type="button" title={label} aria-label={label} aria-pressed={activeCommands.has(command)} onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand(command)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", activeCommands.has(command) && "bg-[#eaf0ff] text-klarisa-secondary")}><Icon className="size-4" /></button>)}
+                <button type="button" aria-label="Tambahkan tautan" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Link2 className="size-4" /></button>
+              </>
+            )}
           </div>
         </div>
 
-        <article ref={editorRef} contentEditable={canEdit} suppressContentEditableWarning spellCheck onInput={handleEditorInput} onKeyDown={handleEditorKeyDown} onMouseUp={updateActiveCommands} onKeyUp={updateActiveCommands} dangerouslySetInnerHTML={{ __html: initialDraft.content }} className="mx-auto min-h-[calc(100svh-178px)] max-w-[900px] px-5 py-8 text-sm leading-7 outline-none selection:bg-[#dce6ff] empty:before:text-slate-400 empty:before:content-['Mulai_tulis_kontrak_Anda...'] sm:px-10 lg:px-14 [&_a]:text-klarisa-secondary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-klarisa-secondary [&_blockquote]:pl-4 [&_h2]:mt-7 [&_h2]:font-sans [&_h2]:text-sm [&_h2]:font-bold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:min-h-[1.25rem] [&_ul]:list-disc"/>
+        <article ref={editorRef} contentEditable={canEdit} suppressContentEditableWarning spellCheck onInput={handleEditorInput} onKeyDown={handleEditorKeyDown} onMouseUp={updateActiveCommands} onKeyUp={updateActiveCommands} dangerouslySetInnerHTML={{ __html: initialDraft.content }} className="mx-auto min-h-[calc(100svh-178px)] max-w-[900px] px-5 py-8 text-sm leading-7 outline-none selection:bg-[#dce6ff] empty:before:text-slate-400 empty:before:content-['Mulai_tulis_kontrak_Anda...'] sm:px-10 lg:px-14 [&_a]:text-klarisa-secondary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-klarisa-secondary [&_blockquote]:pl-4 [&_h2]:mt-7 [&_h2]:font-sans [&_h2]:text-sm [&_h2]:font-bold [&_li]:ml-6 [&_ol]:list-decimal [&_p]:min-h-[1.25rem] [&_ul]:list-disc" />
       </section>
 
       <aside className="flex min-h-[440px] flex-col bg-white p-5 xl:sticky xl:top-[57px] xl:h-[calc(100svh-125px)] xl:overflow-hidden [&>div:nth-last-child(2)]:mb-6">
-        <div className="flex gap-1 border-b border-slate-200 pb-3"><button type="button" aria-pressed={activeSidebarTab === "conversation"} onClick={() => { setActiveSidebarTab("conversation"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "conversation" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Percakapan</button><button type="button" aria-pressed={activeSidebarTab === "discussion"} onClick={() => { setActiveSidebarTab("discussion"); setMessage(""); }} className={cn("rounded px-3 py-2 text-[10px]", activeSidebarTab === "discussion" ? "bg-slate-100 font-bold text-slate-900" : "text-slate-500 hover:text-slate-900")}>Diskusi</button></div>
-        {activeSidebarTab === "conversation" ? <>
-          <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain"/><b className="text-[11px]">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain"/></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
-          <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-[9px] font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain"/> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-[11px]">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
-        </> : <>
-          <div className="mt-5"><p className="text-[10px] font-bold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-5 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
-          {selectedDraftText && !replyToId && <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3"><div className="flex items-center justify-between gap-3"><p className="text-[9px] font-bold tracking-[.12em] text-amber-700">TEKS UNTUK DIKOMENTARI</p><button type="button" onClick={clearSelectedDraftText} className="grid size-5 place-items-center rounded text-amber-700 hover:bg-amber-100" aria-label="Batalkan teks yang dipilih"><X className="size-3"/></button></div><p className="mt-1 line-clamp-3 text-[10px] leading-5 text-slate-600">“{selectedDraftText}”</p></div>}
-          <DraftDiscussionThread comments={remoteDraft.comments} canManage={canEdit} canComment={canComment} isPending={isCommenting} onFocusSource={focusCommentSource} onReply={(commentId) => { setReplyToId(commentId); setMessage(""); }} onUpdate={updateDiscussionComment} onDelete={deleteDiscussionComment} onSetResolved={setDiscussionResolved}/>
-        </>}
-        <div className="mt-auto rounded-lg bg-slate-100 p-4">{activeSidebarTab === "discussion" && replyTarget && <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[9px] text-slate-500"><span>Membalas {replyTarget.isOwn?"komentar Anda":replyTarget.authorName}</span><button type="button" onClick={()=>setReplyToId(null)} aria-label="Batal membalas"><X className="size-3"/></button></div>}<textarea value={message} disabled={activeSidebarTab === "conversation" || !canComment} onPointerDown={activeSidebarTab === "discussion" ? preserveDraftSelectionForComment : undefined} onChange={(event)=>setMessage(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void sendMessage();}}} placeholder={activeSidebarTab === "conversation" ? "Percakapan AI belum diaktifkan..." : !canComment ? "Anda hanya dapat melihat diskusi ini" : replyToId ? "Tulis balasan..." : selectedDraftText ? "Tulis komentar untuk teks yang dipilih..." : "Pilih teks kontrak untuk mulai berkomentar"} className="min-h-20 w-full resize-none bg-transparent text-xs outline-none disabled:cursor-not-allowed"/><button type="button" disabled={activeSidebarTab === "conversation" || isCommenting || !canComment || (!replyToId && !selectedDraftText)} onClick={() => void sendMessage()} aria-label={activeSidebarTab === "conversation" ? "Kirim pertanyaan ke Klarisa AI" : "Kirim komentar diskusi"} className="ml-auto grid size-9 place-items-center rounded-full bg-[#172031] text-white hover:bg-klarisa-secondary disabled:cursor-not-allowed disabled:opacity-50"><Send className="size-4"/></button></div>
+        <div className="flex gap-1 border-b border-slate-200 pb-3">
+          <Button variant={activeSidebarTab === "conversation" ? "secondary" : "ghost"} size="xs" type="button" onClick={() => { setActiveSidebarTab("conversation"); setMessage(""); }}>Percakapan</Button>
+          <Button variant={activeSidebarTab === "discussion" ? "secondary" : "ghost"} size="xs" type="button" onClick={() => { setActiveSidebarTab("discussion"); setMessage(""); }}>Diskusi</Button>
+        </div>
+        {activeSidebarTab === "conversation" ? (
+          <>
+            <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" /><b className="text-[11px]">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain" /></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
+            <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-[9px] font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain" /> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-[11px]">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
+          </>
+        ) : (
+          <>
+            <div className="mt-5"><p className="text-[10px] font-bold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-5 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
+            {selectedDraftText && !replyToId && (
+              <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[9px] font-bold tracking-[.12em] text-amber-700">TEKS UNTUK DIKOMENTARI</p>
+                  <Button variant="ghost" size="icon-xs" type="button" onClick={clearSelectedDraftText} aria-label="Batalkan teks yang dipilih"><X className="size-3" /></Button>
+                </div>
+                <p className="mt-1 line-clamp-3 text-[10px] leading-5 text-slate-600">“{selectedDraftText}”</p>
+              </div>
+            )}
+            <DraftDiscussionThread comments={remoteDraft.comments} canManage={canEdit} canComment={canComment} isPending={isCommenting} onFocusSource={focusCommentSource} onReply={(commentId) => { setReplyToId(commentId); setMessage(""); }} onUpdate={updateDiscussionComment} onDelete={deleteDiscussionComment} onSetResolved={setDiscussionResolved} />
+          </>
+        )}
+        <div className="mt-auto rounded-lg bg-slate-100 p-4">
+          {activeSidebarTab === "discussion" && replyTarget && (
+            <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[9px] text-slate-500">
+              <span>Membalas {replyTarget.isOwn ? "komentar Anda" : replyTarget.authorName}</span>
+              <Button variant="ghost" size="icon-xs" type="button" onClick={() => setReplyToId(null)} aria-label="Batal membalas"><X className="size-3" /></Button>
+            </div>
+          )}
+          <textarea value={message} disabled={activeSidebarTab === "conversation" || !canComment} onPointerDown={activeSidebarTab === "discussion" ? preserveDraftSelectionForComment : undefined} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder={activeSidebarTab === "conversation" ? "Percakapan AI belum diaktifkan..." : !canComment ? "Anda hanya dapat melihat diskusi ini" : replyToId ? "Tulis balasan..." : selectedDraftText ? "Tulis komentar untuk teks yang dipilih..." : "Pilih teks kontrak untuk mulai berkomentar"} className="min-h-20 w-full resize-none bg-transparent text-xs outline-none disabled:cursor-not-allowed" />
+          <SubmitButton variant="default" size="icon-sm" type="button" disabled={activeSidebarTab === "conversation" || isCommenting || !canComment || (!replyToId && !selectedDraftText)} onClick={() => void sendMessage()} aria-label={activeSidebarTab === "conversation" ? "Kirim pertanyaan ke Klarisa AI" : "Kirim komentar diskusi"} className="ml-auto">
+            <Send className="size-4" />
+          </SubmitButton>
+        </div>
       </aside>
     </div>
   </div>;

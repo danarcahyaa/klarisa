@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createDraftAction } from "@/app/actions/draft.action";
 import { cn } from "@/lib/utils";
 import { draftCategories, type DraftCategoryId } from "@/lib/draft-options";
+import { Button, SubmitButton } from "@/components/ui/button";
 
 export function DraftOnboarding() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function DraftOnboarding() {
   const [subtype, setSubtype] = useState("");
   const [customSubtype, setCustomSubtype] = useState("");
   const [error, setError] = useState<string | null>(null);
+
   const selectedCategory = draftCategories.find((item) => item.id === category);
   const finalSubtype = subtype === "Lainnya" ? customSubtype.trim() : subtype;
 
@@ -35,6 +37,7 @@ export function DraftOnboarding() {
 
   const createOutline = () => {
     if (!category || !finalSubtype) return;
+
     setError(null);
     startTransition(async () => {
       const result = await createDraftAction({
@@ -46,6 +49,7 @@ export function DraftOnboarding() {
         setError(result.error ?? "Kerangka draft gagal dibuat.");
         return;
       }
+
       router.push(`/dashboard/create?id=${result.data.id}`);
     });
   };
@@ -90,12 +94,12 @@ export function DraftOnboarding() {
                   onClick={() => setStep(item.number as 1 | 2)}
                   aria-label={isComplete ? `Kembali ke langkah ${item.label}` : item.label}
                   className={cn(
-                  "relative z-10 grid size-8 place-items-center rounded-full border bg-[#f7f9fc] text-[10px] font-bold transition-colors sm:size-10",
-                  isActive && "border-[#172031] bg-[#172031] text-white",
-                  isComplete && "border-klarisa-secondary bg-klarisa-secondary text-white",
-                  !isActive && !isComplete && "border-slate-300 text-slate-500",
-                  isComplete && "cursor-pointer hover:bg-[#244bb7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-klarisa-secondary",
-                )}
+                    "relative z-10 grid size-8 place-items-center rounded-full border bg-[#f7f9fc] text-[10px] font-bold transition-colors sm:size-10",
+                    isActive && "border-[#172031] bg-[#172031] text-white",
+                    isComplete && "border-klarisa-secondary bg-klarisa-secondary text-white",
+                    !isActive && !isComplete && "border-slate-300 text-slate-500",
+                    isComplete && "cursor-pointer hover:bg-[#244bb7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-klarisa-secondary",
+                  )}
                 >
                   {isComplete ? <Check className="size-4" /> : item.number}
                 </button>
@@ -132,9 +136,15 @@ export function DraftOnboarding() {
             ))}
           </div>
           <div className="mt-5 flex justify-end border-t border-slate-200 pt-5">
-            <button type="button" disabled={!category} onClick={continueToSubtype} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#172031] px-5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+            <Button
+              type="button"
+              variant="default"
+              size="default"
+              disabled={!category}
+              onClick={continueToSubtype}
+            >
               Lanjutkan <ArrowRight className="size-4" />
-            </button>
+            </Button>
           </div>
         </section>
       ) : (
@@ -152,11 +162,20 @@ export function DraftOnboarding() {
             ))}
           </div>
           {subtype === "Lainnya" && <label className="mt-4 grid gap-2 text-[10px] font-bold text-slate-600">Jelaskan jenis kontrak<input autoFocus value={customSubtype} onChange={(event) => setCustomSubtype(event.target.value)} maxLength={120} placeholder="Contoh: Perjanjian pengelolaan acara" className="h-12 rounded-md border border-slate-200 bg-white px-4 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10" /></label>}
-          {error && <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600"><span>{error}</span><button type="button" onClick={() => setError(null)} aria-label="Tutup pemberitahuan" className="grid size-7 shrink-0 place-items-center rounded hover:bg-red-100"><X className="size-4" /></button></div>}
+          {error && <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600"><span>{error}</span><Button type="button" variant="ghost" size="icon-xs" onClick={() => setError(null)} aria-label="Tutup pemberitahuan"><X className="size-4" /></Button></div>}
           <div className="mt-6 flex justify-end">
-            <button type="button" disabled={!finalSubtype || isPending} onClick={createOutline} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#172031] px-5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
-              {isPending ? "Menyiapkan..." : "Buka editor"} <ArrowRight className="size-4" />
-            </button>
+            <SubmitButton
+              type="button"
+              variant="default"
+              size="default"
+              disabled={!finalSubtype || isPending}
+              isLoading={isPending}
+              loadingText="Menyiapkan..."
+              onClick={createOutline}
+              rightIcon={<ArrowRight className="size-4" />}
+            >
+              Buka editor
+            </SubmitButton>
           </div>
         </section>
       )}

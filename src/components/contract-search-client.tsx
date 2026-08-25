@@ -2,37 +2,53 @@
 
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 
-import type { ContractListItem } from "@/types/contract.type";
+const PAGE_SIZE = 5;
 
-const PAGE_SIZE = 6;
+type SearchItem = {
+  id: string;
+  type: "draft" | "review";
+  title: string;
+  updatedAt: string;
+  riskCount: number;
+  metadata: {
+    comments?: number;
+    version?: number;
+  };
+};
 
-export function ContractSearchClient({ items }: { items: ContractListItem[] }) {
+export function ContractSearchClient({ initialItems, items }: { initialItems?: ReadonlyArray<SearchItem>; items?: ReadonlyArray<SearchItem> }) {
+  const dataList = initialItems ?? items ?? [];
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"Semua" | "Draft" | "Review">("Semua");
   const [page, setPage] = useState(1);
-  const deferredQuery = useDeferredValue(query).trim().toLocaleLowerCase("id-ID");
-  const data = useMemo(() => items.filter((item) => {
-    if (filter !== "Semua" && item.type !== filter.toLowerCase()) return false;
-    return !deferredQuery || item.title.toLocaleLowerCase("id-ID").includes(deferredQuery);
-  }), [deferredQuery, filter, items]);
+
+  const data = useMemo(() => {
+    return dataList.filter((item) => {
+      const matchQuery = item.title.toLowerCase().includes(query.toLowerCase().trim());
+      const matchFilter =
+        filter === "Semua" ? true : filter === "Draft" ? item.type === "draft" : item.type === "review";
+      return matchQuery && matchFilter;
+    });
+  }, [dataList, query, filter]);
+
   const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const visibleItems = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-[920px] px-4 py-12 sm:px-7 lg:py-20">
-      <section className="text-center">
-        <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">WORKSPACE PRIBADI</p>
-        <h1 className="mx-auto mt-5 max-w-2xl font-heading text-[clamp(2.5rem,5vw,3.7rem)] font-normal leading-[.96] tracking-[-.055em]">Mulai dari dokumen yang perlu Anda pahami.</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">Cari review atau draft, lalu lanjutkan dari keputusan terakhir.</p>
-      </section>
+    <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-7 lg:py-12">
+      <header className="border-b border-slate-200 pb-6">
+        <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">WORKSPACE DOKUMEN</p>
+        <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">Pencarian dokumen.</h1>
+      </header>
 
-      <section className="mt-7">
+      <section className="mt-6">
         <label className="relative block">
-          <span className="sr-only">Cari review atau draft</span>
           <input
+            type="search"
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -46,17 +62,18 @@ export function ContractSearchClient({ items }: { items: ContractListItem[] }) {
 
         <div className="flex items-center gap-2 border-b border-slate-200 py-4">
           {(["Semua", "Draft", "Review"] as const).map((item) => (
-            <button
+            <Button
               key={item}
               type="button"
+              variant={filter === item ? "default" : "outline"}
+              size="xs"
               onClick={() => {
                 setFilter(item);
                 setPage(1);
               }}
-              className={`h-8 rounded-full border px-3 text-[10px] ${filter === item ? "border-[#172031] bg-[#172031] text-white" : "border-slate-200 bg-white text-slate-500 hover:border-klarisa-secondary"}`}
             >
               {item}
-            </button>
+            </Button>
           ))}
           <span className="ml-auto text-[10px] text-slate-400">Total {data.length}</span>
         </div>
@@ -82,19 +99,32 @@ export function ContractSearchClient({ items }: { items: ContractListItem[] }) {
 
         {data.length > PAGE_SIZE && (
           <nav aria-label="Navigasi halaman dokumen" className="flex items-center justify-between border-b border-slate-200 py-5">
-            <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-[10px] font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+            >
               <ArrowLeft className="size-3.5" />Sebelumnya
-            </button>
+            </Button>
             <span className="text-[10px] text-slate-500">Halaman <b className="text-slate-800">{currentPage}</b> dari {totalPages}</span>
-            <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-[10px] font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            >
               Berikutnya<ArrowRight className="size-3.5" />
-            </button>
+            </Button>
           </nav>
         )}
 
         <footer className="mt-6 flex justify-end gap-2">
-          <Link href="/dashboard/create" className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-4 text-xs font-bold">Buat draft</Link>
-          <Link href="/dashboard/review" className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#172031] px-4 text-xs font-bold text-white">Review kontrak<ArrowRight className="size-4" /></Link>
+          <Link href="/dashboard/create" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#172031] px-4 text-xs font-bold text-white transition-colors hover:bg-klarisa-secondary">
+            Buat draft baru
+          </Link>
         </footer>
       </section>
     </div>
