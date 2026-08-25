@@ -66,7 +66,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
               <span>{label}</span>
               {required && <span className="text-destructive font-bold">*</span>}
             </label>
-            {labelSubtext && <span className="text-[11px] font-normal text-muted-foreground">{labelSubtext}</span>}
+            {labelSubtext && <span className="text-sm font-normal text-muted-foreground">{labelSubtext}</span>}
           </div>
         )}
 

@@ -19,6 +19,7 @@ import {
 
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Button, SubmitButton } from "@/components/ui/button";
 
 const navigation = [
   { label: "Ringkasan", href: "/dashboard", icon: LayoutGrid, exact: true },
@@ -41,8 +42,8 @@ type DashboardShellProps = {
 export function DashboardShell({ children, user, recentDocuments }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const { handleLogout, isLoading } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { handleLogout, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -71,24 +72,28 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
             <small className="truncate text-[9px] text-slate-400">Workspace pribadi</small>
           </span>
         </Link>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon"
           onClick={() => setIsSidebarCollapsed((current) => !current)}
           aria-label={isSidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"}
           title={isSidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"}
-          className={cn("hidden size-9 place-items-center rounded-md border border-slate-200 text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary lg:grid", isSidebarCollapsed && "lg:hidden")}
+          className={cn("hidden lg:inline-flex", isSidebarCollapsed && "lg:hidden")}
         >
           <PanelLeftClose className="size-4" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon"
           aria-label="Tutup menu"
           onClick={() => setIsOpen(false)}
-          className="grid size-9 place-items-center rounded-md border border-slate-200 text-slate-600 lg:hidden"
+          className="lg:hidden"
         >
           <X className="size-4" />
-        </button>
+        </Button>
       </div>
 
       <nav aria-label="Menu workspace" className="grid gap-1 pt-4">
@@ -115,15 +120,17 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
       </nav>
       {isSidebarCollapsed && (
         <div className="mt-3 hidden border-t border-[#e7ebf1] pt-3 lg:grid">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => setIsSidebarCollapsed(false)}
             aria-label="Perluas sidebar"
             title="Perluas sidebar"
-            className="grid size-10 place-items-center justify-self-center rounded-md border border-slate-200 text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary"
+            className="justify-self-center"
           >
             <PanelLeftOpen className="size-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -151,15 +158,17 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
           <b className="truncate text-[10px]">{user.name}</b>
           <small className="truncate text-[9px] text-slate-400">{user.email}</small>
         </span>
-        <button
+        <SubmitButton
           type="button"
+          variant="ghost"
+          size="icon"
+          isLoading={isLoading}
           onClick={() => handleLogout()}
-          disabled={isLoading}
           aria-label="Keluar dari workspace"
-          className={cn("grid size-9 shrink-0 place-items-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50", isSidebarCollapsed && "lg:hidden")}
+          className={cn(isSidebarCollapsed && "lg:hidden")}
         >
           <LogOut className="size-4" />
-        </button>
+        </SubmitButton>
       </div>
     </div>
   );
@@ -186,16 +195,18 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
 
       <section className="min-w-0 lg:col-start-2">
         <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-[#e1e6ee] bg-white/95 px-4 backdrop-blur sm:px-6 lg:h-[57px] lg:px-10">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => setIsOpen(true)}
             aria-label="Buka menu workspace"
             aria-controls="workspace-navigation"
             aria-expanded={isOpen}
-            className="grid size-10 place-items-center rounded-md border border-slate-200 text-slate-700 lg:hidden"
+            className="lg:hidden"
           >
             <Menu className="size-5" />
-          </button>
+          </Button>
           <b className="text-[9px] tracking-[0.18em] text-klarisa-secondary">WORKSPACE</b>
           <span className="ml-auto hidden text-[10px] text-slate-400 sm:block">
             Dokumen dan keputusan Anda tersimpan di satu tempat.
