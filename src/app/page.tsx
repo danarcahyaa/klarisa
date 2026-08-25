@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
+import { AnimatedNumber } from "@/components/animated-number";
 import { HomeChatbot } from "@/components/home-chatbot";
 import { HomeWorkspacePreview } from "@/components/home-workspace-preview";
+import { ScrollRevealObserver } from "@/components/scroll-reveal-observer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -72,6 +74,7 @@ export default async function HomePage() {
 
   return (
     <main className="overflow-x-clip bg-background text-foreground">
+      <ScrollRevealObserver />
       <header className="sticky top-0 z-50 flex h-18 items-center justify-between border-b border-slate-900/10 bg-white/90 px-5 backdrop-blur md:px-10 xl:px-[max(2.5rem,calc((100vw-1280px)/2))]">
         <Logo />
         <nav
@@ -217,7 +220,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-slate-900 text-white" id="untuk-siapa">
+      <section className="bg-slate-900 text-white" id="untuk-siapa" data-scroll-reveal>
         <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-7 py-9 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div>
             <Label inverse>UNTUK SIAPA</Label>
@@ -234,7 +237,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section>
+      <section data-scroll-reveal>
         <div className="mx-auto w-[min(100%-2.5rem,1280px)] py-8">
           <Label>RINGKASAN REVIEW</Label>
         </div>
@@ -257,7 +260,7 @@ export default async function HomePage() {
               key={number}
             >
               <b className="font-heading text-4xl font-normal tracking-tight">
-                {number}
+                <AnimatedNumber value={Number(number.replace("%", ""))} suffix={number.includes("%") ? "%" : ""} padLength={number === "03" ? 2 : 0} />
               </b>
               <span className="max-w-50 text-xs leading-5 text-slate-500">
                 {text}
@@ -270,6 +273,7 @@ export default async function HomePage() {
       <section
         className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28"
         id="cara-kerja"
+        data-scroll-reveal
       >
         <div className="grid gap-6 md:grid-cols-[.35fr_1fr]">
           <Label>CARA KERJA</Label>
@@ -301,7 +305,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid lg:grid-cols-2" id="fitur">
+      <section className="grid lg:grid-cols-2" id="fitur" data-scroll-reveal>
         <div className="relative min-h-120 overflow-hidden">
           <Image
             className="object-cover transition duration-700 hover:scale-105"
@@ -357,7 +361,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28">
+      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28" data-scroll-reveal>
         <div className="grid gap-8 md:grid-cols-2">
           <div>
             <Label>CARA KLARISA MEMBANTU</Label>
@@ -413,7 +417,7 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28">
+      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28" data-scroll-reveal>
         <Label>SATU RUANG KERJA</Label>
         <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
           Dokumen, temuan, dan diskusi berada di satu tempat.
@@ -422,7 +426,7 @@ export default async function HomePage() {
           <HomeWorkspacePreview />
         </div>
       </section>
-      <section className="bg-slate-900 text-white" id="keamanan">
+      <section className="bg-slate-900 text-white" id="keamanan" data-scroll-reveal>
         <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-12 py-20 md:grid-cols-[1.15fr_.85fr] md:py-28">
           <div>
             <Label inverse>PRIVASI SEJAK AWAL</Label>
@@ -454,6 +458,7 @@ export default async function HomePage() {
       <section
         className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-8 py-20 md:grid-cols-[.8fr_1.2fr] md:py-28"
         id="faq"
+        data-scroll-reveal
       >
         <div>
           <Label>PERTANYAAN UMUM</Label>
@@ -495,7 +500,7 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      <section className="bg-indigo-50">
+      <section className="bg-indigo-50" data-scroll-reveal>
         <div className="mx-auto w-[min(100%-2.5rem,1280px)] py-20">
           <Label>SEBELUM TANDA TANGAN</Label>
           <h2 className="mt-5 max-w-3xl font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">

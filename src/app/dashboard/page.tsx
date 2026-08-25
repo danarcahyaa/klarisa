@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, FileSearch } from "lucide-react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { CreateDraftButton } from "@/components/create-draft-button";
 import { getDraftServerContext } from "@/lib/draft-context";
 
@@ -34,7 +35,7 @@ export default async function DashboardHome() {
         </div>
       </section>
       <section className="mt-12 grid overflow-hidden rounded-lg border border-[#d9e0ea] bg-white sm:grid-cols-3" aria-label="Ringkasan workspace">
-        {metrics.map(([label,value,description]) => <article key={label} className="grid min-h-32 gap-2 border-b border-[#d9e0ea] p-6 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"><p className={eyebrow}>{label}</p><b className="font-heading text-4xl font-normal tracking-[-.06em]">{value}</b><span className="text-[10px] text-slate-500">{description}</span></article>)}
+        {metrics.map(([label,value,description]) => <article key={label} className="grid min-h-32 gap-2 border-b border-[#d9e0ea] p-6 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"><p className={eyebrow}>{label}</p><b className="font-heading text-4xl font-normal tracking-[-.06em]"><AnimatedNumber value={Number(value)} padLength={2} /></b><span className="text-[10px] text-slate-500">{description}</span></article>)}
       </section>
       <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(260px,.82fr)]">
         <article className="overflow-hidden rounded-lg border border-[#d9e0ea] bg-white">
