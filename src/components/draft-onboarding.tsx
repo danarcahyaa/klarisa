@@ -57,7 +57,7 @@ export function DraftOnboarding() {
   return (
     <main className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-7 lg:py-10">
       <header className="border-b border-slate-200 pb-6">
-        <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BUAT KONTRAK</p>
+        <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">BUAT KONTRAK</p>
         <div className="mt-3 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <h1 className="max-w-3xl font-heading text-[clamp(2.3rem,5vw,4.25rem)] font-normal leading-[.96] tracking-[-.055em]">
@@ -94,7 +94,7 @@ export function DraftOnboarding() {
                   onClick={() => setStep(item.number as 1 | 2)}
                   aria-label={isComplete ? `Kembali ke langkah ${item.label}` : item.label}
                   className={cn(
-                    "relative z-10 grid size-8 place-items-center rounded-full border bg-[#f7f9fc] text-[10px] font-bold transition-colors sm:size-10",
+                    "relative z-10 grid size-8 place-items-center rounded-full border bg-[#f7f9fc] text-xs font-bold transition-colors sm:size-10",
                     isActive && "border-[#172031] bg-[#172031] text-white",
                     isComplete && "border-klarisa-secondary bg-klarisa-secondary text-white",
                     !isActive && !isComplete && "border-slate-300 text-slate-500",
@@ -103,8 +103,8 @@ export function DraftOnboarding() {
                 >
                   {isComplete ? <Check className="size-4" /> : item.number}
                 </button>
-                <b className="mt-2 block text-[11px] text-slate-800">{item.label}</b>
-                <small className="mt-0.5 hidden text-[9px] text-slate-400 sm:block">{item.description}</small>
+                <b className="mt-2 block text-xs font-semibold text-slate-800">{item.label}</b>
+                <small className="mt-0.5 hidden text-xs text-slate-400 sm:block">{item.description}</small>
               </li>
             );
           })}
@@ -126,10 +126,10 @@ export function DraftOnboarding() {
                   category === item.id && "border-klarisa-secondary bg-[#f5f7ff]",
                 )}
               >
-                <span className="grid size-9 place-items-center rounded bg-[#edf2ff] text-[11px] font-bold text-klarisa-secondary">0{index + 1}</span>
+                <span className="grid size-9 place-items-center rounded bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">0{index + 1}</span>
                 <span>
-                  <b className="block text-[13px]">{item.label}</b>
-                  <small className="mt-1 block text-[10px] leading-4 text-slate-500">{item.description}</small>
+                  <b className="block text-sm font-semibold text-slate-900">{item.label}</b>
+                  <small className="mt-1 block text-xs leading-5 text-slate-500">{item.description}</small>
                 </span>
                 {category === item.id && <Check className="mt-0.5 size-4 text-klarisa-secondary" />}
               </button>
@@ -151,7 +151,7 @@ export function DraftOnboarding() {
         <section aria-labelledby="draft-subtype-title" className="pb-8">
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-md bg-[#edf2ff] text-klarisa-secondary"><FileText className="size-4" /></span>
-            <div><p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">{selectedCategory?.label.toUpperCase()}</p><h2 id="draft-subtype-title" className="mt-1 text-xl font-semibold tracking-[-.03em]">Pilih jenis kontrak.</h2></div>
+            <div><p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">{selectedCategory?.label.toUpperCase()}</p><h2 id="draft-subtype-title" className="mt-1 text-xl font-semibold tracking-[-.03em]">Pilih jenis kontrak.</h2></div>
           </div>
           <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
             {selectedCategory?.subtypes.map((item) => (
@@ -161,7 +161,7 @@ export function DraftOnboarding() {
               </label>
             ))}
           </div>
-          {subtype === "Lainnya" && <label className="mt-4 grid gap-2 text-[10px] font-bold text-slate-600">Jelaskan jenis kontrak<input autoFocus value={customSubtype} onChange={(event) => setCustomSubtype(event.target.value)} maxLength={120} placeholder="Contoh: Perjanjian pengelolaan acara" className="h-12 rounded-md border border-slate-200 bg-white px-4 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10" /></label>}
+          {subtype === "Lainnya" && <label className="mt-4 grid gap-2 text-xs font-semibold text-slate-600">Jelaskan jenis kontrak<input autoFocus value={customSubtype} onChange={(event) => setCustomSubtype(event.target.value)} maxLength={120} placeholder="Contoh: Perjanjian pengelolaan acara" className="h-12 rounded-md border border-slate-200 bg-white px-4 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10" /></label>}
           {error && <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600"><span>{error}</span><Button type="button" variant="ghost" size="icon-xs" onClick={() => setError(null)} aria-label="Tutup pemberitahuan"><X className="size-4" /></Button></div>}
           <div className="mt-6 flex justify-end">
             <SubmitButton

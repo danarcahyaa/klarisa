@@ -69,7 +69,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
           <Image src="/klarisa/logo.png" alt="Klarisa" width={25} height={25} className="size-6 object-contain" />
           <span className={cn("grid min-w-0 gap-0.5", isSidebarCollapsed && "lg:hidden")}>
             <b className="text-sm leading-none">Klarisa</b>
-            <small className="truncate text-[9px] text-slate-400">Workspace pribadi</small>
+            <small className="truncate text-xs text-slate-400">Workspace pribadi</small>
           </span>
         </Link>
         <Button
@@ -135,28 +135,28 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
       )}
 
 
-      <div className={cn("grid gap-3 px-2 pt-8 text-[10px] text-slate-500", isSidebarCollapsed && "lg:hidden")}>
-        <b className="text-[9px] tracking-[0.18em] text-slate-400">TERKINI</b>
+      <div className={cn("grid gap-2 px-2 pt-8 text-xs text-slate-500", isSidebarCollapsed && "lg:hidden")}>
+        <b className="text-xs font-bold tracking-wider text-slate-400 uppercase">TERKINI</b>
         {recentDocuments.map((document) => (
           <Link
             key={document.id}
             href={`/dashboard/create?id=${document.id}`}
             onClick={() => setIsOpen(false)}
-            className="truncate transition-colors hover:text-klarisa-secondary"
+            className="truncate text-xs font-medium text-slate-600 transition-colors hover:text-klarisa-secondary"
           >
             {document.title}
           </Link>
         ))}
-        {recentDocuments.length === 0 && <span className="leading-5 text-slate-400">Belum ada draft terbaru.</span>}
+        {recentDocuments.length === 0 && <span className="text-xs leading-5 text-slate-400">Belum ada draft terbaru.</span>}
       </div>
 
       <div className={cn("mt-auto flex items-center gap-2 border-t border-[#e7ebf1] px-2 pt-4", isSidebarCollapsed && "lg:justify-center")}>
-        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-[10px] font-bold text-klarisa-secondary">
+        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
           {user.initials}
         </span>
         <span className={cn("grid min-w-0 flex-1 gap-0.5", isSidebarCollapsed && "lg:hidden")}>
-          <b className="truncate text-[10px]">{user.name}</b>
-          <small className="truncate text-[9px] text-slate-400">{user.email}</small>
+          <b className="truncate text-xs font-semibold">{user.name}</b>
+          <small className="truncate text-xs text-slate-400">{user.email}</small>
         </span>
         <SubmitButton
           type="button"
@@ -207,14 +207,14 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
           >
             <Menu className="size-5" />
           </Button>
-          <b className="text-[9px] tracking-[0.18em] text-klarisa-secondary">WORKSPACE</b>
-          <span className="ml-auto hidden text-[10px] text-slate-400 sm:block">
+          <b className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">WORKSPACE</b>
+          <span className="ml-auto hidden text-xs text-slate-500 sm:block">
             Dokumen dan keputusan Anda tersimpan di satu tempat.
           </span>
           <Link
             href="/dashboard/search"
             aria-label="Cari dokumen"
-            className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-[10px] font-semibold text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary sm:ml-2"
+            className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary sm:ml-2"
           >
             <Search className="size-4" />
             <span className="hidden sm:inline">Cari dokumen</span>
