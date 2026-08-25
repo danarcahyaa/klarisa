@@ -10,7 +10,7 @@ export default function ReviewResultDetailPage() {
       <div className="grid min-h-[calc(100svh-121px)] lg:grid-cols-[minmax(500px,1.55fr)_390px] xl:grid-cols-[minmax(540px,1.55fr)_390px_240px]">
         <div className="border-b border-slate-200 lg:border-r lg:border-b-0">
           <div className="border-b border-slate-200 px-5 py-3 sm:px-10">
-            <Link href="/dashboard/review/result" className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 px-3 text-[10px] font-bold text-klarisa-secondary transition-colors hover:border-klarisa-secondary hover:bg-[#f5f7ff]">
+            <Link href="/dashboard/review/result" className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-klarisa-secondary transition-colors hover:border-klarisa-secondary hover:bg-[#f5f7ff]">
               <ArrowLeft className="size-3.5" />Semua temuan
             </Link>
           </div>

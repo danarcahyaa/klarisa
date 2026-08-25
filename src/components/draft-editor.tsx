@@ -575,7 +575,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
     <header className="flex min-h-[68px] flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
       <span className="grid min-w-0 flex-1 gap-1">
         <input value={title} readOnly={!canEdit} onChange={(event) => { titleRef.current = event.target.value; setTitle(event.target.value); scheduleLocalBackup(); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary read-only:cursor-default"/>
-        <small className="flex items-center gap-1.5 text-[9px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
+        <small className="flex items-center gap-1.5 text-xs text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
       {canEdit && (
         <Button variant="outline" size="sm" type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="hidden sm:inline-flex">
@@ -626,7 +626,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         <section role="dialog" aria-modal="true" aria-labelledby="share-draft-title" className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-2xl">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">BAGIKAN DRAFT</p>
+              <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">BAGIKAN DRAFT</p>
               <h2 id="share-draft-title" className="mt-2 text-xl font-semibold tracking-[-.03em]">Tambahkan pihak terkait.</h2>
               <p className="mt-2 text-xs leading-5 text-slate-500">Atur siapa yang dapat melihat atau memberi komentar pada draft ini.</p>
             </div>
@@ -635,10 +635,10 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
             </Button>
           </div>
           <form onSubmit={submitInvitation} className="mt-6 grid gap-4">
-            <label className="grid gap-2 text-[10px] font-bold text-slate-600">Email pengguna
+            <label className="grid gap-2 text-xs font-semibold text-slate-600">Email pengguna
               <input type="email" required value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="nama@contoh.com" className="h-11 rounded-md border border-slate-200 px-3 text-xs font-normal outline-none focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10" />
             </label>
-            <div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-[10px] leading-5 text-slate-600">
+            <div className="rounded-md bg-[#f5f7ff] px-4 py-3 text-xs leading-5 text-slate-600">
               <b className="text-klarisa-secondary">Komentator</b> dapat berdiskusi. <b className="text-klarisa-secondary">Peninjau</b> hanya dapat membaca isi draft.
             </div>
             <div className="flex justify-end gap-2">
@@ -649,16 +649,16 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
           </form>
           {remoteDraft.collaborators.length > 0 && (
             <div className="mt-6 border-t border-slate-200 pt-4">
-              <p className="text-[9px] font-bold tracking-[.14em] text-slate-500">ORANG YANG MEMILIKI AKSES</p>
+              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">ORANG YANG MEMILIKI AKSES</p>
               <div className="mt-3 grid max-h-48 gap-2 overflow-y-auto pr-1">
                 {remoteDraft.collaborators.map((collaborator) => (
                   <div key={collaborator.userId} className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5">
-                    <span className="grid size-7 place-items-center rounded-full bg-[#edf2ff] text-[8px] font-bold text-klarisa-secondary">{collaborator.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
+                    <span className="grid size-7 place-items-center rounded-full bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">{collaborator.name.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
                     <span className="min-w-0 flex-1">
-                      <b className="block truncate text-[10px]">{collaborator.name}</b>
-                      <small className="block text-[9px] text-slate-400">{collaborator.role === "commenter" ? "Dapat berkomentar" : "Hanya melihat"}</small>
+                      <b className="block truncate text-xs font-semibold">{collaborator.name}</b>
+                      <small className="block text-xs text-slate-400">{collaborator.role === "commenter" ? "Dapat berkomentar" : "Hanya melihat"}</small>
                     </span>
-                    <select aria-label={`Peran ${collaborator.name}`} value={collaborator.role === "commenter" ? "commenter" : "viewer"} disabled={isManagingAccess} onChange={(event) => void changeCollaboratorRole(collaborator.userId, event.target.value as "commenter" | "viewer")} className="h-8 rounded border border-slate-200 bg-white px-1.5 text-[9px] font-semibold outline-none">
+                    <select aria-label={`Peran ${collaborator.name}`} value={collaborator.role === "commenter" ? "commenter" : "viewer"} disabled={isManagingAccess} onChange={(event) => void changeCollaboratorRole(collaborator.userId, event.target.value as "commenter" | "viewer")} className="h-8 rounded border border-slate-200 bg-white px-2 text-xs font-semibold outline-none">
                       <option value="commenter">Komentator</option>
                       <option value="viewer">Peninjau</option>
                     </select>
@@ -684,37 +684,37 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
           <div className="border-b border-slate-200 p-5 md:border-r md:border-b-0">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">RIWAYAT DRAFT</p>
+                <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">RIWAYAT DRAFT</p>
                 <h2 id="version-history-title" className="mt-2 text-lg font-semibold tracking-[-.03em]">Versi tersimpan</h2>
               </div>
               <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsVersionsOpen(false)} aria-label="Tutup">
                 <X className="size-4" />
               </Button>
             </div>
-            <p className="mt-3 text-[10px] leading-5 text-slate-500">Pilih versi untuk melihat isi sebelumnya.</p>
+            <p className="mt-3 text-xs leading-5 text-slate-500">Pilih versi untuk melihat isi sebelumnya.</p>
             <div className="mt-5 grid max-h-64 gap-1 overflow-y-auto md:max-h-[510px]">
               {remoteDraft.versions.map((version) => (
                 <button key={version.id} type="button" onClick={() => void previewVersion(version.id)} disabled={isLoadingVersion} className={cn("grid gap-1 rounded-md px-3 py-3 text-left transition-colors hover:bg-[#f5f7ff] disabled:cursor-wait", selectedVersion?.id === version.id && "bg-[#edf2ff] text-klarisa-secondary")}>
                   <span className="flex items-center justify-between gap-3">
-                    <b className="text-[11px]">Versi {String(version.version).padStart(2, "0")}</b>
-                    <time className="text-[9px] text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time>
+                    <b className="text-xs font-semibold">Versi {String(version.version).padStart(2, "0")}</b>
+                    <time className="text-xs text-slate-400">{new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time>
                   </span>
-                  <small className="truncate text-[10px] text-slate-500">{version.title}</small>
+                  <small className="truncate text-xs text-slate-500">{version.title}</small>
                 </button>
               ))}
-              {remoteDraft.versions.length === 0 && <p className="px-3 py-5 text-[10px] leading-5 text-slate-400">Belum ada versi tersimpan.</p>}
+              {remoteDraft.versions.length === 0 && <p className="px-3 py-5 text-xs leading-5 text-slate-400">Belum ada versi tersimpan.</p>}
             </div>
           </div>
           <div className="flex min-h-0 flex-col bg-slate-50/60">
             <div className="border-b border-slate-200 bg-white px-6 py-5">
-              <p className="text-[9px] font-bold tracking-[.16em] text-klarisa-secondary">PRATINJAU VERSI</p>
+              <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">PRATINJAU VERSI</p>
               <h3 className="mt-2 text-base font-semibold">{selectedVersion ? selectedVersion.title : "Pilih versi draft"}</h3>
             </div>
             {selectedVersion ? (
               <>
                 <article dangerouslySetInnerHTML={{ __html: selectedVersion.content }} className="min-h-0 flex-1 overflow-y-auto px-6 py-6 text-xs leading-6 text-slate-700 [&_h2]:mt-6 [&_h2]:font-sans [&_h2]:text-xs [&_h2]:font-bold [&_p]:mt-3" />
                 <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4">
-                  <small className="text-[10px] leading-4 text-slate-500">Pemulihan mengganti isi draft tanpa menambah riwayat. Diskusi lama tetap tersimpan, tetapi sorotannya tidak dipasang pada versi ini.</small>
+                  <small className="text-xs leading-5 text-slate-500">Pemulihan mengganti isi draft tanpa menambah riwayat. Diskusi lama tetap tersimpan, tetapi sorotannya tidak dipasang pada versi ini.</small>
                   <Button variant="default" size="sm" type="button" onClick={() => setVersionToRestore(selectedVersion)}>
                     <RotateCcw className="size-4" />Pulihkan versi ini
                   </Button>
@@ -771,7 +771,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
             <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 sm:px-6">
               <Search className="size-4 text-klarisa-secondary" />
               <input autoFocus value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); searchIndexRef.current = 0; setSearchFeedback(""); }} onKeyDown={(event) => { if (event.key === "Enter") findNext(); if (event.key === "Escape") setIsSearchOpen(false); }} placeholder="Cari di dalam kontrak..." className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" />
-              <span className="text-[9px] text-slate-400">{searchFeedback}</span>
+              <span className="text-xs text-slate-400">{searchFeedback}</span>
               <Button variant="default" size="xs" type="button" onClick={findNext}>Cari berikutnya</Button>
               <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsSearchOpen(false)} aria-label="Tutup pencarian"><X className="size-4" /></Button>
             </div>
@@ -783,7 +783,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
                 <span className="mx-1 h-6 w-px shrink-0 bg-slate-200" />
                 <button type="button" aria-label="Urungkan" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("undo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Undo2 className="size-4" /></button>
                 <button type="button" aria-label="Ulangi" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("redo")} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Redo2 className="size-4" /></button>
-                <select aria-label="Gaya paragraf" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)} className="mx-2 h-9 shrink-0 rounded border border-slate-200 bg-white px-2 text-[10px] outline-none"><option value="p">Paragraf</option><option value="h2">Judul pasal</option><option value="blockquote">Kutipan</option></select>
+                <select aria-label="Gaya paragraf" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)} className="mx-2 h-9 shrink-0 rounded border border-slate-200 bg-white px-2 text-xs outline-none"><option value="p">Paragraf</option><option value="h2">Judul pasal</option><option value="blockquote">Kutipan</option></select>
                 {toolbar.map(([label, Icon, command]) => <button key={label} type="button" title={label} aria-label={label} aria-pressed={activeCommands.has(command)} onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand(command)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", activeCommands.has(command) && "bg-[#eaf0ff] text-klarisa-secondary")}><Icon className="size-4" /></button>)}
                 <button type="button" aria-label="Tambahkan tautan" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className="grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100"><Link2 className="size-4" /></button>
               </>
@@ -801,19 +801,19 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         </div>
         {activeSidebarTab === "conversation" ? (
           <>
-            <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" /><b className="text-[11px]">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain" /></div><p className="mt-3 text-[10px] leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
-            <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-[9px] font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain" /> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-[11px]">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-[10px] leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
+            <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" /><b className="text-xs font-semibold">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain" /></div><p className="mt-3 text-xs leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
+            <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-xs font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain" /> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-xs font-semibold">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-xs leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
           </>
         ) : (
           <>
-            <div className="mt-5"><p className="text-[10px] font-bold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-5 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
+            <div className="mt-5"><p className="text-xs font-semibold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-xs text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
             {selectedDraftText && !replyToId && (
               <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[9px] font-bold tracking-[.12em] text-amber-700">TEKS UNTUK DIKOMENTARI</p>
+                  <p className="text-xs font-bold tracking-wider text-amber-700 uppercase">TEKS UNTUK DIKOMENTARI</p>
                   <Button variant="ghost" size="icon-xs" type="button" onClick={clearSelectedDraftText} aria-label="Batalkan teks yang dipilih"><X className="size-3" /></Button>
                 </div>
-                <p className="mt-1 line-clamp-3 text-[10px] leading-5 text-slate-600">“{selectedDraftText}”</p>
+                <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-600">“{selectedDraftText}”</p>
               </div>
             )}
             <DraftDiscussionThread comments={remoteDraft.comments} canManage={canEdit} canComment={canComment} isPending={isCommenting} onFocusSource={focusCommentSource} onReply={(commentId) => { setReplyToId(commentId); setMessage(""); }} onUpdate={updateDiscussionComment} onDelete={deleteDiscussionComment} onSetResolved={setDiscussionResolved} />
@@ -821,7 +821,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         )}
         <div className="mt-auto rounded-lg bg-slate-100 p-4">
           {activeSidebarTab === "discussion" && replyTarget && (
-            <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[9px] text-slate-500">
+            <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-xs text-slate-500">
               <span>Membalas {replyTarget.isOwn ? "komentar Anda" : replyTarget.authorName}</span>
               <Button variant="ghost" size="icon-xs" type="button" onClick={() => setReplyToId(null)} aria-label="Batal membalas"><X className="size-3" /></Button>
             </div>

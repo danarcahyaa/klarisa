@@ -41,7 +41,7 @@ export function ContractSearchClient({ initialItems, items }: { initialItems?: R
   return (
     <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-7 lg:py-12">
       <header className="border-b border-slate-200 pb-6">
-        <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">WORKSPACE DOKUMEN</p>
+        <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">WORKSPACE DOKUMEN</p>
         <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">Pencarian dokumen.</h1>
       </header>
 
@@ -75,7 +75,7 @@ export function ContractSearchClient({ initialItems, items }: { initialItems?: R
               {item}
             </Button>
           ))}
-          <span className="ml-auto text-[10px] text-slate-400">Total {data.length}</span>
+          <span className="ml-auto text-xs text-slate-400">Total {data.length}</span>
         </div>
 
         <div>
@@ -84,12 +84,12 @@ export function ContractSearchClient({ initialItems, items }: { initialItems?: R
             const href = isDraft ? `/dashboard/create?id=${item.id}` : "/dashboard/review/result";
             return (
               <Link href={href} key={item.id} className="grid grid-cols-[30px_minmax(0,1fr)_20px] items-center gap-3 border-b border-slate-200 py-5 text-slate-700 transition-colors hover:bg-white sm:grid-cols-[30px_minmax(0,1fr)_auto_20px] sm:px-2">
-                <i className={`grid size-7 place-items-center rounded text-[9px] font-bold not-italic ${isDraft ? "bg-slate-100 text-slate-500" : "bg-[#edf2ff] text-klarisa-secondary"}`}>{isDraft ? "D" : "R"}</i>
+                <i className={`grid size-7 place-items-center rounded text-xs font-bold not-italic ${isDraft ? "bg-slate-100 text-slate-500" : "bg-[#edf2ff] text-klarisa-secondary"}`}>{isDraft ? "D" : "R"}</i>
                 <span className="grid gap-1">
-                  <b className="text-xs">{item.title}</b>
-                  <small className="text-[10px] text-slate-400">Diperbarui {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.updatedAt))}</small>
+                  <b className="text-xs font-semibold">{item.title}</b>
+                  <small className="text-xs text-slate-400">Diperbarui {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.updatedAt))}</small>
                 </span>
-                <em className={`hidden text-[9px] font-bold not-italic sm:block ${isDraft ? "text-klarisa-secondary" : "text-red-500"}`}>{isDraft ? `DRAFT ${String(item.metadata.version ?? 1).padStart(2, "0")}` : "REVIEW"}</em>
+                <em className={`hidden text-xs font-semibold not-italic sm:block ${isDraft ? "text-klarisa-secondary" : "text-red-500"}`}>{isDraft ? `DRAFT ${String(item.metadata.version ?? 1).padStart(2, "0")}` : "REVIEW"}</em>
                 <ArrowRight className="size-4 text-slate-500" />
               </Link>
             );
@@ -108,7 +108,7 @@ export function ContractSearchClient({ initialItems, items }: { initialItems?: R
             >
               <ArrowLeft className="size-3.5" />Sebelumnya
             </Button>
-            <span className="text-[10px] text-slate-500">Halaman <b className="text-slate-800">{currentPage}</b> dari {totalPages}</span>
+            <span className="text-xs text-slate-500">Halaman <b className="text-slate-800">{currentPage}</b> dari {totalPages}</span>
             <Button
               type="button"
               variant="outline"

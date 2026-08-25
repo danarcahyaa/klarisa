@@ -27,7 +27,7 @@ export function ReviewUploader() {
     <div className="mx-auto max-w-[1080px] px-4 py-10 sm:px-7 lg:py-16">
       <section className="flex flex-col items-start justify-between gap-7 border-b border-slate-200 pb-9 lg:flex-row lg:items-end">
         <div>
-          <p className="text-[9px] font-bold tracking-[.18em] text-klarisa-secondary">
+          <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
             REVIEW KONTRAK
           </p>
           <h1 className="mt-5 max-w-2xl font-heading text-[clamp(2.8rem,5vw,4.2rem)] font-normal leading-[.94] tracking-[-.06em]">
@@ -60,7 +60,6 @@ export function ReviewUploader() {
           <SubmitButton
             type="button"
             variant="default"
-            size="default"
             isLoading={isStarting}
             loadingText="Memeriksa..."
             onClick={startReview}
@@ -81,12 +80,12 @@ export function ReviewUploader() {
             <header className="flex items-center gap-3 border-b border-slate-200 px-6 py-5">
               <FileText className="size-4" />
               <span className="grid gap-1">
-                <small className="text-[8px] tracking-widest text-slate-400">
+                <small className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
                   CONTOH DOKUMEN
                 </small>
-                <b className="text-xs">{fileName}</b>
+                <b className="text-xs font-semibold">{fileName}</b>
               </span>
-              <b className="ml-auto text-[8px] tracking-widest text-klarisa-secondary">
+              <b className="ml-auto text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
                 DOCX
               </b>
             </header>
@@ -97,49 +96,49 @@ export function ReviewUploader() {
                 </h2>
               </div>
 
-              <p className="mt-5 text-xs leading-6 text-slate-600">
+              <p className="mt-5 text-sm leading-relaxed text-slate-600">
                 Perjanjian ini dibuat dan ditandatangani oleh PT Maju Berdikari sebagai PIHAK PERTAMA dan Rian Pratama sebagai PIHAK KEDUA.
               </p>
 
-              <h3 className="font-serif mt-6 text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
+              <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
                 PASAL 1: RUANG LINGKUP &amp; PENYESUAIAN
               </h3>
-              <p className="mt-3 text-xs leading-6 text-slate-600">
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
                 1. PIHAK KEDUA menyelesaikan pekerjaan pembuatan sistem informasi sesuai lampiran spesifikasi teknis.
               </p>
-              <p className="mt-2 text-xs leading-6">
+              <p className="mt-2 text-sm leading-relaxed">
                 2.{" "}
-                <span className="clause-issue font-serif text-xs">
+                <span className="clause-issue font-serif text-sm">
                   Pekerjaan tambahan, biaya, dan perubahan jadwal wajib disetujui secara tertulis oleh kedua belah pihak.
                 </span>
               </p>
 
-              <h3 className="font-serif mt-6 text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
+              <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
                 PASAL 2: PEMBAYARAN DAN PENCAIRAN
               </h3>
-              <p className="mt-3 text-xs leading-6 text-slate-600">
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
                 1. Total imbalan jasa yang disepakati adalah sebesar Rp20.000.000,- (Dua Puluh Juta Rupiah).
               </p>
-              <p className="mt-2 text-xs leading-6">
+              <p className="mt-2 text-sm leading-relaxed">
                 2.{" "}
-                <span className="clause-issue font-serif text-xs">
+                <span className="clause-issue font-serif text-sm">
                   Pelunasan sisa 70% hanya dicairkan setelah PIHAK PERTAMA menerima pembayaran penuh dari klien utama.
                 </span>
               </p>
 
-              <h3 className="mt-6 text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
+              <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
                 PASAL 3: HAK KEKAYAAN INTELEKTUAL
               </h3>
-              <p className="mt-3 text-xs leading-6">
+              <p className="mt-3 text-sm leading-relaxed">
                 1.{" "}
-                <span className="clause-issue font-serif text-xs">
+                <span className="clause-issue font-serif text-sm">
                   Hak cipta dan seluruh hak ekonomi beralih sepenuhnya kepada PIHAK PERTAMA setelah seluruh pembayaran dilunasi.
                 </span>
               </p>
             </article>
           </div>
           <aside className="border-t border-slate-200 bg-[#f6f8fc] p-7 lg:border-t-0 lg:border-l">
-            <p className="text-[8px] font-bold tracking-[.18em] text-klarisa-secondary">
+            <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
               ALUR REVIEW
             </p>
             <div className="mt-5">
@@ -148,34 +147,25 @@ export function ReviewUploader() {
                   key={number}
                   className="grid grid-cols-[28px_1fr] gap-3 border-b border-slate-200 py-5 first:pt-0"
                 >
-                  <span className="grid size-7 place-items-center rounded-full bg-white text-[9px] font-bold text-klarisa-secondary">
+                  <span className="grid size-7 place-items-center rounded-full bg-white text-xs font-bold text-klarisa-secondary">
                     {number}
                   </span>
                   <span className="grid gap-2">
-                    <b className="text-xs">{title}</b>
-                    <small className="text-[10px] leading-4 text-slate-500">
+                    <b className="text-xs font-semibold">{title}</b>
+                    <small className="text-xs leading-5 text-slate-500">
                       {description}
                     </small>
                   </span>
                 </article>
               ))}
             </div>
-            <p className="mt-6 flex gap-3 text-[9px] leading-4 text-slate-500">
+            <p className="mt-6 flex gap-3 text-xs leading-5 text-slate-500">
               <ShieldCheck className="size-5 shrink-0 text-klarisa-secondary" />
-              File asli tidak dijadikan arsip setelah diproses untuk analisis.
+              File dokumen Anda tidak disimpan. Hanya teks kontrak yang diproses dan dienkripsi secara aman.
             </p>
           </aside>
         </section>
       )}
-
-      <footer className="mt-6 flex flex-wrap justify-center gap-7 text-[8px] font-bold tracking-[.18em] text-slate-400">
-        <span className="inline-flex items-center gap-1">
-          <Check className="size-3" />
-          DOCX SAJA
-        </span>
-        <span>TEKS TERHUBUNG KE PASAL</span>
-        <span>KEPUTUSAN TETAP PADA PARA PIHAK</span>
-      </footer>
     </div>
   );
 }

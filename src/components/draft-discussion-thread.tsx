@@ -30,7 +30,7 @@ function formatDate(value: string) {
 function CommentEditor({ value, onChange, onSave, onCancel, isPending }: { value: string; onChange: (value: string) => void; onSave: () => void; onCancel: () => void; isPending: boolean }) {
   return (
     <div className="mt-2 grid gap-2">
-      <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-20 w-full resize-y rounded-md border border-slate-200 px-2 py-2 text-[10px] leading-5 outline-none focus:border-klarisa-secondary"/>
+      <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-20 w-full resize-y rounded-md border border-slate-200 px-3 py-2 text-xs leading-relaxed outline-none focus:border-klarisa-secondary"/>
       <span className="flex gap-2">
         <SubmitButton size="xs" type="button" isLoading={isPending} disabled={isPending || !value.trim()} onClick={onSave}>Simpan</SubmitButton>
         <Button variant="ghost" size="xs" type="button" onClick={onCancel}>Batal</Button>
@@ -84,23 +84,23 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
 
           return (
             <article key={item.id} className={item.isResolved ? "opacity-70" : ""}>
-              <div className="grid grid-cols-[30px_1fr] gap-3">
-                <span className="grid size-8 place-items-center overflow-hidden rounded-full bg-[#edf2ff] text-[9px] font-bold text-klarisa-secondary">{initials(item.authorName)}</span>
+              <div className="grid grid-cols-[32px_1fr] gap-3">
+                <span className="grid size-8 place-items-center overflow-hidden rounded-full bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">{initials(item.authorName)}</span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Button variant="link" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="h-auto p-0 font-bold text-slate-900 min-w-0 text-left">
+                    <Button variant="link" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="h-auto p-0 text-xs font-semibold text-slate-900 min-w-0 text-left">
                       {item.isOwn ? "Anda" : item.authorName}
                     </Button>
-                    {item.isResolved && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-bold text-emerald-700"><Check className="size-2.5"/>Selesai</span>}
+                    {item.isResolved && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"><Check className="size-3"/>Selesai</span>}
                   </div>
                   {item.selectedText && (
-                    <Button variant="ghost" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="mt-1 h-auto border-l-2 border-amber-300 p-1 text-left font-normal text-slate-400">
+                    <Button variant="ghost" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="mt-1 h-auto border-l-2 border-amber-300 p-1.5 text-left text-xs font-normal text-slate-500">
                       “{item.selectedText}”
                     </Button>
                   )}
-                  {isEditingRoot ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-2 text-[10px] leading-5 text-slate-600">{item.body}</p>}
+                  {isEditingRoot ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-2 text-xs leading-relaxed text-slate-600">{item.body}</p>}
                   <div className="mt-2 flex items-center gap-2">
-                    <time className="mr-auto text-[9px] text-slate-400">{formatDate(item.createdAt)}</time>
+                    <time className="mr-auto text-xs text-slate-400">{formatDate(item.createdAt)}</time>
                     {canComment && !item.isResolved && <Button variant="ghost" size="xs" type="button" onClick={() => onReply(item.id)}><Reply className="size-3"/>Balas</Button>}
                     {item.isOwn && !isEditingRoot && <Button variant="ghost" size="xs" type="button" onClick={() => startEditing(item)}><Edit3 className="size-3"/>Ubah</Button>}
                     {canOpenActions && (
@@ -109,13 +109,13 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
                           <MoreHorizontal className="size-4"/>
                         </Button>
                         {openActionId === item.id && (
-                          <div className="absolute right-0 z-20 mt-1 grid w-36 rounded-md border border-slate-200 bg-white p-1 shadow-lg">
-                            <Button variant="destructive" size="xs" type="button" disabled={isPending} onClick={() => requestRemoveComment(item.id, "komentar")} className="w-full justify-start">
-                              <Trash2 className="size-3"/>Hapus komentar
+                          <div className="absolute right-0 z-20 mt-1 grid w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg">
+                            <Button variant="destructive" size="xs" type="button" disabled={isPending} onClick={() => requestRemoveComment(item.id, "komentar")} className="w-full justify-start text-xs font-medium">
+                              <Trash2 className="size-3.5"/>Hapus komentar
                             </Button>
                             {canManage && (
-                              <Button variant="ghost" size="xs" type="button" disabled={isPending} onClick={() => { setOpenActionId(null); void onSetResolved(item.id, !item.isResolved); }} className="w-full justify-start">
-                                {item.isResolved ? <><RotateCcw className="size-3"/>Buka lagi</> : <><Check className="size-3"/>Tandai selesai</>}
+                              <Button variant="ghost" size="xs" type="button" disabled={isPending} onClick={() => { setOpenActionId(null); void onSetResolved(item.id, !item.isResolved); }} className="w-full justify-start text-xs font-medium">
+                                {item.isResolved ? <><RotateCcw className="size-3.5"/>Buka lagi</> : <><Check className="size-3.5"/>Tandai selesai</>}
                               </Button>
                             )}
                           </div>
@@ -126,13 +126,13 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
                   {replies.map((reply) => {
                     const isEditingReply = editingId === reply.id;
                     return (
-                      <div key={reply.id} className="mt-3 grid grid-cols-[24px_1fr] gap-2 border-l border-slate-200 pl-3">
-                        <i className="grid size-6 place-items-center rounded-full bg-slate-100 text-[8px] font-bold not-italic text-slate-500">{initials(reply.authorName)}</i>
+                      <div key={reply.id} className="mt-3 grid grid-cols-[28px_1fr] gap-2.5 border-l border-slate-200 pl-3">
+                        <i className="grid size-7 place-items-center rounded-full bg-slate-100 text-xs font-bold not-italic text-slate-500">{initials(reply.authorName)}</i>
                         <div>
-                          <b className="text-[10px]">{reply.isOwn ? "Anda" : reply.authorName}</b>
-                          {isEditingReply ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-1 text-[10px] leading-5 text-slate-600">{reply.body}</p>}
-                          <span className="mt-1 flex items-center gap-2">
-                            <time className="mr-auto text-[9px] text-slate-400">{formatDate(reply.createdAt)}</time>
+                          <b className="text-xs font-semibold text-slate-900">{reply.isOwn ? "Anda" : reply.authorName}</b>
+                          {isEditingReply ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-1 text-xs leading-relaxed text-slate-600">{reply.body}</p>}
+                          <span className="mt-1.5 flex items-center gap-2">
+                            <time className="mr-auto text-xs text-slate-400">{formatDate(reply.createdAt)}</time>
                             {reply.isOwn && !isEditingReply && <Button variant="ghost" size="xs" type="button" onClick={() => startEditing(reply)}>Ubah</Button>}
                             {reply.isOwn && <SubmitButton variant="destructive" size="xs" type="button" disabled={isPending} onClick={() => requestRemoveComment(reply.id, "balasan")}>Hapus</SubmitButton>}
                           </span>
@@ -145,7 +145,7 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
             </article>
           );
         })}
-        {rootComments.length === 0 && <p className="rounded-md border border-dashed border-slate-200 px-3 py-5 text-center text-[10px] leading-5 text-slate-400">Pilih teks kontrak, lalu tulis komentar pertama.</p>}
+        {rootComments.length === 0 && <p className="rounded-md border border-dashed border-slate-200 px-3 py-5 text-center text-xs leading-relaxed text-slate-400">Pilih teks kontrak, lalu tulis komentar pertama.</p>}
       </div>
       {isMounted && commentToDelete && createPortal(
         <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-[2px]">

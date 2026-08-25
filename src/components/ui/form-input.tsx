@@ -134,7 +134,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         {error ? (
           <p className="text-xs font-medium text-destructive">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-muted-foreground">{helperText}</p>
+          <p className="text-xs text-muted-foreground">{helperText}</p>
         ) : null}
       </div>
     )
