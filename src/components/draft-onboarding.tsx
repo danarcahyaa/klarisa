@@ -55,7 +55,7 @@ export function DraftOnboarding() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-7 lg:py-10">
+    <main className="mx-auto max-w-[1190px] px-4 py-8 sm:px-7 lg:py-10">
       <header className="border-b border-slate-200 pb-6">
         <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">BUAT KONTRAK</p>
         <div className="mt-3 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
