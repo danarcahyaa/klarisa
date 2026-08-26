@@ -174,7 +174,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
   );
 
   return (
-    <main className={cn("min-h-svh bg-[#f7f8fb] text-[#172031] lg:grid", isSidebarCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[216px_minmax(0,1fr)]")}>
+    <main className={cn("min-h-svh bg-[#f7f8fb] text-[#172031] lg:grid lg:h-svh lg:min-h-0 lg:overflow-hidden", isSidebarCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[216px_minmax(0,1fr)]")}>
       <aside className={cn("fixed inset-y-0 left-0 z-50 hidden border-r border-[#e1e6ee] transition-[width] duration-200 lg:block", isSidebarCollapsed ? "w-[72px]" : "w-[216px]")}>
         {sidebar}
       </aside>
@@ -193,7 +193,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
         </div>
       )}
 
-      <section className="min-w-0 lg:col-start-2">
+      <section className="min-w-0 lg:col-start-2 lg:grid lg:min-h-0 lg:grid-rows-[57px_minmax(0,1fr)] lg:overflow-hidden">
         <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-[#e1e6ee] bg-white/95 px-4 backdrop-blur sm:px-6 lg:h-[57px] lg:px-10">
           <Button
             type="button"
@@ -220,7 +220,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
             <span className="hidden sm:inline">Cari dokumen</span>
           </Link>
         </header>
-        {children}
+        <div className="min-w-0 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">{children}</div>
       </section>
     </main>
   );

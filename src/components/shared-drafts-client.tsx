@@ -11,7 +11,7 @@ export function SharedDraftsClient({ items }: { items: ContractListItem[] }) {
   const deferredQuery = useDeferredValue(query).trim().toLocaleLowerCase("id-ID");
   const data = useMemo(() => items.filter((item) => !deferredQuery || item.title.toLocaleLowerCase("id-ID").includes(deferredQuery)), [deferredQuery, items]);
   return (
-    <div className="mx-auto max-w-[920px] px-4 py-12 sm:px-7 lg:py-16">
+    <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-7 lg:py-12">
       <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">DRAFT DIBAGIKAN</p>
       <div className="mt-5 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
