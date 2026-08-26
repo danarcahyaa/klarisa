@@ -1,2 +1,2 @@
-import { DashboardSkeleton } from "@/components/dashboard-skeleton";
-export default function EditorLoading(){return <DashboardSkeleton variant="document"/>;}
+import { DraftEditorSkeleton } from "@/components/draft-editor-skeleton";
+export default function EditorLoading(){return <DraftEditorSkeleton/>;}

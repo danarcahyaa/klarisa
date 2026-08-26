@@ -85,7 +85,7 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
           return (
             <article key={item.id} className={item.isResolved ? "opacity-70" : ""}>
               <div className="grid grid-cols-[32px_1fr] gap-3">
-                <span className="grid size-8 place-items-center overflow-hidden rounded-full bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">{initials(item.authorName)}</span>
+                <span className="grid size-8 place-items-center overflow-hidden rounded-full bg-[#edf2ff] text-[10px] font-bold text-klarisa-secondary">{initials(item.authorName)}</span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Button variant="link" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="h-auto p-0 text-xs font-semibold text-slate-900 min-w-0 text-left">
@@ -94,13 +94,13 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
                     {item.isResolved && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"><Check className="size-3"/>Selesai</span>}
                   </div>
                   {item.selectedText && (
-                    <Button variant="ghost" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="mt-1 h-auto border-l-2 border-amber-300 p-1.5 text-left text-xs font-normal text-slate-500">
+                    <Button variant="ghost" size="xs" type="button" onClick={() => onFocusSource(item.id)} className="mt-1 h-auto border border-amber-300 p-1.5 text-left text-[10px] font-normal text-slate-500">
                       “{item.selectedText}”
                     </Button>
                   )}
                   {isEditingRoot ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-2 text-xs leading-relaxed text-slate-600">{item.body}</p>}
-                  <div className="mt-2 flex items-center gap-2">
-                    <time className="mr-auto text-xs text-slate-400">{formatDate(item.createdAt)}</time>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <time className="mr-auto shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(item.createdAt)}</time>
                     {canComment && !item.isResolved && <Button variant="ghost" size="xs" type="button" onClick={() => onReply(item.id)}><Reply className="size-3"/>Balas</Button>}
                     {item.isOwn && !isEditingRoot && <Button variant="ghost" size="xs" type="button" onClick={() => startEditing(item)}><Edit3 className="size-3"/>Ubah</Button>}
                     {canOpenActions && (
@@ -132,7 +132,7 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
                           <b className="text-xs font-semibold text-slate-900">{reply.isOwn ? "Anda" : reply.authorName}</b>
                           {isEditingReply ? <CommentEditor value={draftBody} onChange={setDraftBody} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} isPending={isPending}/> : <p className="mt-1 text-xs leading-relaxed text-slate-600">{reply.body}</p>}
                           <span className="mt-1.5 flex items-center gap-2">
-                            <time className="mr-auto text-xs text-slate-400">{formatDate(reply.createdAt)}</time>
+                            <time className="mr-auto shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(reply.createdAt)}</time>
                             {reply.isOwn && !isEditingReply && <Button variant="ghost" size="xs" type="button" onClick={() => startEditing(reply)}>Ubah</Button>}
                             {reply.isOwn && <SubmitButton variant="destructive" size="xs" type="button" disabled={isPending} onClick={() => requestRemoveComment(reply.id, "balasan")}>Hapus</SubmitButton>}
                           </span>
@@ -145,7 +145,7 @@ export function DraftDiscussionThread({ comments, canManage, canComment, isPendi
             </article>
           );
         })}
-        {rootComments.length === 0 && <p className="rounded-md border border-dashed border-slate-200 px-3 py-5 text-center text-xs leading-relaxed text-slate-400">Pilih teks kontrak, lalu tulis komentar pertama.</p>}
+        {rootComments.length === 0 && <p className="rounded-md border border-dashed border-slate-200 px-3 py-5 text-center text-[10px] leading-relaxed text-slate-400">Pilih teks kontrak, lalu tulis komentar pertama.</p>}
       </div>
       {isMounted && commentToDelete && createPortal(
         <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-[2px]">

@@ -571,11 +571,11 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
 
   const replyTarget = replyToId ? remoteDraft.comments.find((item) => item.id === replyToId) : null;
 
-  return <div className="min-h-[calc(100svh-57px)] bg-white">
-    <header className="flex min-h-[68px] flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
+  return <div className="min-h-[calc(100svh-57px)] bg-[#f7f8fb] px-4 pt-6 sm:px-7">
+    <header className="mx-auto flex min-h-[68px] w-full max-w-[1080px] flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 xl:rounded-t-lg xl:border-x sm:px-7">
       <span className="grid min-w-0 flex-1 gap-1">
         <input value={title} readOnly={!canEdit} onChange={(event) => { titleRef.current = event.target.value; setTitle(event.target.value); scheduleLocalBackup(); scheduleSave(); }} onBlur={() => void saveDraft(false)} aria-label="Judul dokumen" className="w-full max-w-xl bg-transparent text-xs font-bold outline-none focus:text-klarisa-secondary read-only:cursor-default"/>
-        <small className="flex items-center gap-1.5 text-xs text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
+        <small className="flex items-center gap-1.5 text-[10px] text-slate-400">Draft v.{String(remoteDraft.metadata.version ?? 1).padStart(2, "0")} · {!canEdit ? "Akses komentar" : isSaving || saveStatus === "saving" ? "Menyimpan..." : saveStatus === "error" ? <span className="text-red-600">Gagal tersimpan</span> : <><Check className="size-3 text-green-600"/>Tersimpan</>}</small>
       </span>
       {canEdit && (
         <Button variant="outline" size="sm" type="button" onClick={() => void saveDraft(true)} disabled={isSaving} className="hidden sm:inline-flex">
@@ -596,12 +596,12 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
       )}
       {remoteDraft.permission === "owner" && (
         <div className="relative">
-          <Button variant="outline" size="icon-sm" type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)}>
+          <Button variant="outline" size="icon-lg" type="button" aria-label="Aksi draft lainnya" aria-expanded={isActionsOpen} onClick={() => setIsActionsOpen((current) => !current)}>
             <MoreHorizontal className="size-4" />
           </Button>
           {isActionsOpen && (
             <div className="absolute top-12 right-0 z-50 w-44 rounded-md border border-slate-200 bg-white p-1.5 shadow-lg">
-              <Button variant="destructive" size="xs" type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="w-full justify-start">
+              <Button variant="outline" size="sm" type="button" onClick={() => { setIsActionsOpen(false); setIsDeleteOpen(true); }} className="w-full justify-start border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700">
                 <Trash2 className="size-4" />Hapus draft
               </Button>
             </div>
@@ -764,9 +764,9 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
       </div>
     )}
 
-    <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="mx-auto grid min-h-[calc(100svh-125px)] w-full max-w-[1080px] bg-white xl:grid-cols-[minmax(0,1fr)_340px] xl:overflow-hidden xl:rounded-b-lg xl:border-x xl:border-b xl:border-slate-200">
       <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">
-        <div className="sticky top-16 z-20 border-b border-slate-200 bg-white lg:top-[57px]">
+        <div className="sticky top-16 z-20 border-b border-slate-200 bg-white lg:top-0">
           {isSearchOpen && (
             <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 sm:px-6">
               <Search className="size-4 text-klarisa-secondary" />
@@ -776,7 +776,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
               <Button variant="ghost" size="icon-xs" type="button" onClick={() => setIsSearchOpen(false)} aria-label="Tutup pencarian"><X className="size-4" /></Button>
             </div>
           )}
-          <div className="flex min-h-13 items-center gap-1 overflow-x-auto px-3 py-2 sm:px-6">
+          <div className="flex min-h-13 items-center gap-1 overflow-x-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6">
             <button type="button" aria-label="Cari dalam dokumen" onClick={() => setIsSearchOpen((current) => !current)} className={cn("grid size-9 shrink-0 place-items-center rounded hover:bg-slate-100", isSearchOpen && "bg-[#edf2ff] text-klarisa-secondary")}><Search className="size-4" /></button>
             {canEdit && (
               <>
@@ -801,19 +801,19 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         </div>
         {activeSidebarTab === "conversation" ? (
           <>
-            <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" /><b className="text-xs font-semibold">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain" /></div><p className="mt-3 text-xs leading-5 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
+            <div className="mt-5 rounded-lg border border-blue-100 bg-[#f7f9ff] p-4"><div className="flex items-center gap-2"><Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={28} height={28} className="size-7 object-contain" /><b className="text-xs font-semibold">Klarisa AI</b><Image src="/klarisa/ai.png" alt="" aria-hidden width={13} height={13} className="ml-auto size-3.5 object-contain" /></div><p className="mt-3 text-[10px] leading-4 text-slate-500">Tanyakan isi draft atau minta bantuan memperjelas kalimat yang Anda pilih.</p></div>
             <div className="mt-5 grid gap-4">{aiMessages.map((item, index) => <article key={`${item.role}-${index}`} className={cn("grid grid-cols-[30px_1fr] gap-3", item.role === "user" && "grid-cols-[1fr_30px]")}><span className={cn("grid size-8 place-items-center rounded-full bg-[#edf2ff]", item.role === "user" && "order-2 bg-slate-100 text-xs font-bold text-slate-600")}>{item.role === "assistant" ? <Image src="/klarisa/logo-ai.png" alt="Klarisa AI" width={22} height={22} className="size-5 object-contain" /> : "AN"}</span><span className={item.role === "user" ? "text-right" : ""}><b className="text-xs font-semibold">{item.role === "assistant" ? "Klarisa AI" : "Anda"}</b><small className="mt-1 block text-xs leading-5 text-slate-600">{item.body}</small></span></article>)}</div>
           </>
         ) : (
           <>
-            <div className="mt-5"><p className="text-xs font-semibold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-xs text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
+            <div className="mt-5"><p className="text-xs font-semibold text-slate-700">Diskusi pihak terkait</p><p className="mt-1 text-[10px] leading-4 text-slate-400">Komentar dari orang yang terlibat dalam dokumen ini.</p></div>
             {selectedDraftText && !replyToId && (
               <div className="mt-4 rounded-md border-l-2 border-amber-400 bg-amber-50 px-3 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold tracking-wider text-amber-700 uppercase">TEKS UNTUK DIKOMENTARI</p>
+                  <p className="text-[9px] font-bold tracking-wider text-amber-700 uppercase">TEKS UNTUK DIKOMENTARI</p>
                   <Button variant="ghost" size="icon-xs" type="button" onClick={clearSelectedDraftText} aria-label="Batalkan teks yang dipilih"><X className="size-3" /></Button>
                 </div>
-                <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-600">“{selectedDraftText}”</p>
+                <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-slate-600">“{selectedDraftText}”</p>
               </div>
             )}
             <DraftDiscussionThread comments={remoteDraft.comments} canManage={canEdit} canComment={canComment} isPending={isCommenting} onFocusSource={focusCommentSource} onReply={(commentId) => { setReplyToId(commentId); setMessage(""); }} onUpdate={updateDiscussionComment} onDelete={deleteDiscussionComment} onSetResolved={setDiscussionResolved} />
@@ -821,7 +821,7 @@ export function DraftEditor({ initialDraft }: { initialDraft: ContractDetail }) 
         )}
         <div className="mt-auto rounded-lg bg-slate-100 p-4">
           {activeSidebarTab === "discussion" && replyTarget && (
-            <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-xs text-slate-500">
+            <div className="mb-2 flex items-center justify-between rounded bg-white px-3 py-2 text-[10px] text-slate-500">
               <span>Membalas {replyTarget.isOwn ? "komentar Anda" : replyTarget.authorName}</span>
               <Button variant="ghost" size="icon-xs" type="button" onClick={() => setReplyToId(null)} aria-label="Batal membalas"><X className="size-3" /></Button>
             </div>

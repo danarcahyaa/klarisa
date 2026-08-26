@@ -17,7 +17,7 @@ export function DashboardSkeleton({ variant = "dashboard" }: { variant?: "dashbo
   }
 
   if (variant === "list") {
-    return <div role="status" aria-label="Memuat daftar dokumen" className="mx-auto max-w-[920px] px-4 py-12 motion-safe:animate-pulse sm:px-7 lg:py-16">
+    return <div role="status" aria-label="Memuat daftar dokumen" className="mx-auto max-w-[1080px] px-4 py-8 motion-safe:animate-pulse sm:px-7 lg:py-12">
       <Bone className="h-2 w-28"/><Bone className="mt-6 h-12 w-3/4"/><Bone className="mt-5 h-3 w-1/2"/><Bone className="mt-9 h-12 w-full"/><div className="mt-5 overflow-hidden rounded-lg border border-slate-200 bg-white">{[0,1,2,3].map(item=><div key={item} className="grid grid-cols-[40px_1fr] gap-4 border-b border-slate-200 p-5 last:border-0"><Bone className="size-10"/><div><Bone className="h-3 w-2/5"/><Bone className="mt-3 h-2 w-3/5"/></div></div>)}</div>
     </div>;
   }
