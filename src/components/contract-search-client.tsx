@@ -39,7 +39,7 @@ export function ContractSearchClient({ initialItems, items }: { initialItems?: R
   const visibleItems = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-7 lg:py-12">
+    <div className="mx-auto max-w-[1190px] px-4 py-8 sm:px-7 lg:py-12">
       <header className="border-b border-slate-200 pb-6">
         <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">WORKSPACE DOKUMEN</p>
         <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">Pencarian dokumen.</h1>

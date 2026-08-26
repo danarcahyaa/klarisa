@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, FileText, ShieldCheck, Upload } from "lucide-react";
+import { ArrowRight, FileText, ShieldCheck, Upload } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 
@@ -24,7 +24,7 @@ export function ReviewUploader() {
   };
 
   return (
-    <div className="mx-auto max-w-[1080px] px-4 py-10 sm:px-7 lg:py-16">
+    <div className="mx-auto max-w-[1180px] px-4 py-10 sm:px-7 lg:py-16">
       <section className="flex flex-col items-start justify-between gap-7 border-b border-slate-200 pb-9 lg:flex-row lg:items-end">
         <div>
           <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
@@ -75,7 +75,7 @@ export function ReviewUploader() {
           <DashboardSkeleton variant="document" />
         </div>
       ) : (
-        <section className="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid lg:grid-cols-[minmax(0,2.2fr)_330px]">
+        <section className="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid lg:grid-cols-[minmax(0,2.2fr)_400px]">
           <div>
             <header className="flex items-center gap-3 border-b border-slate-200 px-6 py-5">
               <FileText className="size-4" />
