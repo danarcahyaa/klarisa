@@ -26,6 +26,3 @@ export const registerSchema = z.object({
     .min(1, 'Password wajib diisi')
     .min(8, 'Password minimal 8 karakter'),
 })
-
-export type LoginSchemaType = z.infer<typeof loginSchema>
-export type RegisterSchemaType = z.infer<typeof registerSchema>

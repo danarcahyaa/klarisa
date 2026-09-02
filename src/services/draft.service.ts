@@ -5,12 +5,12 @@ import { decryptContractContent, encryptContractContent } from "@/lib/contract-e
 import { createErrorResponse, createSuccessResponse, mapSupabaseError } from "@/lib/response";
 import { sanitizeContractHtml } from "@/lib/utils";
 import { DEFAULT_DRAFT_CONTENT } from "@/lib/draft-template";
-import { ContractRepository, type ContractRecord } from "@/repositories/contract.repository";
+import { DraftRepository, type ContractRecord } from "@/repositories/draft.repository";
 import type { AddDraftCommentDTO, ContractDetail, ContractListItem, ContractMetadata, ContractQuery, CreateDraftDTO, DraftCollaborator, DraftCollaboratorRow, DraftComment, DraftCommentRow, DraftVersion, DraftVersionContent, DocumentDraftRow, InviteDraftCollaboratorDTO, SaveDraftDTO, UpdateDraftCollaboratorDTO, UpdateDraftCommentDTO } from "@/types/contract.type";
 import type { Database } from "@/types/database.type";
 
 function metadataOf(value: unknown): ContractMetadata {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as ContractMetadata : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as ContractMetadata) : {};
 }
 
 function mapListItem(record: ContractRecord): ContractListItem {
@@ -69,8 +69,8 @@ function mapDraftVersion(record: DocumentDraftRow): DraftVersion {
   };
 }
 
-export class ContractService {
-  constructor(private readonly repository: ContractRepository) {}
+export class DraftService {
+  constructor(private readonly repository: DraftRepository) {}
 
   async list(userId: string, query: ContractQuery = {}) {
     const validation = contractQuerySchema.safeParse(query);
@@ -473,9 +473,8 @@ export class ContractService {
     if (result.error) return createErrorResponse<{ id: string; resolved: boolean }>(mapSupabaseError(result.error.message));
     return createSuccessResponse({ id: idValidation.data, resolved }, resolved ? "Diskusi ditandai selesai." : "Diskusi dibuka kembali.");
   }
-
 }
 
-export function createContractService(client: SupabaseClient<Database>) {
-  return new ContractService(new ContractRepository(client));
+export function createDraftService(client: SupabaseClient<Database>) {
+  return new DraftService(new DraftRepository(client));
 }

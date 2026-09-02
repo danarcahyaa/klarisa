@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -437,6 +437,92 @@ export type Database = {
           },
         ]
       }
+      legal_articles: {
+        Row: {
+          article_number: string
+          book_title: string | null
+          chapter_title: string | null
+          content: string
+          created_at: string
+          embedding: string | null
+          explanation: string | null
+          id: string
+          regulation_id: string
+          section_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          article_number: string
+          book_title?: string | null
+          chapter_title?: string | null
+          content: string
+          created_at?: string
+          embedding?: string | null
+          explanation?: string | null
+          id?: string
+          regulation_id: string
+          section_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          article_number?: string
+          book_title?: string | null
+          chapter_title?: string | null
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          explanation?: string | null
+          id?: string
+          regulation_id?: string
+          section_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_articles_regulation_id_fkey"
+            columns: ["regulation_id"]
+            isOneToOne: false
+            referencedRelation: "legal_regulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_regulations: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          id: string
+          name: string
+          official_source_url: string | null
+          short_name: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          official_source_url?: string | null
+          short_name?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          official_source_url?: string | null
+          short_name?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -600,18 +686,9 @@ export type Database = {
         Args: { target_contract_id: string }
         Returns: boolean
       }
-      can_edit_draft: {
-        Args: { target_contract_id: string }
-        Returns: boolean
-      }
-      can_view_draft: {
-        Args: { target_contract_id: string }
-        Returns: boolean
-      }
-      is_draft_owner: {
-        Args: { target_contract_id: string }
-        Returns: boolean
-      }
+      can_edit_draft: { Args: { target_contract_id: string }; Returns: boolean }
+      can_view_draft: { Args: { target_contract_id: string }; Returns: boolean }
+      is_draft_owner: { Args: { target_contract_id: string }; Returns: boolean }
       is_workspace_editor: {
         Args: { target_workspace_id: string }
         Returns: boolean
@@ -619,6 +696,37 @@ export type Database = {
       is_workspace_member: {
         Args: { target_workspace_id: string }
         Returns: boolean
+      }
+      match_legal_articles: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          article_number: string
+          book_title: string
+          chapter_title: string
+          content: string
+          explanation: string
+          id: string
+          regulation_id: string
+          section_title: string
+          similarity: number
+        }[]
+      }
+      upload_contract_review: {
+        Args: {
+          p_content?: string
+          p_fairness_score?: number
+          p_is_pinned?: boolean
+          p_metadata?: Json
+          p_title: string
+          p_total_clausul_risk?: number
+          p_type?: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

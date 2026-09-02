@@ -47,8 +47,63 @@ export const updateDraftCommentSchema = z.object({
   body: z.string().trim().min(1, "Komentar tidak boleh kosong").max(5000, "Komentar maksimal 5.000 karakter"),
 });
 
-export type SaveDraftInput = z.infer<typeof saveDraftSchema>;
-export type AddDraftCommentInput = z.infer<typeof addDraftCommentSchema>;
-export type InviteDraftCollaboratorInput = z.infer<typeof inviteDraftCollaboratorSchema>;
-export type UpdateDraftCollaboratorInput = z.infer<typeof updateDraftCollaboratorSchema>;
-export type UpdateDraftCommentInput = z.infer<typeof updateDraftCommentSchema>;
+export const MAX_CONTRACT_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
+export const ALLOWED_CONTRACT_DOC_EXTENSIONS = [".docx"] as const;
+
+export const uploadContractDocumentSchema = z.object({
+  title: z.string().trim().min(1, "Judul dokumen wajib diisi").max(250, "Judul dokumen maksimal 250 karakter"),
+  fileName: z
+    .string()
+    .trim()
+    .min(1, "Nama berkas wajib ada")
+    .refine(
+      (name) => name.toLowerCase().endsWith(".docx"),
+      "Format berkas harus berupa dokumen .docx"
+    ),
+  fileSize: z
+    .number()
+    .int()
+    .min(1, "Dokumen tidak boleh kosong")
+    .max(MAX_CONTRACT_FILE_SIZE_BYTES, "Ukuran dokumen tidak boleh melebihi 15 MB"),
+  mimeType: z.string().trim().optional(),
+  content: z.string().trim().optional(),
+});
+
+export function validateContractFile(file: File | null): import("@/types/contract.type").DocumentValidationResult {
+  if (!file) {
+    return {
+      isValid: false,
+      fileName: "",
+      fileSize: 0,
+      mimeType: "",
+      errors: ["Silakan pilih dokumen .docx terlebih dahulu."],
+    };
+  }
+
+  const fileName = file.name.trim();
+  const fileSize = file.size;
+  const mimeType = file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const errors: string[] = [];
+
+  const lowerName = fileName.toLowerCase();
+  const isDocxExtension = lowerName.endsWith(".docx");
+
+  if (!isDocxExtension) {
+    errors.push("Format berkas tidak didukung. Harap unggah dokumen bertipe .docx.");
+  }
+
+  if (fileSize <= 0) {
+    errors.push("Berkas dokumen kosong atau rusak.");
+  } else if (fileSize > MAX_CONTRACT_FILE_SIZE_BYTES) {
+    const sizeInMB = (fileSize / (1024 * 1024)).toFixed(1);
+    errors.push(`Ukuran dokumen (${sizeInMB} MB) melebihi batas maksimum 15 MB.`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    fileName,
+    fileSize,
+    mimeType,
+    errors,
+  };
+}

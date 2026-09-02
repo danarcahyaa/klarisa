@@ -120,3 +120,8 @@ export interface UpdateDraftCommentDTO {
 }
 
 export type ContractResponse<T> = BaseResponse<T>;
+export type {
+  DocumentValidationResult,
+  UploadContractDocumentDTO,
+} from "./contract-review.type";
+
