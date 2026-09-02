@@ -1,5 +1,3 @@
-export const DEFAULT_DRAFT_TITLE = "Draft Perjanjian Baru";
-
 export const DEFAULT_DRAFT_CONTENT = `
   <p>SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</p>
   <p class="mt-3">Nomor: [NOMOR_KONTRAK]/SPK/2026</p>

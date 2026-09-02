@@ -330,3 +330,104 @@
     transition: none !important;
   }
 }
+
+
+
+.docx-rendered-content h1, 
+.docx-rendered-content .doc-h1 {
+  font-size: 20px;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.docx-rendered-content h2, 
+.docx-rendered-content .doc-h2 {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.docx-rendered-content p {
+  margin-bottom: 5px;
+  font-family: 'Times New Roman', Times, serif;
+  text-align: justify;
+}
+
+.docx-rendered-content ol {
+  display: block !important;
+  list-style: decimal !important;
+  list-style-type: decimal !important;
+  list-style-position: inside !important;
+  padding-left: 1rem !important;
+  margin: 1rem 0 !important;
+}
+
+.docx-rendered-content li {
+  display: list-item !important; 
+  list-style-type: inherit !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.docx-rendered-content ol ol {
+  list-style-type: lower-alpha !important;
+  list-style-position: inside !important;
+  padding-left: 1.5rem !important;
+}
+
+/* Tabel */
+.docx-rendered-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.docx-rendered-content th, 
+.docx-rendered-content td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+/* Highlight styling for DOCX review findings */
+.docx-rendered-content mark,
+.docx-rendered-content .finding-highlight,
+.docx-rendered-content .legal-highlight,
+mark.finding-highlight,
+span.finding-highlight,
+mark.legal-highlight,
+span.legal-highlight,
+.finding-highlight,
+.legal-highlight {
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+  background-color: rgba(254, 226, 226, 0.85) !important;
+  border-bottom: 2px solid #ef4444 !important;
+  color: #7f1d1d !important;
+  border-radius: 0.1rem !important;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer !important;
+}
+
+.docx-rendered-content mark:hover,
+.finding-highlight:hover,
+.legal-highlight:hover {
+  background-color: rgba(254, 202, 202, 0.95) !important;
+}
+
+mark.finding-highlight.active-highlight,
+span.finding-highlight.active-highlight,
+mark.legal-highlight.active-highlight,
+span.legal-highlight.active-highlight,
+.finding-highlight.active-highlight,
+.legal-highlight.active-highlight,
+mark.active-highlight {
+  background-color: #fca5a5 !important;
+  color: #450a0a !important;
+  outline: 2px solid #dc2626 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.35) !important;
+}

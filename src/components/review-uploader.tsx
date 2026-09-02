@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FileText, ShieldCheck, Upload } from "lucide-react";
+import { ArrowRight, FileText, ShieldCheck, Upload, AlertCircle, Sparkles } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { useReview } from "@/hooks/useReview";
+import { cn } from "@/lib/utils";
 
 const steps = [
   ["01", "Membedah Dokumen", "Memisahkan kalimat per kalimat atau pasal demi pasal."],
@@ -15,12 +17,19 @@ const steps = [
 export function ReviewUploader() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [fileName, setFileName] = useState("Kontrak_Kerja_Sama_Desain.docx");
-  const [isStarting, setIsStarting] = useState(false);
 
-  const startReview = () => {
-    setIsStarting(true);
-    window.setTimeout(() => router.push("/dashboard/review/result"), 550);
+  const {
+    fileName,
+    file, 
+    isLoading,
+    error,
+    handleFileSelect,
+    handleUpload,
+    dismissError,
+  } = useReview();
+
+  const handleStartReview = async () => {
+    await handleUpload();
   };
 
   return (
@@ -43,9 +52,10 @@ export function ReviewUploader() {
             type="file"
             accept=".docx"
             className="hidden"
-            onChange={(event) =>
-              setFileName(event.target.files?.[0]?.name ?? fileName)
-            }
+            onChange={(event) => {
+              const selectedFile = event.target.files?.[0] ?? null;
+              handleFileSelect(selectedFile);
+            }}
           />
           <Button
             type="button"
@@ -55,14 +65,14 @@ export function ReviewUploader() {
             className="flex-1"
           >
             <Upload className="size-4" />
-            {fileName !== "Kontrak_Kerja_Sama_Desain.docx" ? fileName : "Pilih DOCX"}
+            {fileName ? fileName : "Pilih DOCX"}
           </Button>
           <SubmitButton
             type="button"
             variant="default"
-            isLoading={isStarting}
-            loadingText="Memeriksa..."
-            onClick={startReview}
+            isLoading={isLoading}
+            loadingText="Memproses..."
+            onClick={handleStartReview}
             rightIcon={<ArrowRight className="size-4" />}
           >
             Mulai review
@@ -70,7 +80,23 @@ export function ReviewUploader() {
         </div>
       </section>
 
-      {isStarting ? (
+      {error && (
+        <div className="mt-4 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0 text-red-500" />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={dismissError}
+            className="font-semibold text-red-600 hover:underline"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
         <div className="mt-8 overflow-hidden rounded-lg border border-slate-200">
           <DashboardSkeleton variant="document" />
         </div>
@@ -81,9 +107,11 @@ export function ReviewUploader() {
               <FileText className="size-4" />
               <span className="grid gap-1">
                 <small className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                  CONTOH DOKUMEN
+                  {file ? "DOKUMEN TERPILIH" : "CONTOH DOKUMEN"}
                 </small>
-                <b className="text-xs font-semibold">{fileName}</b>
+                <b className="text-xs font-semibold">
+                  {fileName || "Kontrak_Kerja_Sama_Desain.docx"}
+                </b>
               </span>
               <b className="ml-auto text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
                 DOCX
@@ -91,50 +119,50 @@ export function ReviewUploader() {
             </header>
             <article className="font-serif text-slate-800 p-7 sm:p-11">
               <div className="text-center">
-                <h2 className="text-base font-bold uppercase tracking-wide">
-                  PERJANJIAN KERJA SAMA JASA DIGITAL
-                </h2>
-              </div>
+                    <h2 className="text-base font-bold uppercase tracking-wide">
+                      PERJANJIAN KERJA SAMA JASA DIGITAL
+                    </h2>
+                  </div>
 
-              <p className="mt-5 text-sm leading-relaxed text-slate-600">
-                Perjanjian ini dibuat dan ditandatangani oleh PT Maju Berdikari sebagai PIHAK PERTAMA dan Rian Pratama sebagai PIHAK KEDUA.
-              </p>
+                  <p className="mt-5 text-sm leading-relaxed text-slate-600">
+                    Perjanjian ini dibuat dan ditandatangani oleh PT Maju Berdikari sebagai PIHAK PERTAMA dan Rian Pratama sebagai PIHAK KEDUA.
+                  </p>
 
-              <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
-                PASAL 1: RUANG LINGKUP &amp; PENYESUAIAN
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                1. PIHAK KEDUA menyelesaikan pekerjaan pembuatan sistem informasi sesuai lampiran spesifikasi teknis.
-              </p>
-              <p className="mt-2 text-sm leading-relaxed">
-                2.{" "}
-                <span className="clause-issue font-serif text-sm">
-                  Pekerjaan tambahan, biaya, dan perubahan jadwal wajib disetujui secara tertulis oleh kedua belah pihak.
-                </span>
-              </p>
+                  <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
+                    PASAL 1: RUANG LINGKUP &amp; PENYESUAIAN
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                    1. PIHAK KEDUA menyelesaikan pekerjaan pembuatan sistem informasi sesuai lampiran spesifikasi teknis.
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed">
+                    2.{" "}
+                    <span className="clause-issue font-serif text-sm">
+                      Pekerjaan tambahan, biaya, dan perubahan jadwal wajib disetujui secara tertulis oleh kedua belah pihak.
+                    </span>
+                  </p>
 
-              <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
-                PASAL 2: PEMBAYARAN DAN PENCAIRAN
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                1. Total imbalan jasa yang disepakati adalah sebesar Rp20.000.000,- (Dua Puluh Juta Rupiah).
-              </p>
-              <p className="mt-2 text-sm leading-relaxed">
-                2.{" "}
-                <span className="clause-issue font-serif text-sm">
-                  Pelunasan sisa 70% hanya dicairkan setelah PIHAK PERTAMA menerima pembayaran penuh dari klien utama.
-                </span>
-              </p>
+                  <h3 className="font-serif mt-6 text-sm font-bold text-slate-900 border-b border-slate-200 pb-1">
+                    PASAL 2: PEMBAYARAN DAN PENCAIRAN
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                    1. Total imbalan jasa yang disepakati adalah sebesar Rp20.000.000,- (Dua Puluh Juta Rupiah).
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed">
+                    2.{" "}
+                    <span className="clause-issue font-serif text-sm">
+                      Pelunasan sisa 70% hanya dicairkan setelah PIHAK PERTAMA menerima pembayaran penuh dari klien utama.
+                    </span>
+                  </p>
 
-              <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                PASAL 3: HAK KEKAYAAN INTELEKTUAL
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed">
-                1.{" "}
-                <span className="clause-issue font-serif text-sm">
-                  Hak cipta dan seluruh hak ekonomi beralih sepenuhnya kepada PIHAK PERTAMA setelah seluruh pembayaran dilunasi.
-                </span>
-              </p>
+                  <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
+                    PASAL 3: HAK KEKAYAAN INTELEKTUAL
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed">
+                    1.{" "}
+                    <span className="clause-issue font-serif text-sm">
+                      Hak cipta dan seluruh hak ekonomi beralih sepenuhnya kepada PIHAK PERTAMA setelah seluruh pembayaran dilunasi.
+                    </span>
+                  </p>
             </article>
           </div>
           <aside className="border-t border-slate-200 bg-[#f6f8fc] p-7 lg:border-t-0 lg:border-l">
@@ -169,3 +197,4 @@ export function ReviewUploader() {
     </div>
   );
 }
+

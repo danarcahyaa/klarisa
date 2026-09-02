@@ -193,34 +193,20 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
         </div>
       )}
 
-      <section className="min-w-0 lg:col-start-2 lg:grid lg:min-h-0 lg:grid-rows-[57px_minmax(0,1fr)] lg:overflow-hidden">
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-[#e1e6ee] bg-white/95 px-4 backdrop-blur sm:px-6 lg:h-[57px] lg:px-10">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsOpen(true)}
-            aria-label="Buka menu workspace"
-            aria-controls="workspace-navigation"
-            aria-expanded={isOpen}
-            className="lg:hidden"
-          >
-            <Menu className="size-5" />
-          </Button>
-          <b className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">WORKSPACE</b>
-          <span className="ml-auto hidden text-xs text-slate-500 sm:block">
-            Dokumen dan keputusan Anda tersimpan di satu tempat.
-          </span>
-          <Link
-            href="/dashboard/search"
-            aria-label="Cari dokumen"
-            className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition-colors hover:border-klarisa-secondary hover:text-klarisa-secondary sm:ml-2"
-          >
-            <Search className="size-4" />
-            <span className="hidden sm:inline">Cari dokumen</span>
-          </Link>
-        </header>
-        <div className="min-w-0 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">{children}</div>
+      <section className="relative min-w-0 lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setIsOpen(true)}
+          aria-label="Buka menu navigation"
+          aria-controls="workspace-navigation"
+          aria-expanded={isOpen}
+          className="fixed top-3 left-3 z-40 bg-white/90 shadow-sm backdrop-blur lg:hidden"
+        >
+          <Menu className="size-5" />
+        </Button>
+        <div className="min-w-0">{children}</div>
       </section>
     </main>
   );

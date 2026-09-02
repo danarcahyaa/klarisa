@@ -7,7 +7,7 @@ export type ContractRecord = ContractRow & {
   contract_draft: ContractDraftRow | null;
 };
 
-export class ContractRepository {
+export class DraftRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async listByUser(userId: string) {
@@ -241,5 +241,8 @@ export class ContractRepository {
   async createDraftVersion(payload: TablesInsert<"document_drafts">) {
     return this.supabase.from("document_drafts").insert(payload).select().single();
   }
+}
 
+export function createDraftRepository(client: SupabaseClient<Database>) {
+  return new DraftRepository(client);
 }
