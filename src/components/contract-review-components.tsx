@@ -128,8 +128,8 @@ export function ReviewRiskSummaryBar({
   const ratio = totalCount > 0 ? Math.min(100, Math.round((riskyCount / totalCount) * 100)) : 0;
 
   return (
-    <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-4">
-      <div className="relative flex size-20 shrink-0 items-center justify-center">
+    <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-5">
+      <div className="relative flex size-15 shrink-0 items-center justify-center">
         <svg className="size-full -rotate-90" viewBox="0 0 36 36">
           <path
             className="text-slate-100"
@@ -151,10 +151,10 @@ export function ReviewRiskSummaryBar({
         <span className="absolute text-xs font-bold text-slate-800">{fractionText}</span>
       </div>
       <div className="grid gap-0.5">
-        <h3 className="text-md font-bold text-slate-900 leading-snug">
+        <h3 className="text-sm font-bold text-slate-900 leading-snug">
           {riskyCount} terdeteksi berisiko
         </h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-xs text-slate-500">
           Dari {totalCount} bagian kontrak yang diperiksa, terdapat {riskyCount} yang berisiko
         </p>
       </div>
@@ -226,13 +226,6 @@ export function FindingDetailView({
     }
   };
 
-  const statusText =
-    finding.compliance_status === "VIOLATES_LAW"
-      ? "Rujukan Ketentuan Undang-Undang"
-      : finding.compliance_status === "UNFAIR_ONE_SIDED"
-      ? "Indikasi Ketentuan Tidak Seimbang"
-      : "Indikasi Ketentuan Belum Lengkap";
-
   return (
     <div>
       <div className="sticky top-0 z-20 bg-slate-50">
@@ -261,17 +254,18 @@ export function FindingDetailView({
           </p>
         </button>
 
-        <Collapsible defaultOpen className="border-b border-slate-200 group">
+        {/* Card 1: Hasil Analisis */}
+        <Collapsible className="border-b border-slate-200 group">
           <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors cursor-pointer">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Image
                 src="/klarisa/logo-ai.png"
                 alt="Klarisa AI"
-                width={18}
-                height={18}
-                className="size-4.5 object-contain"
+                width={20}
+                height={20}
+                className="size-5 object-contain"
               />
-              <h4 className="text-sm font-bold text-slate-900">Hasil Analisis</h4>
+              <h4 className="text-sm font-semibold text-slate-900">Hasil Analisis</h4>
             </div>
             <ChevronDown className="size-4 text-slate-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
@@ -286,36 +280,36 @@ export function FindingDetailView({
                 title="Salin analisis"
                 className="grid size-6 place-items-center rounded hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
               >
-                {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
               </button>
             </div>
           </CollapsibleContent>
         </Collapsible>
 
-        <Collapsible defaultOpen className="border-b border-slate-200 group">
-          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors cursor-pointer">
-            <div className="flex items-center gap-2.5">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#ff5527] text-white">
-                <Scale className="size-3.5" />
-              </span>
-              <h4 className="text-sm font-bold text-slate-900">{statusText}</h4>
-            </div>
-            <ChevronDown className="size-4 text-slate-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="px-4 pb-4">
-            {groupedLegalReferences.length > 0 ? (
-              <div className="grid gap-2 pt-1">
+        {/* Card 2: Rujukan Hukum (Hanya tampil jika ada rujukan hukum) */}
+        {groupedLegalReferences.length > 0 && (
+          <Collapsible className="border-b border-slate-200 group">
+            <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left transition-colors cursor-pointer">
+              <div className="flex items-center gap-2.5">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#ff5527] text-white">
+                  <Scale className="size-3.5" />
+                </span>
+                <h4 className="text-sm font-semibold text-slate-900">Rujukan Undang-Undang</h4>
+              </div>
+              <ChevronDown className="size-4 text-slate-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="ml-3 border-l border-slate-200 pl-3 flex flex-col gap-1">
                 {groupedLegalReferences.map((group, gIdx) => (
                   <button
                     key={gIdx}
                     type="button"
                     onClick={() => setSelectedGroup(group)}
-                    className="flex w-full min-w-0 items-center justify-between gap-2.5 rounded-md border border-slate-200 bg-white p-3.5 text-left transition-colors cursor-pointer group/item overflow-hidden"
+                    className="flex w-full min-w-0 items-center justify-between gap-2.5 pb-2 pl-2 text-left transition-colors cursor-pointer group/item overflow-hidden"
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-2.5 overflow-hidden">
-                      <Scale className="size-4 shrink-0 text-klarisa-secondary mt-0.5" />
                       <div className="grid min-w-0 flex-1 gap-0.5 overflow-hidden">
-                        <h5 className="text-xs font-bold text-slate-800 truncate" title={group.regulationName}>
+                        <h5 className="text-xs font-semibold text-slate-800 truncate" title={group.regulationName}>
                           {group.regulationName}
                         </h5>
                         {group.hierarchyText && (
@@ -323,32 +317,28 @@ export function FindingDetailView({
                             {group.hierarchyText}
                           </p>
                         )}
-                        <p className="text-[11px] font-semibold text-klarisa-secondary mt-1">
+                        <p className="text-[11px] font-semibold text-klarisa-secondary mt-0.5">
                           {group.articles.length} pasal terkait
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="size-4 shrink-0 text-slate-400 group-hover/item:text-slate-600 transition-colors ml-1" />
+                    <ChevronRight className="size-4 shrink-0 text-slate-400 group-hover/item:text-slate-600 opacity-0 group-hover/item:opacity-100 transition-opacity ml-1" />
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-xs leading-relaxed text-slate-700">
-                Klausul ini berpotensi merugikan salah satu pihak dan melanggar azas keseimbangan dalam hukum perjanjian kerja sama.
-              </p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         {/* Card 3: Rekomendasi Perbaikan */}
         {finding.revision_recommendation && (
-          <Collapsible defaultOpen className="border-b border-slate-200 group">
+          <Collapsible className="border-b border-slate-200 group">
             <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors cursor-pointer">
               <div className="flex items-center gap-2.5">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-blue-500 text-white">
                   <FileText className="size-3.5" />
                 </span>
-                <h4 className="text-sm font-bold text-slate-900">Rekomendasi Perbaikan</h4>
+                <h4 className="text-sm font-semibold text-slate-900">Rekomendasi Perbaikan</h4>
               </div>
               <ChevronDown className="size-4 text-slate-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </CollapsibleTrigger>
@@ -369,9 +359,11 @@ export function FindingDetailView({
       >
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <div className="flex items-center gap-2 text-klarisa-secondary font-bold text-sm">
-              <Scale className="size-4" />
-              <span>Detail Peraturan Hukum</span>
+            <div className="flex items-center gap-2 text-sm">
+              <div className="grid size-6 shrink-0 place-items-center rounded-full bg-klarisa-tertiary text-white">
+                <Scale className="size-3.5" />
+              </div>
+              <span className="text-slate-700 font-semibold">Detail Rujukan Undang-Undang</span>
             </div>
             <SheetTitle className="text-base font-bold text-slate-900 mt-1">
               {selectedGroup?.regulationName || "Peraturan Terkait"}
@@ -387,7 +379,6 @@ export function FindingDetailView({
             {selectedGroup?.articles.map((article, idx) => (
               <Collapsible
                 key={idx}
-                defaultOpen={idx === 0}
                 className="rounded-md border border-slate-200 bg-white overflow-hidden group"
               >
                 <CollapsibleTrigger className="flex w-full items-center justify-between p-3.5 text-left transition-colors cursor-pointer ">

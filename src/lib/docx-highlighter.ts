@@ -5,9 +5,9 @@ import type { DisplayFinding } from "@/components/contract-review-components";
 
 /** CSS class applied to highlighted risky clause elements in the document viewer. */
 const HIGHLIGHT_CLASS_MAP: Record<string, string> = {
-  VIOLATES_LAW: "highlight-violates",
-  UNFAIR_ONE_SIDED: "highlight-unfair",
-  INCOMPLETE: "highlight-incomplete",
+  VIOLATES_LAW: "finding-highlight legal-highlight",
+  UNFAIR_ONE_SIDED: "finding-highlight legal-highlight",
+  INCOMPLETE: "finding-highlight legal-highlight",
   COMPLIANT: "highlight-compliant",
 };
 

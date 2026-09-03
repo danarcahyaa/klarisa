@@ -23,17 +23,30 @@ import {
 import type { ComplianceStatus, LegalArticle, MatchLegalArticleResult } from "@/types/legal.type";
 import type { DocumentSection } from "@/types/common.type";
 import {
+  groqReasoningBatchSchema,
   reasoningBatchSchema,
   type LlmChunkOutput,
   type LlmProvider,
 } from "@/types/llm.type";
 import type { BaseResponse } from "@/types/response.type";
 
-/** Number of contract chunks combined into a single LLM prompt batch. */
-const REASONING_BATCH_SIZE = 4;
+/**
+ * Calculates dynamic LLM batch size based on total analyzable chunks count.
+ * Rules:
+ * 1. 1 - 4 chunks   -> batch size = 2
+ * 2. 5 - 10 chunks  -> batch size = 3
+ * 3. 11 - 18 chunks -> batch size = 2
+ * 4. 19+ chunks     -> batch size = 3
+ */
+function calculateDynamicBatchSize(totalChunks: number): number {
+  if (totalChunks <= 4) return 2;
+  if (totalChunks <= 10) return 3;
+  if (totalChunks <= 18) return 2;
+  return 3;
+}
 
 /** Delay between sequential LLM batch calls for rate-limiting safety (ms). */
-const RATE_LIMIT_DELAY_MS = 800;
+const RATE_LIMIT_DELAY_MS = 1500;
 
 /** Unit types that are eligible for legal compliance reasoning. */
 const ANALYZABLE_UNIT_TYPES = new Set(["clause", "fallback"]);
@@ -150,24 +163,33 @@ export class ReviewService {
    *
    * @param sectionsOrRawText - Array of parsed document sections or raw text string.
    * @param matchedChunks      - Array of matched chunks containing vector-matched legal articles.
-   * @param provider           - LLM provider choice (default: "gemini").
+   * @param provider           - LLM provider choice (default: "groq").
    * @returns BaseResponse containing the full or partial ReasoningAnalysisResult.
    */
   async processReasoning(
     sectionsOrRawText: DocumentSection[] | string,
     matchedChunks: (MatchedDocumentChunk | MatchedChunk)[],
-    provider: LlmProvider = "gemini"
+    provider: LlmProvider = "groq"
   ): Promise<BaseResponse<ReasoningAnalysisResult>> {
     try {
       if (!matchedChunks || matchedChunks.length === 0) {
+        console.log("[ReviewService] processReasoning: Tidak ada chunk yang diterima untuk dieksekusi.");
         return createSuccessResponse(this.emptyReasoningResult());
       }
+
+      console.log(
+        `[ReviewService] processReasoning: Menerima total ${matchedChunks.length} chunk dari hasil pencarian regulasi.`
+      );
 
       const sections = Array.isArray(sectionsOrRawText) ? sectionsOrRawText : [];
       const sectionsMap = this.buildSectionsMap(sections);
       const outlineText = buildDocumentOutlinePrompt(sections);
 
       const analyzableChunks = this.filterAnalyzableChunks(matchedChunks);
+      console.log(
+        `[ReviewService] processReasoning: ${analyzableChunks.length} dari ${matchedChunks.length} chunk memiliki rujukan hukum dan siap dieksekusi.`
+      );
+
       if (analyzableChunks.length === 0) {
         return createSuccessResponse(
           this.emptyReasoningResult("Tidak ditemukan klausul kontrak yang dapat dianalisis.")
@@ -308,15 +330,26 @@ export class ReviewService {
     batchErrorMessage: string;
   }> {
     const findings: ChunkReasoningResult[] = [];
-    const chunkBatches = chunkArray(analyzableChunks, REASONING_BATCH_SIZE);
+    const batchSize = calculateDynamicBatchSize(analyzableChunks.length);
+    const chunkBatches = chunkArray(analyzableChunks, batchSize);
     const systemPrompt = this.buildBatchSystemPrompt();
     let hasBatchError = false;
     let batchErrorMessage = "";
+
+    console.log(
+      `[ReviewService] Memulai analisis LLM untuk ${analyzableChunks.length} klausul dalam ${chunkBatches.length} batch (batch size dinamis: ${batchSize}).`
+    );
 
     for (let batchIdx = 0; batchIdx < chunkBatches.length; batchIdx++) {
       const currentBatch = chunkBatches[batchIdx];
       const batchItems = this.prepareBatchItems(currentBatch, sectionsMap);
       const userPrompt = this.buildBatchUserPrompt(outlineText, batchItems);
+
+      const startChunkIdx = batchIdx * batchSize + 1;
+      const endChunkIdx = Math.min((batchIdx + 1) * batchSize, analyzableChunks.length);
+      console.log(
+        `[ReviewService] Mengeksekusi Batch ${batchIdx + 1}/${chunkBatches.length} (Memproses Chunk #${startChunkIdx} s/d #${endChunkIdx} | ${currentBatch.length} chunk)...`
+      );
 
       const { outputs, error } = await this.executeLlmBatchCall(
         userPrompt,
@@ -326,7 +359,7 @@ export class ReviewService {
 
       if (error) {
         console.error(
-          `[ReviewService.analyzeChunksInBatches] Batch ${batchIdx + 1} failed:`,
+          `[ReviewService.analyzeChunksInBatches] Batch ${batchIdx + 1}/${chunkBatches.length} gagal:`,
           error
         );
         hasBatchError = true;
@@ -338,10 +371,18 @@ export class ReviewService {
       const batchFindings = this.mapBatchOutputsToFindings(batchItems, outputs);
       findings.push(...batchFindings);
 
+      console.log(
+        `[ReviewService] Batch ${batchIdx + 1}/${chunkBatches.length} berhasil dieksekusi. Ditemukan ${batchFindings.length} hasil analisis.`
+      );
+
       if (batchIdx < chunkBatches.length - 1) {
         await sleep(RATE_LIMIT_DELAY_MS);
       }
     }
+
+    console.log(
+      `[ReviewService] Selesai mengeksekusi ${chunkBatches.length} batch. Total temuan terkumpul: ${findings.length}.`
+    );
 
     return { findings, hasBatchError, batchErrorMessage };
   }
@@ -388,14 +429,26 @@ export class ReviewService {
    * Builds the system prompt for the legal reasoning model.
    */
   private buildBatchSystemPrompt(): string {
-    return `Anda adalah analis hukum kontrak Indonesia yang profesional dan lugas. Analisis klausul kontrak berdasarkan regulasi hukum rujukan.
+    return `Anda adalah analis hukum kontrak Indonesia yang profesional, kritis, dan lugas. Tugas Anda adalah menganalisis setiap klausul kontrak berdasarkan keabsahan hukum, kelengkapan, serta keberimbangan hak dan kewajiban para pihak.
 
 PRINSIP ANALISIS & PENULISAN:
 1. Dilarang menggunakan istilah teknis internal seperti "chunk", "node", "prompt", atau "JSON". Sebutlah sebagai "Klausul ini", "Pasal ini", atau "Ketentuan ini".
 2. Gunakan bahasa yang sederhana, jelas, dan lugas yang mudah dipahami oleh orang awam.
-3. Dilarang mengulang atau menyalin bunyi pasal UU secara panjang lebar di dalam 'legal_reasoning'. Fokuskan penjelasan pada alasan praktis mengapa klausul ini berisiko atau belum lengkap.
+3. Dilarang mengulang atau menyalin bunyi pasal UU secara panjang lebar di dalam 'legal_reasoning'. Fokuskan penjelasan pada alasan praktis dan dampak hukumnya.
 4. Gunakan HANYA ID regulasi yang ada pada daftar rujukan.
-5. Pilih ID tag elemen HTML yang secara spesifik menjadi sumber masalah ke dalam 'matched_node_ids'.`;
+5. Pilih ID tag elemen HTML yang secara spesifik menjadi sumber masalah ke dalam 'matched_node_ids'.
+
+ATURAN KONTEKS & FUNGSI KLAUSUL (PENTING):
+1. PEMBUKAAN / IDENTITAS PARA PIHAK (PREAMBLE):
+   - Hanya dinilai dari kejelasan dan keabsahan identitas para pihak serta kewenangan bertindak.
+   - DILARANG menganggap klausul pembukaan/identitas 'INCOMPLETE' atau melanggar UU hanya karena pasal upah, tempat kerja, atau sanksi diatur di pasal-pasal berikutnya.
+   - Jika identitas sah dan jelas, berikan status "COMPLIANT".
+2. KLAUSUL SUBSTANTIF (HAK, KEWAJIBAN, SANKSI, PEMUTUSAN, DLL):
+   - Evaluasi secara mendalam apakah klausul tersebut seimbang (fair) atau berat sebelah.
+   - Berikan status "UNFAIR_ONE_SIDED" jika sanksi/denda/ganti rugi hanya dibebankan kepada satu pihak, atau hak pemutusan sepihak tanpa kompensasi hanya dimiliki satu pihak.
+   - Berikan status "VIOLATES_LAW" jika klausul menyampingkan hak normatif undang-undang atau melanggar regulasi yang berlaku.
+   - Berikan status "INCOMPLETE" HANYA JIKA klausul itu sendiri memuat frasa menggantung, rujukan pasal internal yang hilang, atau norma acuan yang tidak jelas batasannya.
+   - Berikan status "COMPLIANT" jika klausul seimbang, jelas, dan sah secara hukum.`;
   }
 
   /**
@@ -442,10 +495,13 @@ ${chunksText}`;
     provider: LlmProvider
   ): Promise<{ outputs: LlmChunkOutput[]; error: string | null }> {
     try {
+      const responseSchema =
+        provider === "groq" ? groqReasoningBatchSchema : reasoningBatchSchema;
+
       const llmResponse = await llmService.generateCompletion(userPrompt, {
         provider,
         systemInstruction: systemPrompt,
-        responseSchema: reasoningBatchSchema,
+        responseSchema,
         temperature: 0.1,
       });
 
@@ -521,14 +577,33 @@ ${chunksText}`;
         };
       };
 
+      const extractFromParsed = (parsed: unknown): LlmChunkOutput[] => {
+        if (!parsed || typeof parsed !== "object") return [];
+        if (Array.isArray(parsed)) {
+          return parsed.map(sanitizeItem).filter(Boolean) as LlmChunkOutput[];
+        }
+        const obj = parsed as Record<string, unknown>;
+        const candidateKeys = ["findings", "clauses", "items", "data", "results", "chunks", "analyses"];
+        for (const key of candidateKeys) {
+          if (Array.isArray(obj[key])) {
+            const sanitized = (obj[key] as unknown[]).map(sanitizeItem).filter(Boolean) as LlmChunkOutput[];
+            if (sanitized.length > 0) return sanitized;
+          }
+        }
+        for (const val of Object.values(obj)) {
+          if (Array.isArray(val)) {
+            const sanitized = val.map(sanitizeItem).filter(Boolean) as LlmChunkOutput[];
+            if (sanitized.length > 0) return sanitized;
+          }
+        }
+        const single = sanitizeItem(obj);
+        return single ? [single] : [];
+      };
+
       try {
         const parsedDirect = JSON.parse(stripped);
-        if (Array.isArray(parsedDirect)) {
-          return parsedDirect.map(sanitizeItem).filter(Boolean) as LlmChunkOutput[];
-        } else if (parsedDirect && typeof parsedDirect === "object") {
-          const sanitized = sanitizeItem(parsedDirect);
-          return sanitized ? [sanitized] : [];
-        }
+        const extracted = extractFromParsed(parsedDirect);
+        if (extracted.length > 0) return extracted;
       } catch {
         // Direct parse failed, proceed to delimiter extraction
       }
@@ -542,9 +617,8 @@ ${chunksText}`;
           try {
             const jsonString = stripped.slice(firstBracket, lastBracket + 1);
             const parsedArray = JSON.parse(jsonString);
-            if (Array.isArray(parsedArray)) {
-              return parsedArray.map(sanitizeItem).filter(Boolean) as LlmChunkOutput[];
-            }
+            const extracted = extractFromParsed(parsedArray);
+            if (extracted.length > 0) return extracted;
           } catch (e) {
             console.warn("[ReviewService.parseLlmBatchOutput] Array slice parse failed:", e);
           }
@@ -557,8 +631,8 @@ ${chunksText}`;
           try {
             const jsonString = stripped.slice(firstBrace, lastBrace + 1);
             const parsedObj = JSON.parse(jsonString);
-            const sanitized = sanitizeItem(parsedObj);
-            return sanitized ? [sanitized] : [];
+            const extracted = extractFromParsed(parsedObj);
+            if (extracted.length > 0) return extracted;
           } catch (e) {
             console.warn("[ReviewService.parseLlmBatchOutput] Object slice parse failed:", e);
           }
