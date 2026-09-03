@@ -17,13 +17,13 @@ import type { LlmProvider } from "@/types/llm.type";
  *
  * @param sectionsOrRawText - Array of parsed document sections or raw text string.
  * @param matchedChunks      - Array of matched chunks containing vector-matched legal articles.
- * @param provider           - LLM provider choice (default: "gemini").
+ * @param provider           - LLM provider choice (default: "groq").
  * @returns BaseResponse containing the full ReasoningAnalysisResult.
  */
 export async function processReasoningAction(
   sectionsOrRawText: DocumentSection[] | string,
   matchedChunks: (MatchedDocumentChunk | MatchedChunk)[],
-  provider: LlmProvider = "gemini"
+  provider: LlmProvider = "groq"
 ) {
   const sessionClient = await createClient();
   const { data: { user }, error } = await sessionClient.auth.getUser();

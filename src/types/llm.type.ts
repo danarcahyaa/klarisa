@@ -3,11 +3,11 @@ import type { BaseResponse } from "./response.type";
 import { Type } from "@google/genai";
 
 /** Supported LLM provider for contract reasoning and text generation. */
-export type LlmProvider = "gemini";
+export type LlmProvider = "gemini" | "groq";
 
 /** Options passed to LLM completion generation calls. */
 export interface GenerateCompletionOptions {
-  /** Target LLM provider to handle the completion request (default: "gemini"). */
+  /** Target LLM provider to handle the completion request (default: "groq"). */
   provider?: LlmProvider;
   /** System instruction or persona prompt for the model. */
   systemInstruction?: string;
@@ -77,6 +77,66 @@ export const reasoningBatchSchema = {
       "legal_reasoning",
       "recommendation",
     ],
+  },
+};
+
+/**
+ * Strict JSON Schema structure specifically formatted for Groq / OpenAI Structured Outputs (`type: "json_schema"`).
+ */
+export const groqReasoningBatchSchema = {
+  name: "contract_legal_reasoning_batch",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      findings: {
+        type: "array",
+        description: "Daftar hasil analisis kepatuhan hukum untuk setiap klausul kontrak.",
+        items: {
+          type: "object",
+          properties: {
+            chunk_id: {
+              type: "string",
+              description: "ID spesifik klausul kontrak yang dianalisis.",
+            },
+            compliance_status: {
+              type: "string",
+              enum: ["VIOLATES_LAW", "UNFAIR_ONE_SIDED", "INCOMPLETE", "COMPLIANT"],
+              description: "Status kepatuhan hukum klausul.",
+            },
+            matched_node_ids: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar ID tag elemen HTML yang bermasalah.",
+            },
+            matched_regulation_ids: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar ID regulasi rujukan yang melandasi temuan ini.",
+            },
+            legal_reasoning: {
+              type: "string",
+              description: "Penjelasan alasan risiko hukum secara lugas, sederhana, dan langsung ke inti masalah.",
+            },
+            recommendation: {
+              type: "string",
+              description: "Saran perbaikan konkret dan praktis.",
+            },
+          },
+          required: [
+            "chunk_id",
+            "compliance_status",
+            "matched_node_ids",
+            "matched_regulation_ids",
+            "legal_reasoning",
+            "recommendation",
+          ],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["findings"],
+    additionalProperties: false,
   },
 };
 
