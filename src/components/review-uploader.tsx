@@ -58,14 +58,17 @@ export function ReviewUploader() {
             }}
           />
           <Button
+            disabled={isLoading}
             type="button"
             variant="outline"
             size="default"
             onClick={() => inputRef.current?.click()}
-            className="flex-1"
+            className="w-32 justify-center"
           >
-            <Upload className="size-4" />
-            {fileName ? fileName : "Pilih DOCX"}
+            <Upload className="size-4 shrink-0" />
+            <span className="truncate" title={fileName ?? "Pilih DOCX"}>
+              {fileName ? fileName : "Pilih DOCX"}
+            </span>
           </Button>
           <SubmitButton
             type="button"
