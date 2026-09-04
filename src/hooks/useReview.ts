@@ -73,7 +73,8 @@ export function useReview(): UseReviewReturn {
       const annotatedHtml = injectHTMLUniqueID(parsedDoc);
       const parsedSections = parseContractHtml(annotatedHtml);
       const chunks = await buildChunks(parsedSections);
-
+      console.log("CHUNKS: ")
+      console.log(chunks)
 
       // Generate vector embeddings in groups (batches) to prevent rate limits
       const embeddingResult = await generateEmbeddingAction({
@@ -114,7 +115,7 @@ export function useReview(): UseReviewReturn {
       const findings = reasoningResult.data?.findings ?? [];
       const hasFindings = findings.length > 0;
 
-      // Case A: Reasoning failed and NO risky findings were collected
+      // // Case A: Reasoning failed and NO risky findings were collected
       if (!reasoningResult.success && !hasFindings) {
         const err = reasoningResult.error ?? "Terjadi kesalahan saat menganalisis kepatuhan hukum.";
         setError(err);
@@ -122,7 +123,7 @@ export function useReview(): UseReviewReturn {
         return false;
       }
 
-      // Case B: Reasoning encountered an error or early termination, but collected risky findings
+      // // Case B: Reasoning encountered an error or early termination, but collected risky findings
       if (!reasoningResult.success || (reasoningResult.message && reasoningResult.message.includes("terhenti lebih awal"))) {
         toast.warning(
           reasoningResult.message ?? reasoningResult.error ?? "Analisis terhenti lebih awal, namun klausul berisiko berhasil terdeteksi."
@@ -132,7 +133,7 @@ export function useReview(): UseReviewReturn {
       const totalRisk = findings.length;
       const fairnessScore = reasoningResult.data?.risky_clauses_count || 0
 
-      // Save annotated HTML and reasoning findings into Supabase via RPC transaction
+      // // Save annotated HTML and reasoning findings into Supabase via RPC transaction
       const uploadRes = await uploadReviewDocumentAction({
         title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
