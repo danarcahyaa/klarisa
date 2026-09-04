@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, CopyIcon, FileText, Mic, Plus, Scale, Search, SendHorizontal, Sparkle, SquarePen } from "lucide-react";
@@ -11,7 +12,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import type { ChunkReasoningResult } from "@/types/contract-review.type";
 import type { LegalArticle } from "@/types/legal.type";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Textarea } from "./ui/textarea";
+import { Spinner } from "./ui/spinner";
+import { CopyButton } from "./ui/copy-button";
+import { ChatAiTextbox } from "./ui/chat-ai-textbox";
 
 export type FindingId = string;
 
@@ -22,13 +25,35 @@ export interface DisplayFinding extends ChunkReasoningResult {
 export function DocumentHeader({
   fileName = "Dokumen Kontrak.docx",
   status,
+  onBack,
 }: {
   fileName?: string;
   status?: string;
+  onBack?: () => void;
 }) {
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.push("/dashboard/review");
+    }
+  };
+
   return (
-    <header className="flex h-14 min-h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-7">
-      <FileText className="size-5 text-slate-600" />
+    <header className="flex h-16 min-h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-7">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        type="button"
+        onClick={handleBack}
+        title="Kembali"
+        aria-label="Kembali"
+        className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      >
+        <ArrowLeft className="size-5" />
+      </Button>
       <span className="grid">
         <b className="text-sm font-semibold">{fileName}</b>
         <small className="text-xs text-slate-400">Hasil Parsing Dokumen DOCX</small>
@@ -130,8 +155,8 @@ export function ReviewRiskSummaryBar({
   const ratio = totalCount > 0 ? Math.min(100, Math.round((riskyCount / totalCount) * 100)) : 0;
 
   return (
-    <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-5">
-      <div className="relative flex size-15 shrink-0 items-center justify-center">
+    <div className="flex items-center gap-4 rounded-lg bg-white/80 backdrop-blur-md border px-5 py-5">
+      <div className="relative flex size-20 shrink-0 items-center justify-center">
         <svg className="size-full -rotate-90" viewBox="0 0 36 36">
           <path
             className="text-slate-100"
@@ -152,8 +177,8 @@ export function ReviewRiskSummaryBar({
         </svg>
         <span className="absolute text-xs font-bold text-slate-800">{fractionText}</span>
       </div>
-      <div className="grid gap-0.5">
-        <h3 className="text-sm font-bold text-slate-900 leading-snug">
+      <div className="grid gap-1">
+        <h3 className="text-md font-bold text-slate-900 leading-snug">
           {riskyCount} terdeteksi berisiko
         </h3>
         <p className="text-xs text-slate-500">
@@ -185,7 +210,6 @@ export function FindingDetailView({
   onBack: () => void;
   onSelectFinding?: (findingId: string) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupedLegalRef | null>(null);
 
   const groupedLegalReferences = useMemo<GroupedLegalRef[]>(() => {
@@ -220,23 +244,17 @@ export function FindingDetailView({
     return Array.from(groupsMap.values());
   }, [finding.applicable_legal_references]);
 
-  const handleCopy = () => {
-    if (finding.reasoning) {
-      navigator.clipboard.writeText(finding.reasoning);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <div>
-      <div className="sticky top-0 z-20 bg-slate-50">
-        <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed || totalFindings} riskyCount={totalFindings} />
-        <div className="border-b border-slate-200/80 px-4 py-3 bg-white">
+      <div className="sticky top-0 z-20 bg-transparent">
+        <div className="px-3 pt-3">
+          <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed || totalFindings} riskyCount={totalFindings} />
+        </div>
+        <div className="border-b border-slate-200/80 px-4 py-3">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-semibold hover:text-klarisa-secondary cursor-pointer transition-colors"
+            className="inline-flex items-center gap-2 text-sm cursor-pointer transition-colors"
           >
             <ArrowLeft className="size-4" />
             Kembali
@@ -276,14 +294,7 @@ export function FindingDetailView({
               {finding.reasoning || "Terdeteksi potensi risiko pada klausul ini."}
             </p>
             <div className="mt-3 flex items-center gap-2 text-slate-400">
-              <button
-                type="button"
-                onClick={handleCopy}
-                title="Salin analisis"
-                className="grid size-6 place-items-center rounded hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
-              >
-                {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
-              </button>
+              <CopyButton valueToCopy={finding.reasoning || ""} title="Salin analisis" />
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -466,7 +477,7 @@ export function FindingList({
 
   if (findings.length === 0) {
     return (
-      <section className="bg-white p-6 space-y-4">
+      <section className="p-4 space-y-4">
         <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed} riskyCount={0} />
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-800">
           <p className="text-xs font-semibold">Tidak ditemukan klausul berisiko pada dokumen ini.</p>
@@ -477,7 +488,7 @@ export function FindingList({
 
   return (
     <section>
-      <div className="sticky top-0 z-20 bg-white">
+      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 pt-3">
         <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
       </div>
       <div className="divide-y divide-slate-100">
@@ -512,199 +523,3 @@ export function FindingList({
   );
 }
 
-export function DiscussionPanel() {
-  const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; text: string }>>([
-    {
-      id: "1",
-      role: "assistant",
-      text: "Halo! Saya Klarisa AI. Silakan tanyakan hal khusus, klarifikasi pasal, atau analisis risiko pada dokumen ini.",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
-    }
-  }, [input]);
-
-  const handleCopyMessage = (id: string, text: string) => {
-    if (text) {
-      navigator.clipboard.writeText(text);
-      setCopiedMessageId(id);
-      setTimeout(() => setCopiedMessageId(null), 2000);
-    }
-  };
-
-  const handleSend = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || isSending) return;
-
-    const userText = input.trim();
-    const newMsg = { id: String(Date.now()), role: "user" as const, text: userText };
-    setMessages((prev) => [...prev, newMsg]);
-    setInput("");
-    setIsSending(true);
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: String(Date.now() + 1),
-          role: "assistant",
-          text: `Berdasarkan konteks dokumen: ${
-            userText.toLowerCase().includes("denda")
-              ? "Terdapat klausul mengenai denda/imbalan yang perlu diperhatikan pada Pasal 1."
-              : userText.toLowerCase().includes("hak") || userText.toLowerCase().includes("hki")
-              ? "Ketentuan Hak Kekayaan Intelektual (HKI) tercantum dalam klausul perjanjian."
-              : "Informasi tersebut merujuk pada ketentuan yang tertera di dalam dokumen kontrak."
-          }`,
-        },
-      ]);
-      setIsSending(false);
-    }, 700);
-  };
-
-  const handleNewChat = () => {
-    setMessages([
-      {
-        id: String(Date.now()),
-        role: "assistant",
-        text: "Halo! Diskusi baru telah dimulai. Silakan ajukan pertanyaan terkait dokumen kontrak ini.",
-      },
-    ]);
-    setSearchQuery("");
-    setIsSearching(false);
-  };
-
-  const filteredMessages = useMemo(() => {
-    if (!searchQuery.trim()) return messages;
-    return messages.filter((msg) =>
-      msg.text.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [messages, searchQuery]);
-
-  return (
-    <aside className="flex h-full min-h-[500px] flex-col">
-      <div className="flex items-center justify-between px-5 border-b border-slate-200 py-4 ">
-        <h3 className="font-heading text-sm font-semibold text-slate-900 truncate">Mamang Gufron Ansori</h3>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            onClick={() => {
-              setIsSearching((prev) => !prev);
-              if (isSearching) setSearchQuery("");
-            }}
-            title="Cari percakapan"
-            aria-label="Cari percakapan"
-          
-          >
-            <Search className="size-4" />
-          </Button>
-          <Button
-            size="xs"
-            type="button"
-            onClick={handleNewChat}
-          >
-            <Plus className="size-3.5" />
-            <span>Chat baru</span>
-          </Button>
-        </div>
-      </div>
-      
-
-      {/* Main AI Generated Messages Area */}
-      <div className="flex-1 space-y-3.5 overflow-y-auto p-5 text-xs">
-        {filteredMessages.length === 0 ? (
-          <p className="py-8 text-center text-xs text-slate-400">
-            Tidak ada pesan yang cocok dengan &quot;{searchQuery}&quot;.
-          </p>
-        ) : (
-          filteredMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className={cn(
-                "flex flex-col gap-1 max-w-[90%]",
-                msg.role === "user" ? "ml-auto items-end" : "items-start"
-              )}
-            >
-              <div
-                className={cn(
-                  "group relative rounded-lg p-3 leading-relaxed text-xs w-full",
-                  msg.role === "user"
-                    ? "bg-klarisa-secondary font-medium text-white"
-                    : "border border-slate-200 bg-white text-slate-700"
-                )}
-              >
-                <p className="whitespace-pre-wrap">{msg.text}</p>
-                <div className="mt-2 flex items-center justify-end">
-                  <button
-                    type="button"
-                    onClick={() => handleCopyMessage(msg.id, msg.text)}
-                    title="Salin pesan"
-                    aria-label="Salin pesan"
-                    className={cn(
-                      "grid size-6 place-items-center rounded hover:bg-slate-100 transition-colors cursor-pointer",
-                      msg.role === "user" ? "hover:bg-white/20 text-white/80" : "text-slate-400 hover:text-slate-600"
-                    )}
-                  >
-                    {copiedMessageId === msg.id ? (
-                      <Check className="size-2.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="size-2.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-
-        {isSending && (
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500 animate-pulse">
-            <Sparkle className="size-4 animate-spin text-klarisa-secondary shrink-0" />
-            <span>Klarisa AI sedang menganalisis dokumen &amp; membuat respon...</span>
-          </div>
-        )}
-      </div>
-      {/* Interactive Prompt Input Form */}
-      <form onSubmit={handleSend} className="mt-auto p-5 pt-0">
-        <div className="relative flex flex-col">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            rows={1}
-            aria-label="Pertanyaan tentang dokumen"
-            placeholder="Tanyakan sesuatu..."
-          />
-          <SubmitButton
-            variant="ghost"
-            size="icon-sm"
-            type="submit"
-            disabled={!input.trim() || isSending}
-            aria-label="Kirim pertanyaan"
-            className="absolute bottom-2 right-2 shrink-0"
-          >
-            <SendHorizontal className="size-3.5" />
-          </SubmitButton>
-        </div>
-      </form>
-      
-    </aside>
-  );
-}

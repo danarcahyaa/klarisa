@@ -7,7 +7,6 @@ import { AlertTriangle, MessageCircle } from "lucide-react";
 import { getReviewDetailAction } from "@/app/actions/review.action";
 import {
   ContractDocument,
-  DiscussionPanel,
   DocumentHeader,
   FindingList,
   type DisplayFinding,
@@ -162,44 +161,15 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
             )}
           </div>
         </div>
-        <div className="flex flex-col h-svh max-h-svh bg-slate-50 overflow-hidden">
-          <div className="flex h-14 min-h-14 shrink-0 items-center justify-center border-b border-slate-200 bg-white px-3 gap-2">
-            <Button
-              variant={activeTab === "analysis" ? "secondary" : "ghost"}
-              type="button"
-              onClick={() => setActiveTab("analysis")}
-              className="flex-1 cursor-pointer items-center justify-center gap-1.5 font-semibold"
-            >
-              <span>✦</span> Hasil Analisis
-            </Button>
-            <Button
-              variant={activeTab === "chat" ? "secondary" : "ghost"}
-              type="button"
-              onClick={() => setActiveTab("chat")}
-              className="flex-1 cursor-pointer items-center justify-center gap-1.5 font-semibold"
-            >
-              <MessageCircle className="size-3" /> Chat & Diskusi
-            </Button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {isLoading ? (
-              <div className="flex h-full items-center justify-center p-8 text-slate-500 font-medium">
-                Memuat hasil analisis...
-              </div>
-            ) : activeTab === "analysis" ? (
-              <FindingList
-                isContract={isContract}
-                notContractReason={notContractReason}
-                totalAnalyzed={totalAnalyzed}
-                findings={findings}
-                activeFinding={activeFinding}
-                onSelectFinding={selectFromList}
-              />
-            ) : (
-              <DiscussionPanel />
-            )}
-          </div>
+        <div className="flex flex-col h-svh max-h-svh bg-slate-50 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FindingList
+            isContract={isContract}
+            notContractReason={notContractReason}
+            totalAnalyzed={totalAnalyzed}
+            findings={findings}
+            activeFinding={activeFinding}
+            onSelectFinding={selectFromList}
+          />
         </div>
       </div>
     </div>
