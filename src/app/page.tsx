@@ -191,7 +191,7 @@ export default async function HomePage() {
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/klarisa/logo-ai.png"
+                  src="/klarisa/logo-ai.svg"
                   alt=""
                   aria-hidden="true"
                   width={24}
@@ -319,7 +319,7 @@ export default async function HomePage() {
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2.5">
                   <Image
-                    src="/klarisa/logo-ai.png"
+                    src="/klarisa/logo-ai.svg"
                     alt="Klarisa AI"
                     width={28}
                     height={28}

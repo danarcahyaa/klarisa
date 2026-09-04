@@ -97,7 +97,7 @@ export function HomeWorkspacePreview() {
         <div className="mt-5 rounded-lg border border-blue-100 bg-white p-3.5">
           <div className="flex items-center gap-2">
             <Image
-              src="/klarisa/logo-ai.png"
+              src="/klarisa/logo-ai.svg"
               alt="Klarisa AI"
               width={24}
               height={24}

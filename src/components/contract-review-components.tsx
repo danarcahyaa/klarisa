@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, Copy, FileText, Scale, Send } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, CopyIcon, FileText, Mic, Plus, Scale, Search, SendHorizontal, Sparkle, SquarePen } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button, SubmitButton } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ChunkReasoningResult } from "@/types/contract-review.type";
 import type { LegalArticle } from "@/types/legal.type";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Textarea } from "./ui/textarea";
 
 export type FindingId = string;
 
@@ -259,7 +261,7 @@ export function FindingDetailView({
           <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
               <Image
-                src="/klarisa/logo-ai.png"
+                src="/klarisa/logo-ai.svg"
                 alt="Klarisa AI"
                 width={20}
                 height={20}
@@ -520,6 +522,25 @@ export function DiscussionPanel() {
   ]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
+    }
+  }, [input]);
+
+  const handleCopyMessage = (id: string, text: string) => {
+    if (text) {
+      navigator.clipboard.writeText(text);
+      setCopiedMessageId(id);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    }
+  };
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -550,64 +571,140 @@ export function DiscussionPanel() {
     }, 700);
   };
 
-  return (
-    <aside className="flex h-full min-h-[500px] flex-col bg-[#f8fafc] p-5">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">PANEL CHAT & DISKUSI</p>
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
-          Klarisa AI Assistant
-        </span>
-      </div>
+  const handleNewChat = () => {
+    setMessages([
+      {
+        id: String(Date.now()),
+        role: "assistant",
+        text: "Halo! Diskusi baru telah dimulai. Silakan ajukan pertanyaan terkait dokumen kontrak ini.",
+      },
+    ]);
+    setSearchQuery("");
+    setIsSearching(false);
+  };
 
-      <div className="my-4 flex-1 space-y-3 overflow-y-auto pr-1 text-xs">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "max-w-[88%] rounded-lg p-3 leading-relaxed",
-              msg.role === "user"
-                ? "ml-auto bg-klarisa-secondary text-white font-medium"
-                : "bg-white border border-slate-200 text-slate-700 shadow-sm"
-            )}
+  const filteredMessages = useMemo(() => {
+    if (!searchQuery.trim()) return messages;
+    return messages.filter((msg) =>
+      msg.text.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [messages, searchQuery]);
+
+  return (
+    <aside className="flex h-full min-h-[500px] flex-col">
+      <div className="flex items-center justify-between px-5 border-b border-slate-200 py-4 ">
+        <h3 className="font-heading text-sm font-semibold text-slate-900 truncate">Mamang Gufron Ansori</h3>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            onClick={() => {
+              setIsSearching((prev) => !prev);
+              if (isSearching) setSearchQuery("");
+            }}
+            title="Cari percakapan"
+            aria-label="Cari percakapan"
+          
           >
-            {msg.text}
-          </div>
-        ))}
+            <Search className="size-4" />
+          </Button>
+          <Button
+            size="xs"
+            type="button"
+            onClick={handleNewChat}
+          >
+            <Plus className="size-3.5" />
+            <span>Chat baru</span>
+          </Button>
+        </div>
+      </div>
+      
+
+      {/* Main AI Generated Messages Area */}
+      <div className="flex-1 space-y-3.5 overflow-y-auto p-5 text-xs">
+        {filteredMessages.length === 0 ? (
+          <p className="py-8 text-center text-xs text-slate-400">
+            Tidak ada pesan yang cocok dengan &quot;{searchQuery}&quot;.
+          </p>
+        ) : (
+          filteredMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className={cn(
+                "flex flex-col gap-1 max-w-[90%]",
+                msg.role === "user" ? "ml-auto items-end" : "items-start"
+              )}
+            >
+              <div
+                className={cn(
+                  "group relative rounded-lg p-3 leading-relaxed text-xs w-full",
+                  msg.role === "user"
+                    ? "bg-klarisa-secondary font-medium text-white"
+                    : "border border-slate-200 bg-white text-slate-700"
+                )}
+              >
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+                <div className="mt-2 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyMessage(msg.id, msg.text)}
+                    title="Salin pesan"
+                    aria-label="Salin pesan"
+                    className={cn(
+                      "grid size-6 place-items-center rounded hover:bg-slate-100 transition-colors cursor-pointer",
+                      msg.role === "user" ? "hover:bg-white/20 text-white/80" : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {copiedMessageId === msg.id ? (
+                      <Check className="size-2.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="size-2.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
         {isSending && (
-          <div className="max-w-[88%] animate-pulse rounded-lg border border-slate-200 bg-white p-3 text-xs italic text-slate-400 shadow-sm">
-            Klarisa AI sedang menganalisis dokumen...
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500 animate-pulse">
+            <Sparkle className="size-4 animate-spin text-klarisa-secondary shrink-0" />
+            <span>Klarisa AI sedang menganalisis dokumen &amp; membuat respon...</span>
           </div>
         )}
       </div>
-
-      <form onSubmit={handleSend} className="mt-auto flex min-h-28 flex-col rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          aria-label="Pertanyaan tentang dokumen"
-          placeholder="Tulis pertanyaan Anda..."
-          className="min-h-16 w-full resize-none bg-transparent text-xs outline-none placeholder:text-slate-400"
-        />
-        <SubmitButton
-          variant="default"
-          size="icon-sm"
-          type="submit"
-          disabled={!input.trim() || isSending}
-          aria-label="Kirim pertanyaan"
-          className="mt-auto ml-auto"
-        >
-          <Send className="size-4" />
-        </SubmitButton>
+      {/* Interactive Prompt Input Form */}
+      <form onSubmit={handleSend} className="mt-auto p-5 pt-0">
+        <div className="relative flex flex-col">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            rows={1}
+            aria-label="Pertanyaan tentang dokumen"
+            placeholder="Tanyakan sesuatu..."
+          />
+          <SubmitButton
+            variant="ghost"
+            size="icon-sm"
+            type="submit"
+            disabled={!input.trim() || isSending}
+            aria-label="Kirim pertanyaan"
+            className="absolute bottom-2 right-2 shrink-0"
+          >
+            <SendHorizontal className="size-3.5" />
+          </SubmitButton>
+        </div>
       </form>
-      <small className="mt-2 text-[10px] leading-4 text-slate-400">
-        Jawaban AI berpatokan pada pasal dan regulasi hukum terkait.
-      </small>
+      
     </aside>
   );
 }

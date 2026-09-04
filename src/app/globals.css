@@ -13,7 +13,7 @@
   --font-serif: "Times New Roman", Times, serif;
   --font-mono: var(--font-mono), monospace;
 
-  --color-klarisa-primary: #0F172A;
+  --color-klarisa-primary: #2F5BD3;
   --color-klarisa-secondary: #2F5BD3;
   --color-klarisa-tertiary: #FF4A18;
   --color-klarisa-navy: #0F172A;
@@ -32,7 +32,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--color-klarisa-secondary);
+  --color-secondary: var(--color-klarisa-navy);
   --color-secondary-foreground: #FFFFFF;
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
@@ -42,7 +42,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
-  --color-ring: var(--color-klarisa-secondary);
+  --color-ring: var(--color-klarisa-primary);
 }
 
 :root {
@@ -54,7 +54,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
 
-  --primary: #0F172A;
+  --primary: #2F5BD3;
   --primary-foreground: #FFFFFF;
 
   --secondary: oklch(0.97 0 0);
