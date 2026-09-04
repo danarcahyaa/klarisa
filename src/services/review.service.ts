@@ -426,29 +426,51 @@ export class ReviewService {
   }
 
   /**
-   * Builds the system prompt for the legal reasoning model.
+   * Strips technical tag codes (e.g. `(tag-12)`, `[tag-13]`, `tag-14`) from human-facing reasoning text.
+   */
+  private stripTagIdsFromText(text: string): string {
+    if (!text) return "";
+    return text
+      .replace(/\(\s*tag-\d+\s*\)/gi, "")
+      .replace(/\[\s*tag-\d+\s*\]/gi, "")
+      .replace(/\{\s*tag-\d+\s*\}/gi, "")
+      .replace(/\btag-\d+\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([.,;:!?])/g, "$1")
+      .trim();
+  }
+
+  /**
+   * Builds the system prompt for the legal reasoning model (optimized for Qwen & Gemini).
    */
   private buildBatchSystemPrompt(): string {
-    return `Anda adalah analis hukum kontrak Indonesia yang profesional, kritis, dan lugas. Tugas Anda adalah menganalisis setiap klausul kontrak berdasarkan keabsahan hukum, kelengkapan, serta keberimbangan hak dan kewajiban para pihak.
+    return `Anda adalah Asisten Pakar Hukum Kontrak & Compliance Indonesia yang sangat teliti, objektif, dan kritis. Tugas Anda adalah melakukan analisis kepatuhan hukum (legal compliance & fairness review) terhadap klausul-klausul kontrak secara akurat.
 
-PRINSIP ANALISIS & PENULISAN:
-1. Dilarang menggunakan istilah teknis internal seperti "chunk", "node", "prompt", atau "JSON". Sebutlah sebagai "Klausul ini", "Pasal ini", atau "Ketentuan ini".
-2. Gunakan bahasa yang sederhana, jelas, dan lugas yang mudah dipahami oleh orang awam.
-3. Dilarang mengulang atau menyalin bunyi pasal UU secara panjang lebar di dalam 'legal_reasoning'. Fokuskan penjelasan pada alasan praktis dan dampak hukumnya.
-4. Gunakan HANYA ID regulasi yang ada pada daftar rujukan.
-5. Pilih ID tag elemen HTML yang secara spesifik menjadi sumber masalah ke dalam 'matched_node_ids'.
+METODOLOGI ANALISIS BERTAHAP (CHAIN-OF-THOUGHT):
+Lakukan analisis internal secara sistematis sebelum menghasilkan output:
+1. Identifikasi Jenis & Fungsi Klausul: Tentukan apakah klausul merupakan pembukaan/identitas, ketentuan umum, hak & kewajiban, sanksi, pemutusan, atau kerahasiaan.
+2. Evaluasi Keabsahan & Keseimbangan: Bandingkan hak dan kewajiban antara Pihak Pertama dan Pihak Kedua. Periksa apakah ada pasal perundang-undangan yang dilanggar.
+3. Penentuan Status & Pemetaan Tag: Tentukan status kepatuhan (pilih 1 dari 4 status enum) dan cari elemen tag HTML (tag-XX) yang secara presisi menjadi akar masalah.
+4. Perumusan Penjelasan & Solusi: Tuliskan alasan hukum yang ringkas, mudah dipahami awam, serta berikan rekomendasi revisi konkret.
 
-ATURAN KONTEKS & FUNGSI KLAUSUL (PENTING):
-1. PEMBUKAAN / IDENTITAS PARA PIHAK (PREAMBLE):
-   - Hanya dinilai dari kejelasan dan keabsahan identitas para pihak serta kewenangan bertindak.
-   - DILARANG menganggap klausul pembukaan/identitas 'INCOMPLETE' atau melanggar UU hanya karena pasal upah, tempat kerja, atau sanksi diatur di pasal-pasal berikutnya.
-   - Jika identitas sah dan jelas, berikan status "COMPLIANT".
-2. KLAUSUL SUBSTANTIF (HAK, KEWAJIBAN, SANKSI, PEMUTUSAN, DLL):
-   - Evaluasi secara mendalam apakah klausul tersebut seimbang (fair) atau berat sebelah.
-   - Berikan status "UNFAIR_ONE_SIDED" jika sanksi/denda/ganti rugi hanya dibebankan kepada satu pihak, atau hak pemutusan sepihak tanpa kompensasi hanya dimiliki satu pihak.
-   - Berikan status "VIOLATES_LAW" jika klausul menyampingkan hak normatif undang-undang atau melanggar regulasi yang berlaku.
-   - Berikan status "INCOMPLETE" HANYA JIKA klausul itu sendiri memuat frasa menggantung, rujukan pasal internal yang hilang, atau norma acuan yang tidak jelas batasannya.
-   - Berikan status "COMPLIANT" jika klausul seimbang, jelas, dan sah secara hukum.`;
+KRITERIA KLASIFIKASI STATUS KEPATUHAN (DISCIPLINED ENUM):
+- VIOLATES_LAW: Klausul secara eksplisit melanggar regulasi/undang-undang Indonesia yang berlaku (misal: pengabaian hak normatif buruh/hak cipta, pembatalan sepihak melanggar KUHPerdata/UU Ketenagakerjaan). Wajib menyertakan minimal 1 ID regulasi yang dilanggar.
+- UNFAIR_ONE_SIDED: Klausul sah secara hukum, tetapi secara ekonomi/hukum SANGAT BERAT SEBELAH atau tidak seimbang (misal: sanksi/denda/ganti rugi hanya dibebankan ke satu pihak, hak akhiri perjanjian sepihak tanpa ganti rugi hanya dimiliki satu pihak).
+- INCOMPLETE: Klausul memiliki cacat draft (misal: merujuk pasal internal yang hilang, mengandung nilai/persentase yang belum diisi [...], atau norma acuan yang tidak jelas/menggantung).
+- COMPLIANT: Klausul jelas, seimbang, tidak melanggar hukum, dan memberikan kepastian hukum yang baik bagi para pihak.
+
+PRINSIP BAHASA & PENULISAN:
+1. BAHASA ALAMI & POPULER: Dilarang keras menyebutkan istilah internal teknis seperti "chunk", "node", "prompt", "JSON", atau kode tag (seperti "(tag-12)", "[tag-13]"). Gunakan rujukan "Klausul ini", "Pasal ini", atau "Ketentuan ini".
+2. RINGKAS & LANGSUNG KE INTI: Pada 'legal_reasoning', jelaskan dampak risiko hukumnya secara langsung dalam 2-3 kalimat. Dilarang mengutip/menyalin ulang isi pasal undang-undang secara panjang lebar.
+3. SOLUSI PRAKTIS: Pada 'recommendation', berikan usulan formula revisi kalimat atau tindakan pencegahan konkret.
+
+ATURAN HASIL MATCHING (PENTING):
+1. 'matched_node_ids':
+   - Untuk status VIOLATES_LAW, UNFAIR_ONE_SIDED, atau INCOMPLETE: Masukkan HANYA tag ID spesifik (misal: ["tag-14"]) yang memuat baris/kalimat bermasalah. DILARANG memasukkan seluruh tag ID jika hanya 1 kalimat yang bermasalah. DILARANG MENULISKAN KODE TAG DALAM TEKS PENJELASAN!
+   - Untuk status COMPLIANT: WAJIB diisi dengan array kosong [].
+2. 'matched_regulation_ids':
+   - Untuk status VIOLATES_LAW atau rujukan hukum spesifik: Salin persis nilai UUID dari [ID: <uuid>] regulasi yang benar-benar dilanggar/dirujuk (tanpa embel-embel "ID: ").
+   - Untuk status lain atau jika tidak ada regulasi spesifik yang dilanggar: WAJIB diisi dengan array kosong [].`;
   }
 
   /**
@@ -679,18 +701,89 @@ ${chunksText}`;
 
       const defaultTagIds =
         "tagIds" in item.chunk ? item.chunk.tagIds : item.chunk.matched_node_ids;
-      const matchedNodeIds =
-        llmOutput.matched_node_ids && llmOutput.matched_node_ids.length > 0
-          ? llmOutput.matched_node_ids
-          : defaultTagIds;
 
-      const regIds = new Set(llmOutput.matched_regulation_ids ?? []);
-      let matchedRegs: MatchLegalArticleResult[] = item.chunk.matched_regulations.filter((r) =>
-        regIds.has(r.id)
+      let matchedNodeIds: string[] = [];
+      if (llmOutput.compliance_status === "COMPLIANT") {
+        matchedNodeIds = [];
+      } else if (
+        Array.isArray(llmOutput.matched_node_ids) &&
+        llmOutput.matched_node_ids.length > 0
+      ) {
+        const validAvailableNodeIds = new Set(defaultTagIds ?? []);
+        matchedNodeIds = llmOutput.matched_node_ids
+          .map((id) => id.trim())
+          .filter(
+            (id) =>
+              id.length > 0 &&
+              (validAvailableNodeIds.size === 0 || validAvailableNodeIds.has(id))
+          );
+
+        if (matchedNodeIds.length === 0 && defaultTagIds && defaultTagIds.length > 0) {
+          matchedNodeIds = defaultTagIds;
+        }
+      } else if (defaultTagIds && defaultTagIds.length > 0) {
+        matchedNodeIds = defaultTagIds;
+      }
+
+      const rawRegIds = (llmOutput.matched_regulation_ids ?? []).map((id) =>
+        id.replace(/^ID:\s*/i, "").trim().toLowerCase()
+      );
+      const regIdSet = new Set(rawRegIds);
+
+      // 1. Direct UUID or Article Number match from LLM's matched_regulation_ids
+      let matchedRegs: MatchLegalArticleResult[] = item.chunk.matched_regulations.filter(
+        (r) => {
+          if (!r) return false;
+          const normalizedId = (r.id ?? "").toLowerCase().trim();
+          const normalizedArticle = (r.article_number ?? "").toLowerCase().trim();
+          const articleDigits = normalizedArticle.replace(/\D/g, "");
+
+          if (normalizedId && regIdSet.has(normalizedId)) return true;
+          if (normalizedArticle && regIdSet.has(normalizedArticle)) return true;
+
+          if (articleDigits && articleDigits.length > 1) {
+            for (const rawId of rawRegIds) {
+              if (rawId.includes(articleDigits) || rawId.includes(normalizedArticle)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }
       );
 
+      // 2. Text Scanning Fallback: Check if reasoning text explicitly mentions article number or law title
       if (matchedRegs.length === 0 && item.chunk.matched_regulations.length > 0) {
-        matchedRegs = item.chunk.matched_regulations.slice(0, 3);
+        const reasoningLower = (llmOutput.legal_reasoning ?? "").toLowerCase();
+
+        matchedRegs = item.chunk.matched_regulations.filter((r) => {
+          if (!r) return false;
+          const articleNum = (r.article_number ?? "").toLowerCase().trim();
+          const articleDigits = articleNum.replace(/\D/g, "");
+          const nameLower = (r.name ?? "").toLowerCase().trim();
+
+          const articleMentioned =
+            (articleNum && reasoningLower.includes(articleNum)) ||
+            (articleDigits.length > 1 && reasoningLower.includes(`pasal ${articleDigits}`));
+
+          const nameMentioned = nameLower.length > 3 && reasoningLower.includes(nameLower);
+
+          return articleMentioned || (nameMentioned && articleMentioned);
+        });
+      }
+
+      // 3. Status-based Fallback for VIOLATES_LAW or UNFAIR_ONE_SIDED with statutory mentions
+      const mentionsLawInText = /\b(pasal|undang-undang|uu|kuhperdata|peraturan)\b/i.test(
+        llmOutput.legal_reasoning ?? ""
+      );
+
+      if (
+        matchedRegs.length === 0 &&
+        item.chunk.matched_regulations.length > 0 &&
+        (llmOutput.compliance_status === "VIOLATES_LAW" ||
+          (llmOutput.compliance_status === "UNFAIR_ONE_SIDED" && mentionsLawInText))
+      ) {
+        matchedRegs = item.chunk.matched_regulations.slice(0, 1);
       }
 
       const applicableLegalReferences: LegalArticle[] = matchedRegs.map((reg) => ({
@@ -702,13 +795,16 @@ ${chunksText}`;
         content: reg.content,
       }));
 
+      const reasoningText = this.stripTagIdsFromText(llmOutput.legal_reasoning);
+      const recommendationText = this.stripTagIdsFromText(llmOutput.recommendation);
+
       return {
         matched_node_ids: matchedNodeIds,
         clause_text: item.rawChunkText.slice(0, 300),
         compliance_status: llmOutput.compliance_status,
         applicable_legal_references: applicableLegalReferences,
-        reasoning: llmOutput.legal_reasoning,
-        revision_recommendation: llmOutput.recommendation,
+        reasoning: reasoningText,
+        revision_recommendation: recommendationText,
       };
     });
   }
