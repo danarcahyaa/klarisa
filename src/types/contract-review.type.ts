@@ -86,6 +86,10 @@ export interface UploadContractDocumentDTO {
   metadata?: Record<string, unknown>;
 }
 
+export interface DisplayFinding extends ChunkReasoningResult {
+  findingId: string;
+}
+
 export interface UseReviewReturn {
   file: File | null;
   fileName: string;
@@ -101,5 +105,19 @@ export interface UseReviewReturn {
   dismissError: () => void;
 }
 
+export interface UseReviewResultWorkspaceReturn {
+  fileName: string;
+  createdAt: string | null;
+  highlightedHtml: string | null;
+  findings: DisplayFinding[];
+  activeFinding: string;
+  isLoading: boolean;
+  error: string | null;
+  isContract: boolean;
+  notContractReason: string;
+  totalAnalyzed: number;
+  selectFromList: (findingId: string) => void;
+  handleBackToReview: () => void;
+}
 
 export type ContractReviewResponse<T> = BaseResponse<T>;

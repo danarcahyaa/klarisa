@@ -1,7 +1,6 @@
 import * as cheerio from "cheerio";
 
-import type { ChunkReasoningResult } from "@/types/contract-review.type";
-import type { DisplayFinding } from "@/components/contract-review-components";
+import type { ChunkReasoningResult, DisplayFinding } from "@/types/contract-review.type";
 
 /** CSS class applied to highlighted risky clause elements in the document viewer. */
 const HIGHLIGHT_CLASS_MAP: Record<string, string> = {

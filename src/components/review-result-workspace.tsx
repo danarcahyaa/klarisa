@@ -1,19 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { AlertTriangle, MessageCircle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
-import { getReviewDetailAction } from "@/app/actions/review.action";
 import {
   ContractDocument,
   DocumentHeader,
   FindingList,
-  type DisplayFinding,
-} from "@/components/contract-review-components";
+} from "@/components/review-result";
 import { Button } from "@/components/ui/button";
-import { highlightRiskyClauses } from "@/lib/docx-highlighter";
-import type { ChunkReasoningResult, ReasoningAnalysisResult } from "@/types/contract-review.type";
+import { useReviewResultWorkspace } from "@/hooks/useReviewResultWorkspace";
 import { Skeleton } from "./ui/skeleton";
 
 interface ReviewResultWorkspaceProps {
@@ -21,119 +16,20 @@ interface ReviewResultWorkspaceProps {
 }
 
 export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) {
-  const router = useRouter();
-  const [fileName, setFileName] = useState<string>("Dokumen Kontrak.docx");
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
-  const [findings, setFindings] = useState<DisplayFinding[]>([]);
-  const [activeFinding, setActiveFinding] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"analysis" | "chat">("analysis");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [isContract, setIsContract] = useState<boolean>(true);
-  const [notContractReason, setNotContractReason] = useState<string>("");
-  const [totalAnalyzed, setTotalAnalyzed] = useState<number>(0);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadReviewDetail() {
-      if (!reviewId) {
-        if (isMounted) {
-          setError("ID review dokumen tidak valid atau tidak ditemukan.");
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await getReviewDetailAction(reviewId);
-        if (!isMounted) return;
-
-        if (!response.success || !response.data) {
-          setError(response.error ?? "Gagal memuat detail review dokumen.");
-          return;
-        }
-
-        const detail = response.data;
-        const meta = (detail.metadata as Record<string, unknown>) ?? {};
-
-        if (meta.source_file_name && typeof meta.source_file_name === "string") {
-          setFileName(meta.source_file_name);
-        } else if (detail.title) {
-          setFileName(`${detail.title}.docx`);
-        }
-
-        if ((detail as any).createdAt) {
-          setCreatedAt((detail as any).createdAt);
-        } else if ((detail as any).created_at) {
-          setCreatedAt((detail as any).created_at);
-        }
-
-        let rawFindings: ChunkReasoningResult[] = [];
-        let isDocContract = true;
-        let notContractMsg = "";
-        let totalAnalyzedCount = 0;
-
-        if (detail.findings) {
-          const findingsData = detail.findings;
-          if (typeof findingsData === "object" && !Array.isArray(findingsData)) {
-            const analysisObj = findingsData as ReasoningAnalysisResult;
-            isDocContract = analysisObj.is_contract ?? true;
-            notContractMsg = analysisObj.not_contract_reason ?? "";
-            totalAnalyzedCount = analysisObj.total_analyzed_clauses ?? 0;
-            rawFindings = analysisObj.findings ?? [];
-          } else if (Array.isArray(findingsData)) {
-            rawFindings = findingsData as ChunkReasoningResult[];
-            totalAnalyzedCount = rawFindings.length;
-          }
-        }
-
-        setIsContract(isDocContract);
-        setNotContractReason(notContractMsg);
-        setTotalAnalyzed(totalAnalyzedCount);
-
-        if (detail.content && isDocContract && rawFindings.length > 0) {
-          const { highlightedHtml: processedHtml, processedFindings } =
-            highlightRiskyClauses(detail.content, rawFindings);
-          setHighlightedHtml(processedHtml);
-          setFindings(processedFindings);
-        } else if (detail.content) {
-          setHighlightedHtml(detail.content);
-        }
-      } catch (err) {
-        console.error("Gagal memuat detail review dari database:", err);
-        if (isMounted) {
-          setError(
-            err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memuat detail review."
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadReviewDetail();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [reviewId]);
-
-  const selectFromList = (findingId: string) => {
-    setActiveFinding(findingId);
-    window.requestAnimationFrame(() => {
-      const targetEl = document.querySelector(`[data-finding-source="${findingId}"]`);
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
-  };
+  const {
+    fileName,
+    createdAt,
+    highlightedHtml,
+    findings,
+    activeFinding,
+    isLoading,
+    error,
+    isContract,
+    notContractReason,
+    totalAnalyzed,
+    selectFromList,
+    handleBackToReview,
+  } = useReviewResultWorkspace(reviewId);
 
   if (error) {
     return (
@@ -142,7 +38,7 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
           <AlertTriangle className="mx-auto size-10 text-red-500 mb-3" />
           <h2 className="text-lg font-bold text-slate-900">Gagal Memuat Detail Review</h2>
           <p className="mt-2 text-sm text-slate-600">{error}</p>
-          <Button className="mt-5 cursor-pointer" onClick={() => router.push("/dashboard/review")}>
+          <Button className="mt-5 cursor-pointer" onClick={handleBackToReview}>
             Kembali ke Review Kontrak
           </Button>
         </div>

@@ -1,12 +1,10 @@
 "use client";
 
 import { useRef } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, FileText, ShieldCheck, Upload, AlertCircle, Sparkles } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { useReview } from "@/hooks/useReview";
-import { cn } from "@/lib/utils";
 
 const steps = [
   ["01", "Membedah Dokumen", "Memisahkan kalimat per kalimat atau pasal demi pasal."],
@@ -16,7 +14,6 @@ const steps = [
 
 export function ReviewUploader() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   const {
     fileName,
