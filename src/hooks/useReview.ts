@@ -73,8 +73,6 @@ export function useReview(): UseReviewReturn {
       const annotatedHtml = injectHTMLUniqueID(parsedDoc);
       const parsedSections = parseContractHtml(annotatedHtml);
       const chunks = await buildChunks(parsedSections);
-      console.log("CHUNKS: ")
-      console.log(chunks)
 
       // Generate vector embeddings in groups (batches) to prevent rate limits
       const embeddingResult = await generateEmbeddingAction({
@@ -106,7 +104,6 @@ export function useReview(): UseReviewReturn {
 
       const matchedChunks = matchResult.data.chunks;
 
-      // Perform Gemini 3.6 Flash reasoning analysis for legal compliance
       const reasoningResult = await processReasoningAction(
         parsedSections,
         matchedChunks

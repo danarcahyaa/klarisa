@@ -469,7 +469,7 @@ KRITERIA KLASIFIKASI STATUS KEPATUHAN (DISCIPLINED ENUM):
 - VIOLATES_LAW: Klausul secara eksplisit melanggar regulasi/undang-undang Indonesia yang berlaku (misal: pengabaian hak normatif buruh/hak cipta, pembatalan sepihak melanggar KUHPerdata/UU Ketenagakerjaan). Wajib menyertakan minimal 1 ID regulasi yang dilanggar.
 - UNFAIR_ONE_SIDED: Klausul sah secara hukum, tetapi secara ekonomi/hukum SANGAT BERAT SEBELAH atau tidak seimbang (misal: sanksi/denda/ganti rugi hanya dibebankan ke satu pihak, hak akhiri perjanjian sepihak tanpa ganti rugi hanya dimiliki satu pihak).
 - INCOMPLETE: Klausul memiliki cacat draft (misal: merujuk pasal internal yang hilang, mengandung nilai/persentase yang belum diisi [...], atau norma acuan yang tidak jelas/menggantung).
-- COMPLIANT: Klausul jelas, seimbang, tidak melanggar hukum, dan memberikan kepastian hukum yang baik bagi para pihak.
+- COMPLIANT: Klausul jelas, seimbang, tidak melanggar hukum, ATAU merupakan teks di luar konteks hukum (misal: resep makanan, iklan, catatan acak, dan lainnya).
 
 PRINSIP BAHASA & PENULISAN:
 1. BAHASA ALAMI & POPULER: Dilarang keras menyebutkan istilah internal teknis seperti "chunk", "node", "prompt", "JSON", atau kode tag (seperti "(tag-12)", "[tag-13]"). Gunakan rujukan "Klausul ini", "Pasal ini", atau "Ketentuan ini".
@@ -477,7 +477,8 @@ PRINSIP BAHASA & PENULISAN:
 3. SOLUSI PRAKTIS: Pada 'recommendation', berikan usulan formula revisi kalimat atau tindakan pencegahan konkret.
 
 ATURAN HASIL MATCHING (PENTING):
-1. 'matched_node_ids':
+1. Teks bukan klausul hukum / luar konteks (misal: resep makanan, , dan lainnya): Wajib diberi status COMPLIANT dan matched_node_ids: [].
+2. 'matched_node_ids':
    - Untuk status VIOLATES_LAW, UNFAIR_ONE_SIDED, atau INCOMPLETE: Masukkan HANYA tag ID spesifik (misal: ["tag-14"]) yang memuat baris/kalimat bermasalah. DILARANG memasukkan seluruh tag ID jika hanya 1 kalimat yang bermasalah. DILARANG MENULISKAN KODE TAG DALAM TEKS PENJELASAN!
    - Untuk status COMPLIANT: WAJIB diisi dengan array kosong [].
 2. 'matched_regulation_ids':
