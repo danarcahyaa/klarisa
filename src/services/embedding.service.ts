@@ -58,32 +58,18 @@ export class EmbeddingService {
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
 
-        const batchResults = await Promise.all(
-          batch.map(async (chunk) => {
-            const textToEmbed = "text" in chunk ? chunk.text : chunk.content;
+        for (const chunk of batch) {
+          const textToEmbed = "text" in chunk ? chunk.text : chunk.content;
+          const values = await this.embedContentWithRetry(ai, textToEmbed);
 
-            const response = await ai.models.embedContent({
-              model: EMBEDDING_MODEL,
-              contents: textToEmbed,
-              config: {
-                taskType: "RETRIEVAL_DOCUMENT",
-                outputDimensionality: 768,
-              },
-            });
+          embeddedChunks.push({
+            ...chunk,
+            embedding: values,
+          } as EmbeddedChunkResult<T>);
 
-            const values = response.embeddings?.[0]?.values ?? [];
-
-            return {
-              ...chunk,
-              embedding: values,
-            } as EmbeddedChunkResult<T>;
-          })
-        );
-
-        embeddedChunks.push(...batchResults);
-
-        if (i < batches.length - 1 && batchDelayMs > 0) {
-          await sleep(batchDelayMs);
+          if (batchDelayMs > 0) {
+            await sleep(batchDelayMs);
+          }
         }
       }
 
@@ -100,6 +86,62 @@ export class EmbeddingService {
         { chunks: [] }
       );
     }
+  }
+
+  /**
+   * Executes Gemini embedContent API call with automatic retry logic for HTTP 429 rate limit errors using exponential backoff.
+   *
+   * @param ai             - Initialized GoogleGenAI instance.
+   * @param text           - Text content to convert into vector embeddings.
+   * @param maxRetries     - Maximum retry attempts (default: 3).
+   * @param initialDelayMs - Base delay in milliseconds for exponential backoff (default: 1500ms).
+   */
+  private async embedContentWithRetry(
+    ai: GoogleGenAI,
+    text: string,
+    maxRetries = 3,
+    initialDelayMs = 1500
+  ): Promise<number[]> {
+    let attempt = 0;
+    while (attempt <= maxRetries) {
+      try {
+        const response = await ai.models.embedContent({
+          model: EMBEDDING_MODEL,
+          contents: text,
+          config: {
+            taskType: "RETRIEVAL_DOCUMENT",
+            outputDimensionality: 768,
+          },
+        });
+
+        return response.embeddings?.[0]?.values ?? [];
+      } catch (error: unknown) {
+        const errorMsg =
+          error instanceof Error
+            ? error.message
+            : typeof error === "object" && error !== null
+            ? JSON.stringify(error)
+            : String(error);
+
+        const is429 =
+          errorMsg.includes("429") ||
+          errorMsg.includes("RESOURCE_EXHAUSTED") ||
+          errorMsg.includes("Quota") ||
+          errorMsg.includes("rate");
+
+        if (is429 && attempt < maxRetries) {
+          attempt++;
+          const backoffMs = initialDelayMs * Math.pow(2, attempt - 1);
+          console.warn(
+            `[EmbeddingService] Rate limit 429 encountered (Attempt ${attempt}/${maxRetries}). Retrying in ${backoffMs}ms...`
+          );
+          await sleep(backoffMs);
+        } else {
+          throw error;
+        }
+      }
+    }
+    return [];
   }
 
   /**

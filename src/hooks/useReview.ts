@@ -2,8 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
 import { uploadReviewDocumentAction } from "@/app/actions/review.action";
 import { validateContractFile } from "@/app/validations/contract.validation";
 import type { DocumentValidationResult, UseReviewReturn } from "@/types/contract-review.type";
@@ -63,7 +61,6 @@ export function useReview(): UseReviewReturn {
     if (!audit.isValid || !file) {
       const firstErr = audit.errors[0] ?? "Pilih dokumen .docx yang valid.";
       setError(firstErr);
-      toast.error(firstErr);
       return false;
     }
 
@@ -81,10 +78,8 @@ export function useReview(): UseReviewReturn {
         batchDelayMs: 500,
       });
 
-
       if (!embeddingResult.success || !embeddingResult.data) {
         const err = embeddingResult.error ?? "Terjadi kesalahan saat membuat embedding dokumen.";
-        toast.error(err);
         throw new Error(err);
       }
 
@@ -98,7 +93,6 @@ export function useReview(): UseReviewReturn {
 
       if (!matchResult.success || !matchResult.data) {
         const err = matchResult.error ?? "Terjadi kesalahan saat mencocokkan regulasi hukum.";
-        toast.error(err);
         throw new Error(err);
       }
 
@@ -112,11 +106,10 @@ export function useReview(): UseReviewReturn {
       const findings = reasoningResult.data?.findings ?? [];
       const hasFindings = findings.length > 0;
 
-      // // Case A: Reasoning failed and NO risky findings were collected
+      // Case A: Reasoning failed and NO risky findings were collected
       if (!reasoningResult.success && !hasFindings) {
         const err = reasoningResult.error ?? "Terjadi kesalahan saat menganalisis kepatuhan hukum.";
         setError(err);
-        toast.error(err);
         return false;
       }
 

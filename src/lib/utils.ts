@@ -484,7 +484,39 @@ export function isLimitationError(msg?: string | null): boolean {
     lower.includes("resource_exhausted") ||
     lower.includes("too many requests") ||
     lower.includes("rate") ||
-    lower.includes("terhenti lebih awal")
+    lower.includes("terhenti lebih awal") ||
+    lower.includes("rpm") ||
+    lower.includes("rpd")
   );
+}
+
+/**
+ * Formats API limitation error messages into polite Indonesian user messages based on rate limit types:
+ * - RPD (Requests Per Day): "Anda sudah mencapai batas harian. Coba lagi besok."
+ * - RPM (Requests Per Minute) / Default Limitation: "Anda sudah mencapai batas. Coba lagi nanti."
+ *
+ * @param errorMessage - The raw error message string from LLM or SDK.
+ * @returns Formatted polite Indonesian error message string.
+ */
+export function formatLimitationErrorMessage(errorMessage?: string | null): string {
+  if (!errorMessage) {
+    return "Anda sudah mencapai batas. Coba lagi nanti.";
+  }
+
+  const lower = errorMessage.toLowerCase();
+
+  const isRpd =
+    lower.includes("rpd") ||
+    lower.includes("requests per day") ||
+    lower.includes("per day") ||
+    lower.includes("daily") ||
+    lower.includes("day limit") ||
+    lower.includes("harian");
+
+  if (isRpd) {
+    return "Anda sudah mencapai batas harian. Coba lagi besok.";
+  }
+
+  return "Anda sudah mencapai batas. Coba lagi nanti.";
 }
 

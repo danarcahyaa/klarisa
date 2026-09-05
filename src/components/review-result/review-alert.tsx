@@ -1,6 +1,7 @@
 "use client";
 
 import { ReusableAlert } from "@/components/ui/reusable-alert";
+import { formatLimitationErrorMessage } from "@/lib/utils";
 
 export interface ReasoningErrorData {
   hasError: boolean;
@@ -33,7 +34,7 @@ export function ReviewAlert({
   const title = isLimitation ? "Review Terhenti" : "Terjadi Kesalahan";
 
   const description = isLimitation
-    ? "Anda sudah mencapai batas penggunaan. Coba lagi nanti."
+    ? formatLimitationErrorMessage(reasoningError.errorMessage)
     : reasoningError.errorMessage
     ? `Terjadi kesalahan saat analisis: ${reasoningError.errorMessage}`
     : `Analisis terhenti lebih awal, namun ${riskCount} temuan risiko berhasil terdeteksi.`;

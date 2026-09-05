@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { ArrowRight, FileText, ShieldCheck, Upload, AlertCircle, Sparkles } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { ReusableAlert } from "@/components/ui/reusable-alert";
 import { useReview } from "@/hooks/useReview";
 
 const steps = [
@@ -81,18 +82,14 @@ export function ReviewUploader() {
       </section>
 
       {error && (
-        <div className="mt-4 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="size-4 shrink-0 text-red-500" />
-            <span>{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={dismissError}
-            className="font-semibold text-red-600 hover:underline"
-          >
-            Tutup
-          </button>
+        <div className="mt-4">
+          <ReusableAlert
+            variant="destructive"
+            dismissible
+            onDismiss={dismissError}
+            title="Terjadi Kesalahan"
+            description={error}
+          />
         </div>
       )}
 

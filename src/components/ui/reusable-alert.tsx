@@ -100,8 +100,6 @@ export const ReusableAlert = React.forwardRef<HTMLDivElement, ReusableAlertProps
             variant="ghost"
             size="icon-xs"
             onClick={onDismiss}
-            title="Tutup pemberitahuan"
-            aria-label="Tutup pemberitahuan"
             className="shrink-0 -mr-1 -mt-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
             <X className="size-3.5" />

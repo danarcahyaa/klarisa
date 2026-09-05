@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Scale } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DisplayFinding } from "@/types/contract-review.type";
@@ -10,6 +10,7 @@ import { FindingListSkeleton } from "./finding-list-skeleton";
 import { ReviewRiskSummaryBar } from "./review-risk-summary-bar";
 import { ReusableAlert } from "@/components/ui/reusable-alert";
 import { ReviewAlert } from "./review-alert";
+import Link from "next/link";
 
 export interface FindingListProps {
   isLoading?: boolean;
@@ -95,12 +96,22 @@ export function FindingList({
 
   if (findings.length === 0) {
     return (
-      <section className="p-4 space-y-4">
+      <section className="p-4 space-y-4 h-[75vh]">
         <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed} riskyCount={0} />
-        <ReusableAlert
-          variant="success"
-          description="Tidak ditemukan klausul berisiko pada dokumen ini."
-        />
+        <div className="bg-white p-6 space-y-2 rounded-lg  border border-slate-200 text-center h-[78vh] flex flex-col justify-center ">
+          <div className="mx-auto mb-8 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-800 to-teal-600 ring-10 ring-emerald-100">
+            <Scale className="size-7 text-white" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-lg font-bold text-klarisa-navy">
+              Klausul Berisiko Tidak Ditemukan 
+            </h4>
+            <p className="text-xs text-slate-500">
+              Hasil review tidak menemukan klausul berisiko pada dokumen kontrak yang Anda berikan.
+            </p>
+          </div>
+          <Link href="#" className="text-xs text-klarisa-secondary underline">Pelajari lebih lanjut.</Link>
+        </div>
       </section>
     );
   }

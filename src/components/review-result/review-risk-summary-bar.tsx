@@ -31,7 +31,7 @@ export function ReviewRiskSummaryBar({
   const ratio = totalCount > 0 ? Math.min(100, Math.round((riskyCount / totalCount) * 100)) : 0;
 
   return (
-    <div className="flex items-center gap-4 rounded-lg bg-white/80 backdrop-blur-md border px-5 py-5">
+    <div className="flex items-center gap-4 rounded-lg bg-white/80 backdrop-blur-md border border-slate-200 px-5 py-5">
       <div className="relative flex size-20 shrink-0 items-center justify-center">
         <svg className="size-full -rotate-90" viewBox="0 0 36 36">
           <path
@@ -43,7 +43,7 @@ export function ReviewRiskSummaryBar({
           />
           <path
             className="text-[#ff5527] transition-all duration-500 ease-out"
-            strokeDasharray={`${ratio}, 100`}
+            strokeDasharray={`0, 100`}
             strokeWidth="3.5"
             strokeLinecap="round"
             stroke="currentColor"
