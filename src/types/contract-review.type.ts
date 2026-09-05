@@ -102,6 +102,8 @@ export interface UseReviewReturn {
   isSuccess: boolean;
   error: string | null;
   validationResult: DocumentValidationResult | null;
+  matchedRegulations: MatchLegalArticleResult[];
+  reviewStep: "idle" | "matching" | "reasoning" | "completed";
   handleFileSelect: (file: File | null) => boolean;
   handleUpload: () => Promise<boolean>;
   reset: () => void;

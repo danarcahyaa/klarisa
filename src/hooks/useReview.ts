@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { uploadReviewDocumentAction } from "@/app/actions/review.action";
 import { validateContractFile } from "@/app/validations/contract.validation";
 import type { DocumentValidationResult, UseReviewReturn } from "@/types/contract-review.type";
+import type { MatchLegalArticleResult } from "@/types/legal.type";
 import { buildChunks } from "@/lib/langchain";
 import { formatFileSize, injectHTMLUniqueID, parseContractHtml } from "@/lib/utils";
 import { generateEmbeddingAction, matchEmbeddingAction } from "@/app/actions/embedding.action";
@@ -22,6 +23,9 @@ export function useReview(): UseReviewReturn {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [matchedRegulations, setMatchedRegulations] = useState<MatchLegalArticleResult[]>([]);
+  const [reviewStep, setReviewStep] = useState<"idle" | "matching" | "reasoning" | "completed">("idle");
+
   const fileName = useMemo(() => file?.name ?? "", [file]);
 
   const fileSizeFormatted = useMemo(() => {
@@ -31,6 +35,8 @@ export function useReview(): UseReviewReturn {
   const handleFileSelect = useCallback((selectedFile: File | null) => {
     setError(null);
     setIsSuccess(false);
+    setMatchedRegulations([]);
+    setReviewStep("idle");
 
     if (!selectedFile) {
       setFile(null);
@@ -65,6 +71,9 @@ export function useReview(): UseReviewReturn {
     }
 
     setIsLoading(true);
+    setReviewStep("matching");
+    setMatchedRegulations([]);
+
     try {
       const parsedDoc = await parseDocxToHtml(file);
       const annotatedHtml = injectHTMLUniqueID(parsedDoc);
@@ -98,6 +107,15 @@ export function useReview(): UseReviewReturn {
 
       const matchedChunks = matchResult.data.chunks;
 
+      const allMatchedRegs: MatchLegalArticleResult[] = [];
+      matchedChunks.forEach((chunk) => {
+        if (chunk.matched_regulations && Array.isArray(chunk.matched_regulations)) {
+          allMatchedRegs.push(...chunk.matched_regulations);
+        }
+      });
+      setMatchedRegulations(allMatchedRegs);
+      setReviewStep("reasoning");
+
       const reasoningResult = await processReasoningAction(
         parsedSections,
         matchedChunks
@@ -106,15 +124,16 @@ export function useReview(): UseReviewReturn {
       const findings = reasoningResult.data?.findings ?? [];
       const hasFindings = findings.length > 0;
 
-      // Case A: Reasoning failed and NO risky findings were collected
+      // // Case A: Reasoning failed and NO risky findings were collected
       if (!reasoningResult.success && !hasFindings) {
         const err = reasoningResult.error ?? "Terjadi kesalahan saat menganalisis kepatuhan hukum.";
         setError(err);
+        setReviewStep("idle");
         return false;
       }
 
       const totalRisk = findings.length;
-      const fairnessScore = reasoningResult.data?.risky_clauses_count || 0
+      const fairnessScore = reasoningResult.data?.risky_clauses_count || 0;
 
       // // Save annotated HTML and reasoning findings into Supabase via RPC transaction
       const uploadRes = await uploadReviewDocumentAction({
@@ -132,6 +151,7 @@ export function useReview(): UseReviewReturn {
 
       const contractId = uploadRes.data?.id;
 
+      setReviewStep("completed");
       setIsSuccess(true);
       if (contractId) {
         router.push(`/dashboard/review/result/${contractId}`);
@@ -142,6 +162,7 @@ export function useReview(): UseReviewReturn {
     } catch (cause) {
       const err = cause instanceof Error ? cause.message : "Gagal mengunggah dokumen review.";
       setError(err);
+      setReviewStep("idle");
       return false;
     } finally {
       setIsLoading(false);
@@ -155,6 +176,8 @@ export function useReview(): UseReviewReturn {
     setIsLoading(false);
     setIsSuccess(false);
     setError(null);
+    setMatchedRegulations([]);
+    setReviewStep("idle");
   }, []);
 
   const dismissError = useCallback(() => {
@@ -170,6 +193,8 @@ export function useReview(): UseReviewReturn {
     isSuccess,
     error,
     validationResult,
+    matchedRegulations,
+    reviewStep,
     handleFileSelect,
     handleUpload,
     reset,
