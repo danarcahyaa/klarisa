@@ -120,13 +120,6 @@ export function useReview(): UseReviewReturn {
         return false;
       }
 
-      // // Case B: Reasoning encountered an error or early termination, but collected risky findings
-      if (!reasoningResult.success || (reasoningResult.message && reasoningResult.message.includes("terhenti lebih awal"))) {
-        toast.warning(
-          reasoningResult.message ?? reasoningResult.error ?? "Analisis terhenti lebih awal, namun klausul berisiko berhasil terdeteksi."
-        );
-      }
-
       const totalRisk = findings.length;
       const fairnessScore = reasoningResult.data?.risky_clauses_count || 0
 
