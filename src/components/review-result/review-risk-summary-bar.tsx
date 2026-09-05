@@ -43,7 +43,7 @@ export function ReviewRiskSummaryBar({
           />
           <path
             className="text-[#ff5527] transition-all duration-500 ease-out"
-            strokeDasharray={`0, 100`}
+            strokeDasharray={`${ratio}, 100`}
             strokeWidth="3.5"
             strokeLinecap="round"
             stroke="currentColor"
