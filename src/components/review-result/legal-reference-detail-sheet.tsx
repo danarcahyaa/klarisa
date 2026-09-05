@@ -32,11 +32,8 @@ export function LegalReferenceDetailSheet({
     >
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <div className="flex items-center gap-2 text-sm">
-            <div className="grid size-6 shrink-0 place-items-center rounded-full bg-klarisa-tertiary text-white">
-              <Scale className="size-3.5" />
-            </div>
-            <span className="text-slate-700 font-semibold">Detail Rujukan Undang-Undang</span>
+          <div className="grid size-6 shrink-0 place-items-center rounded-full bg-klarisa-tertiary text-white">
+            <Scale className="size-3.5" />
           </div>
           <SheetTitle className="text-base font-bold text-slate-900 mt-1">
             {selectedGroup?.regulationName || "Peraturan Terkait"}
