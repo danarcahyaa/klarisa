@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { highlightRiskyClauses } from "@/lib/docx-highlighter";
 import type { ChunkReasoningResult, ReasoningAnalysisResult } from "@/types/contract-review.type";
+import { Skeleton } from "./ui/skeleton";
 
 interface ReviewResultWorkspaceProps {
   reviewId?: string;
@@ -22,6 +23,7 @@ interface ReviewResultWorkspaceProps {
 export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) {
   const router = useRouter();
   const [fileName, setFileName] = useState<string>("Dokumen Kontrak.docx");
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   const [findings, setFindings] = useState<DisplayFinding[]>([]);
   const [activeFinding, setActiveFinding] = useState<string>("");
@@ -63,6 +65,12 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
           setFileName(meta.source_file_name);
         } else if (detail.title) {
           setFileName(`${detail.title}.docx`);
+        }
+
+        if ((detail as any).createdAt) {
+          setCreatedAt((detail as any).createdAt);
+        } else if ((detail as any).created_at) {
+          setCreatedAt((detail as any).created_at);
         }
 
         let rawFindings: ChunkReasoningResult[] = [];
@@ -143,14 +151,17 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
   }
 
   return (
-    <div className="min-h-svh bg-white">
+    <div className="relative min-h-svh bg-white">
       <div className="grid min-h-svh grid-cols-1 lg:grid-cols-[1fr_480px]">
         <div className="flex flex-col h-svh max-h-svh border-b border-slate-200 lg:border-r lg:border-b-0 bg-white overflow-hidden">
-          <DocumentHeader fileName={fileName} />
+          <DocumentHeader fileName={fileName} createdAt={createdAt} isLoading={isLoading} />
           <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {isLoading ? (
-              <div className="flex h-full items-center justify-center p-8 text-slate-500 font-medium">
-                Memuat dokumen review...
+              <div className="flex flex-col gap-2 px-10 py-15">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
             ) : (
               <ContractDocument
@@ -163,6 +174,7 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
         </div>
         <div className="flex flex-col h-svh max-h-svh bg-slate-50 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <FindingList
+            isLoading={isLoading}
             isContract={isContract}
             notContractReason={notContractReason}
             totalAnalyzed={totalAnalyzed}

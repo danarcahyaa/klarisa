@@ -5,16 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, CopyIcon, FileText, Mic, Plus, Scale, Search, SendHorizontal, Sparkle, SquarePen } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { Button, SubmitButton } from "@/components/ui/button";
+import { cn, formatIndonesianDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ChunkReasoningResult } from "@/types/contract-review.type";
 import type { LegalArticle } from "@/types/legal.type";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Spinner } from "./ui/spinner";
 import { CopyButton } from "./ui/copy-button";
-import { ChatAiTextbox } from "./ui/chat-ai-textbox";
+import { Skeleton } from "./ui/skeleton";
 
 export type FindingId = string;
 
@@ -23,13 +21,17 @@ export interface DisplayFinding extends ChunkReasoningResult {
 }
 
 export function DocumentHeader({
-  fileName = "Dokumen Kontrak.docx",
+  fileName = "",
+  createdAt,
   status,
   onBack,
+  isLoading = false,
 }: {
   fileName?: string;
+  createdAt?: string | null;
   status?: string;
   onBack?: () => void;
+  isLoading?: boolean;
 }) {
   const router = useRouter();
 
@@ -40,6 +42,8 @@ export function DocumentHeader({
       router.push("/dashboard/review");
     }
   };
+
+  const formattedDate = createdAt ? formatIndonesianDate(createdAt) : null;
 
   return (
     <header className="flex h-16 min-h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-7">
@@ -54,11 +58,20 @@ export function DocumentHeader({
       >
         <ArrowLeft className="size-5" />
       </Button>
-      <span className="grid">
-        <b className="text-sm font-semibold">{fileName}</b>
-        <small className="text-xs text-slate-400">Hasil Parsing Dokumen DOCX</small>
-      </span>
-      {status && <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">{status}</span>}
+      {isLoading ? (
+        <div className="grid gap-1 flex-1">
+          <Skeleton className="h-4 w-48 max-w-full rounded-md" />
+          <Skeleton className="h-3 w-32 max-w-full rounded-md" />
+        </div>
+      ) : (
+        <span className="grid">
+          <b className="text-sm font-semibold">{fileName}</b>
+          <small className="text-xs text-slate-400">
+            {formattedDate ? `${formattedDate}` : ""}
+          </small>
+        </span>
+      )}
+      {!isLoading && status && <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">{status}</span>}
     </header>
   );
 }
@@ -133,6 +146,7 @@ export function ContractDocument({
 }
 
 type FindingListProps = {
+  isLoading?: boolean;
   isContract?: boolean;
   notContractReason?: string;
   totalAnalyzed?: number;
@@ -143,13 +157,27 @@ type FindingListProps = {
 };
 
 export function ReviewRiskSummaryBar({
+  isLoading = false,
   totalAnalyzed = 0,
   riskyCount = 0,
 }: {
+  isLoading?: boolean;
   totalAnalyzed?: number;
   riskyCount?: number;
   description?: string;
 }) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-4 rounded-lg bg-white/80 backdrop-blur-md border px-5 py-5">
+        <Skeleton className="size-20 shrink-0 rounded-full" />
+        <div className="grid flex-1 gap-2">
+          <Skeleton className="h-5 w-36 max-w-full rounded-md" />
+          <Skeleton className="h-3.5 w-60 max-w-full rounded-md" />
+        </div>
+      </div>
+    );
+  }
+
   const totalCount = totalAnalyzed || riskyCount;
   const fractionText = totalCount > 0 ? `${riskyCount}/${totalCount}` : `${riskyCount}`;
   const ratio = totalCount > 0 ? Math.min(100, Math.round((riskyCount / totalCount) * 100)) : 0;
@@ -177,7 +205,7 @@ export function ReviewRiskSummaryBar({
         </svg>
         <span className="absolute text-xs font-bold text-slate-800">{fractionText}</span>
       </div>
-      <div className="grid gap-1">
+      <div className="grid flex-1 gap-1">
         <h3 className="text-md font-bold text-slate-900 leading-snug">
           {riskyCount} terdeteksi berisiko
         </h3>
@@ -414,7 +442,35 @@ export function FindingDetailView({
   );
 }
 
+export function FindingListSkeleton() {
+  return (
+    <section role="status" aria-label="Memuat daftar temuan" className="motion-safe:animate-pulse">
+      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 pt-3">
+        <ReviewRiskSummaryBar isLoading={true} />
+      </div>
+      <div className="divide-y divide-slate-100 mt-2">
+        {[1, 2, 3, 4].map((item) => (
+          <div
+            key={item}
+            className="flex w-full items-center border-b border-slate-200 justify-between gap-3 p-4"
+          >
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <Skeleton className="h-4 w-5 shrink-0 rounded-md" />
+              <div className="grid flex-1 gap-2">
+                <Skeleton className="h-3.5 w-full rounded-md" />
+                <Skeleton className="h-3.5 w-3/4 rounded-md" />
+              </div>
+            </div>
+            <Skeleton className="size-4 shrink-0 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function FindingList({
+  isLoading = false, 
   isContract = false,
   notContractReason,
   totalAnalyzed = 0,
@@ -429,6 +485,10 @@ export function FindingList({
       setSelectedDetailId(activeFinding);
     }
   }, [activeFinding]);
+
+  if (isLoading) {
+    return <FindingListSkeleton />;
+  }
 
   if (!isContract) {
     return (
@@ -473,12 +533,12 @@ export function FindingList({
         onSelectFinding={onSelectFinding}
       />
     );
-  }
+  } 
 
   if (findings.length === 0) {
     return (
       <section className="p-4 space-y-4">
-        <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed} riskyCount={0} />
+        <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed} riskyCount={0} />
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-800">
           <p className="text-xs font-semibold">Tidak ditemukan klausul berisiko pada dokumen ini.</p>
         </div>
@@ -488,8 +548,8 @@ export function FindingList({
 
   return (
     <section>
-      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 pt-3">
-        <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
+      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 py-3">
+        <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
       </div>
       <div className="divide-y divide-slate-100">
         {findings.map((item, idx) => {

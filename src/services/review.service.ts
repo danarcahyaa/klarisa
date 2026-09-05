@@ -150,6 +150,7 @@ export class ReviewService {
         totalRisk: review?.total_clausul_risk ?? 0,
         metadata,
         findings,
+        createdAt: data.created_at || (review as any)?.created_at || null,
       },
       "Data review berhasil didapatkan."
     );

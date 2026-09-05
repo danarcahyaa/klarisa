@@ -452,3 +452,22 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Format ISO date string into polite Indonesian date format (e.g. "5 September 2026, 11:45")
+ */
+export function formatIndonesianDate(dateString?: string | null): string {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return dateString;
+  }
+}
+
