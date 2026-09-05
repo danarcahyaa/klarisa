@@ -8,3 +8,4 @@ export * from "./analysis-result-card";
 export * from "./legal-references-card";
 export * from "./revision-recommendation-card";
 export * from "./legal-reference-detail-sheet";
+export * from "./review-alert";

@@ -65,6 +65,9 @@ export interface ReasoningAnalysisResult {
   total_analyzed_clauses: number;
   risky_clauses_count: number;
   findings: ChunkReasoningResult[];
+  has_error?: boolean;
+  error_type?: "limitation" | "reasoning";
+  error_message?: string;
 }
 
 export interface DocumentValidationResult {
@@ -116,6 +119,11 @@ export interface UseReviewResultWorkspaceReturn {
   isContract: boolean;
   notContractReason: string;
   totalAnalyzed: number;
+  reasoningError?: {
+    hasError: boolean;
+    errorType: "limitation" | "reasoning";
+    errorMessage?: string;
+  } | null;
   selectFromList: (findingId: string) => void;
   handleBackToReview: () => void;
 }

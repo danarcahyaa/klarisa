@@ -55,7 +55,7 @@ export function FindingLegalReferencesCard({
             >
               <div className="flex min-w-0 flex-1 items-start gap-2.5 overflow-hidden">
                 <div className="grid min-w-0 flex-1 gap-0.5 overflow-hidden">
-                  <h5 className="text-xs font-semibold text-slate-800 truncate" title={group.regulationName}>
+                  <h5 className="text-sm font-medium hover:underline text-slate-800 truncate" title={group.regulationName}>
                     {group.regulationName}
                   </h5>
                   {group.hierarchyText && (

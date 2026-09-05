@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "relative w-full rounded-md border p-3.5 text-xs transition-all [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-2px] [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-3.5 [&>svg]:size-4",
+  "relative w-full rounded-md border text-xs transition-all [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-2px] [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-3.5 [&>svg]:size-4",
   {
     variants: {
       variant: {
@@ -13,7 +13,7 @@ const alertVariants = cva(
         success:
           "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-400 [&>svg]:text-emerald-600 dark:[&>svg]:text-emerald-400",
         warning:
-          "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-300 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400",
+          "border-amber-500/30 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400",
       },
     },
     defaultVariants: {

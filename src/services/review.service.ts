@@ -7,6 +7,7 @@ import {
   buildDocumentOutlinePrompt,
   chunkArray,
   formatRegulationsForPrompt,
+  isLimitationError,
   serializeSectionWithTags,
   sleep,
 } from "@/lib/utils";
@@ -211,12 +212,16 @@ export class ReviewService {
 
       // Scenario A: Error occurred, but risky findings were already detected in earlier batches
       if (hasBatchError && riskyClauses.length > 0) {
+        const isLimitation = isLimitationError(batchErrorMessage);
         return createSuccessResponse<ReasoningAnalysisResult>(
           {
             is_contract: true,
             total_analyzed_clauses: findings.length,
             risky_clauses_count: riskyClauses.length,
             findings: riskyClauses,
+            has_error: true,
+            error_type: isLimitation ? "limitation" : "reasoning",
+            error_message: batchErrorMessage,
           },
           `Analisis terhenti lebih awal (${batchErrorMessage}), namun ${riskyClauses.length} klausul berisiko berhasil terdeteksi.`
         );
@@ -224,9 +229,15 @@ export class ReviewService {
 
       // Scenario B: Error occurred and NO risky findings were collected
       if (hasBatchError && riskyClauses.length === 0) {
+        const isLimitation = isLimitationError(batchErrorMessage);
         return createErrorResponse<ReasoningAnalysisResult>(
           `Gagal memproses analisis kepatuhan hukum: ${batchErrorMessage}`,
-          this.emptyReasoningResult(`Analisis terhenti karena kesalahan: ${batchErrorMessage}`)
+          {
+            ...this.emptyReasoningResult(`Analisis terhenti karena kesalahan: ${batchErrorMessage}`),
+            has_error: true,
+            error_type: isLimitation ? "limitation" : "reasoning",
+            error_message: batchErrorMessage,
+          }
         );
       }
 

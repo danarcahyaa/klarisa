@@ -471,3 +471,20 @@ export function formatIndonesianDate(dateString?: string | null): string {
   }
 }
 
+/**
+ * Check whether an error message corresponds to an API limitation or quota error.
+ */
+export function isLimitationError(msg?: string | null): boolean {
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("limit") ||
+    lower.includes("quota") ||
+    lower.includes("429") ||
+    lower.includes("resource_exhausted") ||
+    lower.includes("too many requests") ||
+    lower.includes("rate") ||
+    lower.includes("terhenti lebih awal")
+  );
+}
+

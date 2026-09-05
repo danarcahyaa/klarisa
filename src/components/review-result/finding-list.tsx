@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DisplayFinding } from "@/types/contract-review.type";
 import { FindingDetailView } from "./finding-detail-view";
 import { FindingListSkeleton } from "./finding-list-skeleton";
 import { ReviewRiskSummaryBar } from "./review-risk-summary-bar";
+import { ReusableAlert } from "@/components/ui/reusable-alert";
+import { ReviewAlert } from "./review-alert";
 
 export interface FindingListProps {
   isLoading?: boolean;
@@ -18,6 +20,11 @@ export interface FindingListProps {
   findings?: DisplayFinding[];
   activeFinding?: string;
   onSelectFinding?: (findingId: string) => void;
+  reasoningError?: {
+    hasError: boolean;
+    errorType: "limitation" | "reasoning";
+    errorMessage?: string;
+  } | null;
 }
 
 export function FindingList({
@@ -28,8 +35,10 @@ export function FindingList({
   findings = [],
   activeFinding,
   onSelectFinding,
+  reasoningError,
 }: FindingListProps) {
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
+  const [isAlertDismissed, setIsAlertDismissed] = useState<boolean>(false);
 
   useEffect(() => {
     if (activeFinding) {
@@ -44,16 +53,14 @@ export function FindingList({
   if (!isContract) {
     return (
       <section className="bg-white p-6">
-        <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-5 text-amber-900 shadow-sm">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="size-5 text-amber-600 shrink-0" />
-            <h4 className="font-bold text-sm">Dokumen Bukan Kontrak</h4>
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-amber-800">
-            {notContractReason ||
-              "Tidak dapat menganalisa format kontrak Anda, pastikan yang Anda kirim adalah sebuah kontrak."}
-          </p>
-        </div>
+        <ReusableAlert
+          variant="warning"
+          title="Terjadi Kesalahan"
+          description={
+            notContractReason ||
+            "Tidak dapat menganalisa format kontrak Anda, pastikan yang Anda kirim adalah sebuah kontrak."
+          }
+        />
       </section>
     );
   }
@@ -90,9 +97,10 @@ export function FindingList({
     return (
       <section className="p-4 space-y-4">
         <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed} riskyCount={0} />
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-800">
-          <p className="text-xs font-semibold">Tidak ditemukan klausul berisiko pada dokumen ini.</p>
-        </div>
+        <ReusableAlert
+          variant="success"
+          description="Tidak ditemukan klausul berisiko pada dokumen ini."
+        />
       </section>
     );
   }
@@ -103,6 +111,13 @@ export function FindingList({
         <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
       </div>
       <div className="divide-y divide-slate-100">
+        {!isAlertDismissed && (
+          <ReviewAlert
+            reasoningError={reasoningError}
+            riskCount={riskCount}
+            onDismiss={() => setIsAlertDismissed(true)}
+          />
+        )}
         {findings.map((item, idx) => {
           const active = item.findingId === (selectedDetailId || activeFinding);
           return (

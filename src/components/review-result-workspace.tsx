@@ -27,6 +27,7 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
     isContract,
     notContractReason,
     totalAnalyzed,
+    reasoningError,
     selectFromList,
     handleBackToReview,
   } = useReviewResultWorkspace(reviewId);
@@ -74,6 +75,7 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
             isContract={isContract}
             notContractReason={notContractReason}
             totalAnalyzed={totalAnalyzed}
+            reasoningError={reasoningError}
             findings={findings}
             activeFinding={activeFinding}
             onSelectFinding={selectFromList}

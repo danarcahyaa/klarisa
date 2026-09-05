@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { getReviewDetailAction } from "@/app/actions/review.action";
 import { highlightRiskyClauses } from "@/lib/docx-highlighter";
+import { isLimitationError } from "@/lib/utils";
 import type {
   ChunkReasoningResult,
   DisplayFinding,
@@ -35,6 +36,11 @@ export function useReviewResultWorkspace(
   const [isContract, setIsContract] = useState<boolean>(true);
   const [notContractReason, setNotContractReason] = useState<string>("");
   const [totalAnalyzed, setTotalAnalyzed] = useState<number>(0);
+  const [reasoningError, setReasoningError] = useState<{
+    hasError: boolean;
+    errorType: "limitation" | "reasoning";
+    errorMessage?: string;
+  } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,6 +84,11 @@ export function useReviewResultWorkspace(
         let isDocContract = true;
         let notContractMsg = "";
         let totalAnalyzedCount = 0;
+        let reasoningErr: {
+          hasError: boolean;
+          errorType: "limitation" | "reasoning";
+          errorMessage?: string;
+        } | null = null;
 
         if (detail.findings) {
           const findingsData = detail.findings;
@@ -87,15 +98,48 @@ export function useReviewResultWorkspace(
             notContractMsg = analysisObj.not_contract_reason ?? "";
             totalAnalyzedCount = analysisObj.total_analyzed_clauses ?? 0;
             rawFindings = analysisObj.findings ?? [];
+
+            if (
+              analysisObj.has_error ||
+              (meta as any).has_error ||
+              (meta as any).reasoning_error
+            ) {
+              const errMsg =
+                analysisObj.error_message ||
+                String(
+                  (meta as any).reasoning_error ||
+                    (meta as any).error_message ||
+                    ""
+                );
+              const isLimitation =
+                analysisObj.error_type === "limitation" ||
+                isLimitationError(errMsg);
+
+              reasoningErr = {
+                hasError: true,
+                errorType: isLimitation ? "limitation" : "reasoning",
+                errorMessage: errMsg,
+              };
+            }
           } else if (Array.isArray(findingsData)) {
             rawFindings = findingsData as ChunkReasoningResult[];
             totalAnalyzedCount = rawFindings.length;
           }
         }
 
+        if ((meta as any).reasoning_error) {
+          const errMsg = String((meta as any).reasoning_error);
+          reasoningErr = {
+            hasError: true,
+            errorType: isLimitationError(errMsg) ? "limitation" : "reasoning",
+            errorMessage: errMsg,
+          };
+        }
+
         setIsContract(isDocContract);
         setNotContractReason(notContractMsg);
         setTotalAnalyzed(totalAnalyzedCount);
+        setReasoningError(reasoningErr);
 
         if (detail.content && isDocContract && rawFindings.length > 0) {
           const { highlightedHtml: processedHtml, processedFindings } =
@@ -153,6 +197,7 @@ export function useReviewResultWorkspace(
     isContract,
     notContractReason,
     totalAnalyzed,
+    reasoningError,
     selectFromList,
     handleBackToReview,
   };
