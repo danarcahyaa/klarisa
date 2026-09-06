@@ -1,131 +1,139 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useRef } from "react";
+import { Loader2, Search } from "lucide-react";
+import { FormInput } from "@/components/ui/form-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ContractSearchItem, type SearchItem } from "./contract-search-item";
+import { useSearch } from "@/hooks/useSearch";
+import type { ContractSearchFilterType } from "@/types/contract-search.type";
 
-const PAGE_SIZE = 5;
+export function ContractSearchClient({
+  initialItems,
+  items,
+}: {
+  initialItems?: ReadonlyArray<SearchItem>;
+  items?: ReadonlyArray<SearchItem>;
+}) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-type SearchItem = {
-  id: string;
-  type: "draft" | "review";
-  title: string;
-  updatedAt: string;
-  riskCount: number;
-  metadata: {
-    comments?: number;
-    version?: number;
+  const initialList = initialItems ?? items ?? [];
+  const {
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    visibleItems,
+    items: searchResults,
+    visibleCount,
+    hasMore,
+    isLoading,
+    observerTargetRef,
+    handlePin,
+    handleRename,
+    handleDelete,
+  } = useSearch({ initialItems: initialList });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      router.push("/dashboard/review");
+    }
   };
-};
-
-export function ContractSearchClient({ initialItems, items }: { initialItems?: ReadonlyArray<SearchItem>; items?: ReadonlyArray<SearchItem> }) {
-  const dataList = initialItems ?? items ?? [];
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"Semua" | "Draft" | "Review">("Semua");
-  const [page, setPage] = useState(1);
-
-  const data = useMemo(() => {
-    return dataList.filter((item) => {
-      const matchQuery = item.title.toLowerCase().includes(query.toLowerCase().trim());
-      const matchFilter =
-        filter === "Semua" ? true : filter === "Draft" ? item.type === "draft" : item.type === "review";
-      return matchQuery && matchFilter;
-    });
-  }, [dataList, query, filter]);
-
-  const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const visibleItems = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-[1190px] px-4 py-8 sm:px-7 lg:py-12">
+    <div className="mx-auto max-w-[1010px] px-4 py-8 sm:px-7 lg:py-12">
       <header className="border-b border-slate-200 pb-6">
-        <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">WORKSPACE DOKUMEN</p>
-        <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">Pencarian dokumen.</h1>
+        <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
+          WORKSPACE DOKUMEN
+        </p>
+        <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">
+          Pencarian Dokumen Kontrak.
+        </h1>
       </header>
 
       <section className="mt-6">
-        <label className="relative block">
-          <input
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".docx"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+
+        {/* Top Controls Bar: Filter on the left, Search input in the middle */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Select
+            value={filter}
+            onValueChange={(val) => setFilter(val as ContractSearchFilterType)}
+          >
+            <SelectTrigger variant="outline" className="w-full sm:w-[120px] shrink-0">
+              <SelectValue placeholder="Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Semua">Semua</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Review">Review</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <FormInput
             type="search"
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari review atau draft..."
-            className="h-12 w-full rounded-md border border-slate-200 bg-white px-4 pr-12 text-sm outline-none transition focus:border-klarisa-secondary focus:ring-2 focus:ring-klarisa-secondary/10"
+            leftIcon={<Search className="size-4 text-klarisa-secondary" />}
+            containerClassName="flex-1 space-y-0"
+            inputClassName="bg-white"
           />
-          <Search className="absolute top-4 right-4 size-4 text-klarisa-secondary" />
-        </label>
-
-        <div className="flex items-center gap-2 border-b border-slate-200 py-4">
-          {(["Semua", "Draft", "Review"] as const).map((item) => (
-            <Button
-              key={item}
-              type="button"
-              variant={filter === item ? "default" : "outline"}
-              size="xs"
-              onClick={() => {
-                setFilter(item);
-                setPage(1);
-              }}
-            >
-              {item}
-            </Button>
-          ))}
-          <span className="ml-auto text-xs text-slate-400">Total {data.length}</span>
         </div>
 
+        {/* Counter Bar */}
+        <div className="flex items-center justify-between border-b border-slate-200 py-4 mt-2">
+          <span className="text-xs text-slate-500">
+            Menampilkan{" "}
+            <b className="text-slate-700">
+              {Math.min(visibleCount, searchResults.length)}
+            </b>{" "}
+            dari <b className="text-slate-700">{searchResults.length}</b> kontrak
+          </span>
+        </div>
+
+        {/* Document List */}
         <div>
-          {visibleItems.map((item) => {
-            const isDraft = item.type === "draft";
-            const href = isDraft ? `/dashboard/create?id=${item.id}` : "/dashboard/review/result";
-            return (
-              <Link href={href} key={item.id} className="grid grid-cols-[30px_minmax(0,1fr)_20px] items-center gap-3 border-b border-slate-200 py-5 text-slate-700 transition-colors hover:bg-white sm:grid-cols-[30px_minmax(0,1fr)_auto_20px] sm:px-2">
-                <i className={`grid size-7 place-items-center rounded text-xs font-bold not-italic ${isDraft ? "bg-slate-100 text-slate-500" : "bg-[#edf2ff] text-klarisa-secondary"}`}>{isDraft ? "D" : "R"}</i>
-                <span className="grid gap-1">
-                  <b className="text-xs font-semibold">{item.title}</b>
-                  <small className="text-xs text-slate-400">Diperbarui {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.updatedAt))}</small>
-                </span>
-                <em className={`hidden text-xs font-semibold not-italic sm:block ${isDraft ? "text-klarisa-secondary" : "text-red-500"}`}>{isDraft ? `DRAFT ${String(item.metadata.version ?? 1).padStart(2, "0")}` : "REVIEW"}</em>
-                <ArrowRight className="size-4 text-slate-500" />
-              </Link>
-            );
-          })}
-          {data.length === 0 && <p className="py-12 text-center text-sm text-slate-500">Dokumen tidak ditemukan.</p>}
+          {visibleItems.map((item) => (
+            <ContractSearchItem
+              key={item.id}
+              item={item}
+              onPin={handlePin}
+              onRename={handleRename}
+              onDelete={handleDelete}
+            />
+          ))}
+          {!isLoading && searchResults.length === 0 && (
+            <p className="py-12 text-center text-sm text-slate-500">
+              Dokumen tidak ditemukan.
+            </p>
+          )}
         </div>
 
-        {data.length > PAGE_SIZE && (
-          <nav aria-label="Navigasi halaman dokumen" className="flex items-center justify-between border-b border-slate-200 py-5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-            >
-              <ArrowLeft className="size-3.5" />Sebelumnya
-            </Button>
-            <span className="text-xs text-slate-500">Halaman <b className="text-slate-800">{currentPage}</b> dari {totalPages}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            >
-              Berikutnya<ArrowRight className="size-3.5" />
-            </Button>
-          </nav>
+        {/* Lazy Pagination Trigger & Loader */}
+        {(hasMore || isLoading) && (
+          <div ref={observerTargetRef} className="flex justify-center py-6">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <Loader2 className="size-4 animate-spin text-klarisa-secondary" />
+              <span>Memuat dokumen lainnya...</span>
+            </div>
+          </div>
         )}
-
-        <footer className="mt-6 flex justify-end gap-2">
-          <Link href="/dashboard/create" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#172031] px-4 text-xs font-bold text-white transition-colors hover:bg-klarisa-secondary">
-            Buat draft baru
-          </Link>
-        </footer>
       </section>
     </div>
   );

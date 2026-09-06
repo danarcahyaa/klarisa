@@ -9,20 +9,27 @@ import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 const selectTriggerVariants = cva(
-  "flex w-fit items-center justify-between gap-1.5 rounded-md text-sm whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg]:transition-transform [&_svg]:duration-200 data-[state=open]:[&_svg]:rotate-180",
+  "group/select-trigger inline-flex w-fit shrink-0 items-center justify-between gap-2 rounded-md cursor-pointer border border-transparent text-xs font-medium whitespace-nowrap transition-all outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 select-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 data-placeholder:opacity-70 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg]:transition-transform [&_svg]:duration-200 data-[state=open]:[&_svg]:rotate-180",
   {
     variants: {
       variant: {
-        default:
-          "border border-input bg-transparent py-2 pr-2 pl-2.5 hover:bg-slate-100/80 data-[state=open]:bg-slate-100 dark:bg-input/30 dark:hover:bg-input/50 dark:data-[state=open]:bg-input/50",
+        default: "bg-klarisa-primary text-primary-foreground hover:bg-klarisa-primary/90",
         outline:
-          "border border-input bg-background py-2 pr-2 pl-2.5 hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent",
+          "border-input bg-background hover:bg-background aria-expanded:bg-background data-[state=open]:bg-background focus:bg-background focus-visible:bg-background text-foreground focus:ring-0 focus-visible:ring-0 data-[state=open]:ring-0 dark:border-input dark:bg-input/30",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
-          "border border-transparent bg-transparent py-2 pr-2 pl-2.5 hover:bg-white hover:text-slate-900  dark:hover:text-slate-100 dark:data-[state=open]:bg-slate-800",
+          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        blue: "bg-klarisa-secondary text-white hover:bg-klarisa-secondary/90",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9",
-        sm: "h-7 rounded-[min(var(--radius-md),10px)] text-xs",
+        default: "h-11 px-4 py-2 text-xs gap-2",
+        xs: "h-8 px-2.5 text-[10px] gap-1",
+        sm: "h-10 px-3 text-[11px] gap-1.5",
+        lg: "h-12 px-6 text-md font-semibold gap-2",
       },
     },
     defaultVariants: {
@@ -75,7 +82,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+        <ChevronDownIcon className="pointer-events-none size-4 opacity-70 shrink-0" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
@@ -94,7 +101,7 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "relative z-50 max-h-96 min-w-36 overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-lg duration-150 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+          "relative z-50 max-h-96 p-0.5 min-w-36 overflow-hidden rounded-md border border-slate-200 bg-white text-slate-900 shadow-md duration-150 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className
@@ -143,7 +150,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex w-full cursor-default items-center gap-1.5 rounded-sm py-1.5 pr-8 pl-2.5 text-xs font-medium outline-hidden select-none focus:bg-slate-100 focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
@@ -184,8 +191,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <ChevronUpIcon
-      />
+      <ChevronUpIcon />
     </SelectPrimitive.ScrollUpButton>
   )
 }
@@ -203,8 +209,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <ChevronDownIcon
-      />
+      <ChevronDownIcon />
     </SelectPrimitive.ScrollDownButton>
   )
 }

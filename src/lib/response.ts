@@ -28,9 +28,12 @@ export function createErrorResponse<T = null>(error: string, data: T | null = nu
  * Map native Supabase error messages to user-friendly localized messages.
  */
 export function mapSupabaseError(errorMsg: string): string {
-  if (!errorMsg) return 'Terjadi kesalahan pada sistem. Silakan coba lagi.'
+  if (!errorMsg) return 'Terjadi kesalahan'
   const lower = errorMsg.toLowerCase()
 
+  if (lower.includes('500') || lower.includes('internal') || lower.includes('server error') || lower.includes('unexpected')) {
+    return 'Terjadi kesalahan'
+  }
   if (lower.includes('user already registered') || lower.includes('already exists') || lower.includes('email_exists')) {
     return 'Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.'
   }

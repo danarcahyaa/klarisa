@@ -168,25 +168,20 @@
     font-family: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
-  /* Universal focus outline removal on click / Shift+click for links, buttons, & all interactive elements */
-  *,
-  *:focus,
-  *:focus-visible,
-  a,
-  a:focus,
-  a:focus-visible,
+  /* Prevent default browser focus outline on buttons & clickable links without blocking input focus rings */
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible) {
+    outline: none;
+  }
+
   button,
-  button:focus,
-  button:focus-visible,
+  a,
   [role="button"],
-  [role="button"]:focus,
-  [role="button"]:focus-visible,
   [type="button"],
   [type="submit"],
   [type="reset"],
   summary {
-    outline: none !important;
-    box-shadow: none !important;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -452,4 +447,12 @@ mark.active-highlight {
   outline: 2px solid #dc2626 !important;
   outline-offset: 2px;
   box-shadow: 0 0 12px rgba(220, 38, 38, 0.35) !important;
+}
+
+/* Remove box-shadow from Sonner toast notifications */
+[data-sonner-toaster] [data-sonner-toast],
+.toaster [data-sonner-toast] {
+  box-shadow: none !important;
+  --box-shadow: none !important;
+  -webkit-box-shadow: none !important;
 }

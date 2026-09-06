@@ -31,6 +31,14 @@ export function sanitizeEmail(email: string): string {
 }
 
 /**
+ * Generic string sanitizer: trim leading/trailing spaces and collapse multiple whitespaces
+ */
+export function sanitizeString(value?: string | null): string {
+  if (!value) return ""
+  return value.trim().replace(/\s+/g, " ")
+}
+
+/**
  * Remove executable HTML while preserving basic rich-text formatting.
  */
 export function sanitizeContractHtml(html: string): string {
@@ -454,18 +462,18 @@ export function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Format ISO date string into polite Indonesian date format (e.g. "5 September 2026, 11:45")
+ * Format ISO date string into polite Indonesian date format.
+ * Defaults to medium dateStyle (e.g. "6 Sep 2026").
  */
-export function formatIndonesianDate(dateString?: string | null): string {
+export function formatIndonesianDate(
+  dateString?: string | null,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "medium" }
+): string {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(date);
+    return new Intl.DateTimeFormat("id-ID", options).format(date);
   } catch {
     return dateString;
   }
