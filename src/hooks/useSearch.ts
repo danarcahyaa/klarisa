@@ -218,9 +218,9 @@ export function useSearch(options: UseSearchOptions = {}) {
       if (response.success) {
         setItems((prev) => prev.filter((i) => i.id !== item.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
-        toast.success("Dokumen berhasil dihapus.");
+        toast.success("Kontrak berhasil dihapus.");
       } else {
-        toast.error(response.error ?? "Gagal menghapus dokumen.");
+        toast.error(response.error ?? "Gagal menghapus kontrak.");
       }
     },
     [service]

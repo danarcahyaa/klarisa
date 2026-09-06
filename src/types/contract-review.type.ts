@@ -60,7 +60,7 @@ export interface ChunkReasoningResult {
 }
 
 export interface ReasoningAnalysisResult {
-  is_contract: boolean;
+  is_contract?: boolean;
   not_contract_reason?: string;
   total_analyzed_clauses: number;
   risky_clauses_count: number;

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { uploadContractDocumentSchema } from "@/app/validations/contract.validation";
+import { decryptContractContent, encryptContractContent } from "@/lib/contract-encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createErrorResponse, createSuccessResponse } from "@/lib/response";
 import {
@@ -59,6 +60,13 @@ const RISKY_STATUSES = new Set<ComplianceStatus>([
   "INCOMPLETE",
 ]);
 
+/** Constant empty reasoning result structure for fast fallback returns. */
+const EMPTY_REASONING_RESULT: ReasoningAnalysisResult = {
+  total_analyzed_clauses: 0,
+  risky_clauses_count: 0,
+  findings: [],
+};
+
 /**
  * Service orchestrating contract review document uploads and AI legal compliance reasoning.
  */
@@ -70,8 +78,8 @@ export class ReviewService {
   }
 
   /**
-   * Validates the upload payload and persists a contract review record via
-   * the `save_contract_review_result` (or `upload_contract_review`) PostgreSQL RPC transaction.
+   * Validates the upload payload, encrypts contract content and metadata, and persists a contract review record
+   * via the `save_contract_review_result` (or `upload_contract_review`) PostgreSQL RPC transaction.
    *
    * @param userId  - The authenticated user's ID.
    * @param input   - The validated upload DTO.
@@ -91,10 +99,17 @@ export class ReviewService {
     const { title, fileName, fileSize, content } = validation.data;
     const fairnessScore = input.fairnessScore ?? 0;
     const totalRisk = input.totalRisk ?? 0;
-    const metadata = {
+    const rawMetadata = {
       source_file_name: fileName,
       file_size: fileSize,
       ...(input.metadata ?? {}),
+    };
+
+    // Encrypt contract content and reasoning metadata before persisting to database
+    const encryptedContent = content ? encryptContractContent(content) : "";
+    const encryptedMetadata = {
+      payload: encryptContractContent(JSON.stringify(rawMetadata)),
+      encryption: "aes-256-gcm",
     };
 
     const { data, error } = await this.repository.uploadContractReviewTransaction(
@@ -105,10 +120,10 @@ export class ReviewService {
         is_pinned: false,
       },
       {
-        content: content ?? "",
+        content: encryptedContent,
         fairness_score: fairnessScore,
         total_clausul_risk: totalRisk,
-        metadata,
+        metadata: encryptedMetadata,
       }
     );
 
@@ -126,7 +141,7 @@ export class ReviewService {
   }
 
   /**
-   * Fetches the complete contract review details by contract ID for rendering in result workspace.
+   * Fetches the complete contract review details by contract ID, decrypting encrypted content and metadata.
    *
    * @param userId     - The authenticated user's ID.
    * @param contractId - The contract ID to retrieve.
@@ -139,14 +154,41 @@ export class ReviewService {
     }
 
     const review = (data as any).contract_review;
-    const metadata = (review?.metadata as Record<string, unknown>) ?? {};
+    const rawContent = review?.content ?? "";
+    let content = "";
+    if (rawContent) {
+      try {
+        content = decryptContractContent(rawContent);
+      } catch {
+        content = rawContent;
+      }
+    }
+
+    const rawMetadata = (review?.metadata as Record<string, unknown>) ?? {};
+    let metadata: Record<string, unknown> = rawMetadata;
+
+    if (
+      rawMetadata &&
+      typeof rawMetadata === "object" &&
+      "payload" in rawMetadata &&
+      typeof rawMetadata.payload === "string"
+    ) {
+      try {
+        const decryptedStr = decryptContractContent(rawMetadata.payload);
+        metadata = JSON.parse(decryptedStr);
+      } catch (err) {
+        console.error("[ReviewService.getReviewDetail] Metadata decryption failed:", err);
+        metadata = rawMetadata;
+      }
+    }
+
     const findings = metadata.findings ?? null;
 
     return createSuccessResponse(
       {
         id: data.id,
         title: data.title,
-        content: review?.content ?? "",
+        content,
         fairnessScore: review?.fairness_score ?? 0,
         totalRisk: review?.total_clausul_risk ?? 0,
         metadata,
@@ -176,7 +218,7 @@ export class ReviewService {
     try {
       if (!matchedChunks || matchedChunks.length === 0) {
         console.log("[ReviewService] processReasoning: Tidak ada chunk yang diterima untuk dieksekusi.");
-        return createSuccessResponse(this.emptyReasoningResult());
+        return createSuccessResponse(EMPTY_REASONING_RESULT);
       }
 
       console.log(
@@ -184,7 +226,7 @@ export class ReviewService {
       );
 
       const sections = Array.isArray(sectionsOrRawText) ? sectionsOrRawText : [];
-      const sectionsMap = this.buildSectionsMap(sections);
+      const sectionsMap = new Map(sections.map((sec) => [sec.sectionId, sec]));
       const outlineText = buildDocumentOutlinePrompt(sections);
 
       const analyzableChunks = this.filterAnalyzableChunks(matchedChunks);
@@ -193,9 +235,7 @@ export class ReviewService {
       );
 
       if (analyzableChunks.length === 0) {
-        return createSuccessResponse(
-          this.emptyReasoningResult("Tidak ditemukan klausul kontrak yang dapat dianalisis.")
-        );
+        return createSuccessResponse(EMPTY_REASONING_RESULT);
       }
 
       const { findings, hasBatchError, batchErrorMessage } =
@@ -215,7 +255,6 @@ export class ReviewService {
         const isLimitation = isLimitationError(batchErrorMessage);
         return createSuccessResponse<ReasoningAnalysisResult>(
           {
-            is_contract: true,
             total_analyzed_clauses: findings.length,
             risky_clauses_count: riskyClauses.length,
             findings: riskyClauses,
@@ -233,7 +272,7 @@ export class ReviewService {
         return createErrorResponse<ReasoningAnalysisResult>(
           `Gagal memproses analisis kepatuhan hukum: ${batchErrorMessage}`,
           {
-            ...this.emptyReasoningResult(`Analisis terhenti karena kesalahan: ${batchErrorMessage}`),
+            ...EMPTY_REASONING_RESULT,
             has_error: true,
             error_type: isLimitation ? "limitation" : "reasoning",
             error_message: batchErrorMessage,
@@ -244,7 +283,6 @@ export class ReviewService {
       // Scenario C: Reasoning completed normally
       return createSuccessResponse<ReasoningAnalysisResult>(
         {
-          is_contract: true,
           total_analyzed_clauses: findings.length,
           risky_clauses_count: riskyClauses.length,
           findings: riskyClauses,
@@ -257,36 +295,9 @@ export class ReviewService {
         error instanceof Error
           ? error.message
           : "Gagal menjalankan analisis kepatuhan hukum.",
-        this.emptyReasoningResult("Terjadi kesalahan tidak terduga.")
+        EMPTY_REASONING_RESULT
       );
     }
-  }
-
-  /**
-   * Constructs an empty ReasoningAnalysisResult fallback structure.
-   *
-   * @param reason - Optional explanation for empty result.
-   */
-  private emptyReasoningResult(reason?: string): ReasoningAnalysisResult {
-    return {
-      is_contract: false,
-      not_contract_reason:
-        reason ?? "Dokumen tidak mengandung bagian klausul yang dapat dianalisis.",
-      total_analyzed_clauses: 0,
-      risky_clauses_count: 0,
-      findings: [],
-    };
-  }
-
-  /**
-   * Maps an array of DocumentSection objects by their sectionId for fast lookup.
-   *
-   * @param sections - Array of parsed document sections.
-   */
-  private buildSectionsMap(sections: DocumentSection[]): Map<string, DocumentSection> {
-    const map = new Map<string, DocumentSection>();
-    sections.forEach((sec) => map.set(sec.sectionId, sec));
-    return map;
   }
 
   /**
