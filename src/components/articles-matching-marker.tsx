@@ -95,11 +95,11 @@ export function ArticlesMatchingMarker({
 
   return (
     <Marker role="status" className={cn("items-start", className)}>
-      <MarkerIcon className="mt-0.5">
+      <MarkerIcon className="mt-1">
         {isProcessing ? (
           <Spinner />
         ) : (
-          <Check className="size-4 text-emerald-500" />
+          <Check className="size-4 text-klarisa-primary" />
         )}
       </MarkerIcon>
       <MarkerContent className="w-full">
@@ -109,7 +109,7 @@ export function ArticlesMatchingMarker({
           className="w-full border-none"
         >
           <AccordionItem value="reasoning-details" className="border-none">
-            <AccordionTrigger className="group justify-start gap-1.5 py-0 text-sm font-medium text-slate-900 hover:no-underline hover:bg-transparent [&[data-state=open]>svg]:rotate-90">
+            <AccordionTrigger className="group justify-start gap-1.5 p-0 text-lg text-slate-900 hover:no-underline hover:bg-transparent [&[data-state=open]>svg]:rotate-90">
               <div className={`flex items-center ${isProcessing ? "shimmer" : ""}`}>
                 <span>
                   {isProcessing
@@ -140,14 +140,21 @@ export function ArticlesMatchingMarker({
                     {activeRegulations.map((reg, idx) => (
                       <div
                         key={idx}
-                        className="flex gap-2 animate-in fade-in slide-in-from-top-1.5 duration-300 fill-mode-backwards"
+                        className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1.5 duration-300 fill-mode-backwards"
                         style={{
                           animationDelay: `${idx * 150}ms`,
                           animationFillMode: "backwards",
                         }}
                       >
                         <Scale className="size-3.5 shrink-0 mt-0.5" />
-                        <p className="font-medium">{reg}</p>
+                        {/* Container for right-side gradient fade truncation */}
+                        <div className="relative min-w-0 flex-1 overflow-hidden">
+                          <p className="whitespace-nowrap text-xs font-medium text-slate-700 dark:text-slate-300 pr-8 [mask-image:linear-gradient(to_right,black_70%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_70%,transparent_100%)]">
+                            {reg}
+                          </p>
+                          {/* Gradient overlay fade out effect */}
+                          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-r from-transparent via-white/80 to-[#f7f8fb] dark:via-slate-900/80 dark:to-slate-900" />
+                        </div>
                       </div>
                     ))}
                     {remainingCount > 0 && (

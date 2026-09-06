@@ -107,7 +107,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
               aria-current={active ? "page" : undefined}
               title={isSidebarCollapsed ? label : undefined}
               className={cn(
-                "flex min-h-11 items-center gap-3 rounded-md px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary",
+                "flex min-h-11 items-center gap-3 rounded-md px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0",
                 active && "bg-[#eaf0ff] text-klarisa-secondary",
                 isSidebarCollapsed && "lg:!h-11 lg:!w-11 lg:!min-h-0 lg:justify-self-center lg:justify-center lg:px-0",
               )}

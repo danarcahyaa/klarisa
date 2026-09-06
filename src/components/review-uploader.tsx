@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import { ArrowRight, FileText, ShieldCheck, Upload, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Upload } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { ReusableAlert } from "@/components/ui/reusable-alert";
 import { useReview } from "@/hooks/useReview";
 import { ArticlesMatchingMarker } from "./articles-matching-marker";
+import { ReasoningMarker } from "./reasoning-marker";
+import { RedirectingMarker } from "./redirecting-marker";
 import { cn } from "@/lib/utils";
 
 const steps = [
@@ -19,11 +21,12 @@ export function ReviewUploader() {
 
   const {
     fileName,
-    file, 
     isLoading,
     isSuccess,
     error,
     matchedRegulations,
+    reasoningChunks,
+    activeBatchIndex,
     reviewStep,
     handleFileSelect,
     handleUpload,
@@ -62,7 +65,7 @@ export function ReviewUploader() {
             }}
           />
           <Button
-            disabled={isLoading}
+            disabled={isReviewing}
             type="button"
             variant="outline"
             size="default"
@@ -77,8 +80,9 @@ export function ReviewUploader() {
           <SubmitButton
             type="button"
             variant="default"
-            isLoading={isLoading}
-            loadingText="Memproses..."
+            disabled={isReviewing}
+            isLoading={isReviewing}
+            loadingText={reviewStep === "redirecting" ? "Mengalihkan..." : "Memproses..."}
             onClick={handleStartReview}
             rightIcon={<ArrowRight className="size-4" />}
           >
@@ -199,11 +203,23 @@ export function ReviewUploader() {
             : "grid-rows-[0fr] opacity-0 pointer-events-none mt-0 -translate-y-2"
         )}
       >
-        <div className="overflow-hidden">
+        <div className="overflow-hidden space-y-3">
           <ArticlesMatchingMarker
             status={reviewStep === "matching" ? "processing" : "completed"}
             regulations={matchedRegulations}
           />
+          {(reviewStep === "reasoning" || reviewStep === "redirecting" || reviewStep === "completed") && (
+            <ReasoningMarker
+              status={reviewStep === "reasoning" ? "processing" : "completed"}
+              chunks={reasoningChunks}
+              activeBatchIndex={activeBatchIndex}
+            />
+          )}
+          {(reviewStep === "redirecting" || reviewStep === "completed") && (
+            <RedirectingMarker
+              status={reviewStep === "redirecting" ? "processing" : "completed"}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -93,6 +93,8 @@ export interface DisplayFinding extends ChunkReasoningResult {
   findingId: string;
 }
 
+export type ReviewStep = "idle" | "matching" | "reasoning" | "redirecting" | "completed";
+
 export interface UseReviewReturn {
   file: File | null;
   fileName: string;
@@ -103,7 +105,9 @@ export interface UseReviewReturn {
   error: string | null;
   validationResult: DocumentValidationResult | null;
   matchedRegulations: MatchLegalArticleResult[];
-  reviewStep: "idle" | "matching" | "reasoning" | "completed";
+  reasoningChunks: Array<{ chunkId?: string; sectionTitle?: string; text: string }>;
+  activeBatchIndex: number;
+  reviewStep: ReviewStep;
   handleFileSelect: (file: File | null) => boolean;
   handleUpload: () => Promise<boolean>;
   reset: () => void;

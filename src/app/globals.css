@@ -151,7 +151,7 @@
 
 @layer base {
   *, ::before, ::after {
-    @apply border-border outline-ring/50;
+    @apply border-border;
     scrollbar-width: thin;
   }
   html {
@@ -166,6 +166,28 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Universal focus outline removal on click / Shift+click for links, buttons, & all interactive elements */
+  *,
+  *:focus,
+  *:focus-visible,
+  a,
+  a:focus,
+  a:focus-visible,
+  button,
+  button:focus,
+  button:focus-visible,
+  [role="button"],
+  [role="button"]:focus,
+  [role="button"]:focus-visible,
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  summary {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
   }
 
   *::-webkit-scrollbar {

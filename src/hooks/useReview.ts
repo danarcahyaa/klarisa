@@ -4,13 +4,14 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadReviewDocumentAction } from "@/app/actions/review.action";
 import { validateContractFile } from "@/app/validations/contract.validation";
-import type { DocumentValidationResult, UseReviewReturn } from "@/types/contract-review.type";
+import type { DocumentValidationResult, ReviewStep, UseReviewReturn } from "@/types/contract-review.type";
 import type { MatchLegalArticleResult } from "@/types/legal.type";
 import { buildChunks } from "@/lib/langchain";
 import { formatFileSize, injectHTMLUniqueID, parseContractHtml } from "@/lib/utils";
 import { generateEmbeddingAction, matchEmbeddingAction } from "@/app/actions/embedding.action";
 import { processReasoningAction } from "@/app/actions/reasoning.action";
 import { parseDocxToHtml } from "@/lib/docx-parser";
+import { calculateDynamicBatchSize } from "@/components/reasoning-marker";
 
 export type { UseReviewReturn };
 
@@ -24,7 +25,9 @@ export function useReview(): UseReviewReturn {
   const [error, setError] = useState<string | null>(null);
 
   const [matchedRegulations, setMatchedRegulations] = useState<MatchLegalArticleResult[]>([]);
-  const [reviewStep, setReviewStep] = useState<"idle" | "matching" | "reasoning" | "completed">("idle");
+  const [reasoningChunks, setReasoningChunks] = useState<Array<{ chunkId?: string; sectionTitle?: string; text: string }>>([]);
+  const [activeBatchIndex, setActiveBatchIndex] = useState(0);
+  const [reviewStep, setReviewStep] = useState<ReviewStep>("idle");
 
   const fileName = useMemo(() => file?.name ?? "", [file]);
 
@@ -36,6 +39,7 @@ export function useReview(): UseReviewReturn {
     setError(null);
     setIsSuccess(false);
     setMatchedRegulations([]);
+    setReasoningChunks([]);
     setReviewStep("idle");
 
     if (!selectedFile) {
@@ -116,15 +120,44 @@ export function useReview(): UseReviewReturn {
       setMatchedRegulations(allMatchedRegs);
       setReviewStep("reasoning");
 
+      // Extract chunks being analyzed by the reasoning process (matching backend filterAnalyzableChunks)
+      const activeReasoningChunks = matchedChunks
+        .filter((c) => c.text && c.text.trim().length >= 20)
+        .map((c) => ({
+          chunkId: c.chunkId,
+          sectionTitle: c.sectionTitle || "",
+          text: c.text,
+        }));
+      setReasoningChunks(activeReasoningChunks);
+      // Calculate dynamic batch count and step timer
+      const batchSize = calculateDynamicBatchSize(activeReasoningChunks.length);
+      const totalBatches = Math.ceil(activeReasoningChunks.length / batchSize);
+
+      let batchTimer: ReturnType<typeof setInterval> | null = null;
+      if (totalBatches > 1) {
+        let currentBatch = 0;
+        batchTimer = setInterval(() => {
+          currentBatch++;
+          if (currentBatch < totalBatches) {
+            setActiveBatchIndex(currentBatch);
+          } else if (batchTimer) {
+            clearInterval(batchTimer);
+          }
+        }, 2200);
+      }
+
       const reasoningResult = await processReasoningAction(
         parsedSections,
         matchedChunks
       );
 
+      if (batchTimer) clearInterval(batchTimer);
+      setActiveBatchIndex(totalBatches);
+
       const findings = reasoningResult.data?.findings ?? [];
       const hasFindings = findings.length > 0;
 
-      // // Case A: Reasoning failed and NO risky findings were collected
+      // Case A: Reasoning failed and NO risky findings were collected
       if (!reasoningResult.success && !hasFindings) {
         const err = reasoningResult.error ?? "Terjadi kesalahan saat menganalisis kepatuhan hukum.";
         setError(err);
@@ -135,7 +168,7 @@ export function useReview(): UseReviewReturn {
       const totalRisk = findings.length;
       const fairnessScore = reasoningResult.data?.risky_clauses_count || 0;
 
-      // // Save annotated HTML and reasoning findings into Supabase via RPC transaction
+      // Save annotated HTML and reasoning findings into Supabase via RPC transaction
       const uploadRes = await uploadReviewDocumentAction({
         title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
@@ -151,7 +184,7 @@ export function useReview(): UseReviewReturn {
 
       const contractId = uploadRes.data?.id;
 
-      setReviewStep("completed");
+      setReviewStep("redirecting");
       setIsSuccess(true);
       if (contractId) {
         router.push(`/dashboard/review/result/${contractId}`);
@@ -177,6 +210,8 @@ export function useReview(): UseReviewReturn {
     setIsSuccess(false);
     setError(null);
     setMatchedRegulations([]);
+    setReasoningChunks([]);
+    setActiveBatchIndex(0);
     setReviewStep("idle");
   }, []);
 
@@ -194,6 +229,8 @@ export function useReview(): UseReviewReturn {
     error,
     validationResult,
     matchedRegulations,
+    reasoningChunks,
+    activeBatchIndex,
     reviewStep,
     handleFileSelect,
     handleUpload,
