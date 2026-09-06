@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { FormInput } from "@/components/ui/form-input";
 import {
   Select,
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContractSearchItem, type SearchItem } from "./contract-search-item";
+import { ContractSearchSkeleton } from "./contract-search-skeleton";
 import { useSearch } from "@/hooks/useSearch";
 import type { ContractSearchFilterType } from "@/types/contract-search.type";
 
@@ -36,6 +37,7 @@ export function ContractSearchClient({
     visibleCount,
     hasMore,
     isLoading,
+    isLazyLoading,
     observerTargetRef,
     handlePin,
     handleRename,
@@ -73,10 +75,11 @@ export function ContractSearchClient({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Select
             value={filter}
+            defaultValue="Semua"
             onValueChange={(val) => setFilter(val as ContractSearchFilterType)}
           >
             <SelectTrigger variant="outline" className="w-full sm:w-[120px] shrink-0">
-              <SelectValue placeholder="Kategori" />
+              <SelectValue placeholder="Semua">{filter}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Semua">Semua</SelectItem>
@@ -109,29 +112,33 @@ export function ContractSearchClient({
 
         {/* Document List */}
         <div>
-          {visibleItems.map((item) => (
-            <ContractSearchItem
-              key={item.id}
-              item={item}
-              onPin={handlePin}
-              onRename={handleRename}
-              onDelete={handleDelete}
-            />
-          ))}
-          {!isLoading && searchResults.length === 0 && (
-            <p className="py-12 text-center text-sm text-slate-500">
-              Dokumen tidak ditemukan.
-            </p>
+          {isLoading ? (
+            <ContractSearchSkeleton count={5} />
+          ) : (
+            <>
+              {visibleItems.map((item) => (
+                <ContractSearchItem
+                  key={item.id}
+                  item={item}
+                  onPin={handlePin}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                />
+              ))}
+
+              {searchResults.length === 0 && (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Kontrak tidak ditemukan.
+                </p>
+              )}
+            </>
           )}
         </div>
 
-        {/* Lazy Pagination Trigger & Loader */}
-        {(hasMore || isLoading) && (
-          <div ref={observerTargetRef} className="flex justify-center py-6">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Loader2 className="size-4 animate-spin text-klarisa-secondary" />
-              <span>Memuat dokumen lainnya...</span>
-            </div>
+        {/* Lazy Pagination Trigger & Skeleton Loader */}
+        {hasMore && !isLoading && (
+          <div ref={observerTargetRef} className="w-full">
+            {isLazyLoading && <ContractSearchSkeleton count={2} />}
           </div>
         )}
       </section>

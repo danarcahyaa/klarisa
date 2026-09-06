@@ -43,10 +43,13 @@ export function useSearch(options: UseSearchOptions = {}) {
   );
   const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLazyLoading, setIsLazyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const debouncedQuery = useDebounce(query, 300);
   const observerTargetRef = useRef<HTMLDivElement | null>(null);
+  const isFirstRender = useRef(true);
+  const isLazyLoadingRef = useRef(false);
 
   // Instantiate client Supabase repository and service instances
   const service = useMemo(() => {
@@ -82,8 +85,12 @@ export function useSearch(options: UseSearchOptions = {}) {
     [service]
   );
 
-  // Trigger database search whenever debouncedQuery or filter changes
+  // Trigger database search whenever debouncedQuery or filter changes (skipped on initial mount)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     fetchSearchResults(debouncedQuery, filter);
     setVisibleCount(BATCH_SIZE);
   }, [debouncedQuery, filter, fetchSearchResults]);
@@ -101,8 +108,14 @@ export function useSearch(options: UseSearchOptions = {}) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => prev + BATCH_SIZE);
+        if (entries[0].isIntersecting && !isLazyLoadingRef.current) {
+          isLazyLoadingRef.current = true;
+          setIsLazyLoading(true);
+          setTimeout(() => {
+            setVisibleCount((prev) => prev + BATCH_SIZE);
+            setIsLazyLoading(false);
+            isLazyLoadingRef.current = false;
+          }, 300);
         }
       },
       { threshold: 0.1 }
@@ -237,6 +250,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     visibleCount,
     hasMore,
     isLoading,
+    isLazyLoading,
     error,
     observerTargetRef,
     handlePin,
