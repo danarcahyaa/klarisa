@@ -232,6 +232,13 @@
   .dark *::-webkit-scrollbar-thumb:hover {
     background: #7da0ff;
   }
+
+  .ProseMirror,
+  .ProseMirror-focused {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Custom Utility Classes for Klarisa LegalTech Platform */

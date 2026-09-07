@@ -22,12 +22,8 @@ export const addDraftCommentSchema = z.object({
   body: z.string().trim().min(1, "Komentar tidak boleh kosong").max(5000, "Komentar maksimal 5.000 karakter"),
   parentId: z.uuid("Balasan komentar tidak valid").optional(),
   selectedText: z.string().trim().max(5000, "Teks pilihan terlalu panjang").optional(),
-  positionStart: z.number().int().min(0).optional(),
-  positionEnd: z.number().int().min(0).optional(),
-}).refine((value) => value.parentId || (value.selectedText && value.positionStart !== undefined && value.positionEnd !== undefined), {
+}).refine((value) => value.parentId || value.selectedText, {
   message: "Pilih teks kontrak yang ingin dikomentari",
-}).refine((value) => value.positionEnd === undefined || value.positionStart === undefined || value.positionEnd >= value.positionStart, {
-  message: "Posisi teks komentar tidak valid",
 });
 
 export const inviteDraftCollaboratorSchema = z.object({

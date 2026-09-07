@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { createClient } from "@/lib/supabase/client";
 import { addDraftCommentAction, deleteDraftAction, deleteDraftCommentAction, getDraftVersionAction, inviteDraftCollaboratorAction, removeDraftCollaboratorAction, restoreDraftVersionAction, saveDraftAction, setDraftCommentResolvedAction, shareDraftAction, updateDraftCollaboratorRoleAction, updateDraftCommentAction } from "@/app/actions/draft.action";
-import type { AddDraftCommentDTO, ContractDetail, InviteDraftCollaboratorDTO, SaveDraftDTO, UpdateDraftCollaboratorDTO, UpdateDraftCommentDTO } from "@/types/contract.type";
+import type { AddDraftCommentDTO, ContractDetail, DraftComment, InviteDraftCollaboratorDTO, SaveDraftDTO, UpdateDraftCollaboratorDTO, UpdateDraftCommentDTO } from "@/types/contract.type";
 
 export function useDraft(initialDraft: ContractDetail) {
   const [data, setData] = useState(initialDraft);
@@ -15,6 +16,118 @@ export function useDraft(initialDraft: ContractDetail) {
   const [isRestoringVersion, setIsRestoringVersion] = useState(false);
   const [isManagingAccess, setIsManagingAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Subscribe to realtime updates on draft_comments table
+  useEffect(() => {
+    const supabase = createClient();
+    const channelName = `draft_comments:${data.id}`;
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "draft_comments",
+          filter: `contract_id=eq.${data.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newRow = payload.new as {
+              id: string;
+              author_id: string;
+              comment: string;
+              parent_id: string | null;
+              metadata: Record<string, unknown> | null;
+              created_at: string;
+            };
+
+            const meta = newRow.metadata ?? {};
+
+            setData((current) => {
+              if (current.comments.some((c) => c.id === newRow.id)) {
+                return current;
+              }
+
+              const newComment: DraftComment = {
+                id: newRow.id,
+                authorId: newRow.author_id,
+                authorName: "Kolaborator",
+                avatarUrl: null,
+                body: newRow.comment,
+                parentId: newRow.parent_id,
+                selectedText: (meta.selected_text as string | null) ?? null,
+                documentVersionId: (meta.document_version_id as string | null) ?? null,
+                createdAt: newRow.created_at,
+                resolvedAt: (meta.resolved_at as string | null) ?? null,
+                isResolved: Boolean(meta.resolved_at),
+                isOwn: false,
+              };
+
+              return {
+                ...current,
+                comments: [...current.comments, newComment],
+                metadata: {
+                  ...current.metadata,
+                  comments: current.comments.length + 1,
+                },
+              };
+            });
+          } else if (payload.eventType === "UPDATE") {
+            const updatedRow = payload.new as {
+              id: string;
+              comment: string;
+              metadata: Record<string, unknown> | null;
+            };
+            const updatedMeta = updatedRow.metadata ?? {};
+
+            setData((current) => ({
+              ...current,
+              comments: current.comments.map((item) =>
+                item.id === updatedRow.id
+                  ? {
+                      ...item,
+                      body: updatedRow.comment,
+                      resolvedAt: (updatedMeta.resolved_at as string | null) ?? null,
+                      isResolved: Boolean(updatedMeta.resolved_at),
+                    }
+                  : item,
+              ),
+            }));
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = (payload.old as { id?: string }).id;
+            if (!deletedId) return;
+
+            setData((current) => {
+              const childIds = new Set(
+                current.comments
+                  .filter((item) => item.parentId === deletedId)
+                  .map((item) => item.id),
+              );
+              return {
+                ...current,
+                comments: current.comments.filter(
+                  (item) => item.id !== deletedId && !childIds.has(item.id),
+                ),
+                metadata: {
+                  ...current.metadata,
+                  comments: Math.max(
+                    0,
+                    Number(current.metadata.comments ?? 0) - 1 - childIds.size,
+                  ),
+                },
+              };
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [data.id]);
 
   const saveDraft = useCallback(async (input: SaveDraftDTO) => {
     setIsSaving(true);

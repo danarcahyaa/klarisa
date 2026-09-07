@@ -63,16 +63,23 @@ export interface DraftCollaborator {
   role: DraftCollaboratorRow["role"];
 }
 
+export interface DraftCommentMetadata {
+  selected_text?: string | null;
+  document_version_id?: string | null;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  [key: string]: unknown;
+}
+
 export interface DraftComment {
   id: string;
   authorId: string;
   authorName: string;
   avatarUrl: string | null;
+  /** Text content of the comment (mapped from DB column `comment`) */
   body: string;
   parentId: string | null;
   selectedText: string | null;
-  positionStart: number | null;
-  positionEnd: number | null;
   documentVersionId: string | null;
   createdAt: string;
   resolvedAt: string | null;
@@ -99,11 +106,10 @@ export interface CreateDraftDTO {
 }
 
 export interface AddDraftCommentDTO {
+  /** Text content of the comment */
   body: string;
   parentId?: string;
   selectedText?: string;
-  positionStart?: number;
-  positionEnd?: number;
 }
 
 export interface InviteDraftCollaboratorDTO {
