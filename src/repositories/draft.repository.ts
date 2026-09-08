@@ -139,10 +139,10 @@ export class DraftRepository {
       .maybeSingle();
   }
 
-  async updateComment(contractId: string, commentId: string, body: string) {
+  async updateComment(contractId: string, commentId: string, comment: string) {
     return this.supabase
       .from("draft_comments")
-      .update({ body })
+      .update({ comment })
       .eq("id", commentId)
       .eq("contract_id", contractId)
       .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
@@ -150,9 +150,18 @@ export class DraftRepository {
   }
 
   async setCommentResolved(contractId: string, commentId: string, resolvedAt: string | null, resolvedBy: string | null) {
+    // Since resolved_at/by are not standalone columns, they are stored in metadata
+    const current = await this.supabase
+      .from("draft_comments")
+      .select("metadata")
+      .eq("id", commentId)
+      .eq("contract_id", contractId)
+      .maybeSingle();
+    const existingMeta = (current.data?.metadata as Record<string, unknown>) ?? {};
+    const updatedMeta = { ...existingMeta, resolved_at: resolvedAt, resolved_by: resolvedBy };
     return this.supabase
       .from("draft_comments")
-      .update({ resolved_at: resolvedAt, resolved_by: resolvedBy })
+      .update({ metadata: updatedMeta })
       .eq("id", commentId)
       .eq("contract_id", contractId);
   }
