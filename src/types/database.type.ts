@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -275,47 +275,32 @@ export type Database = {
       draft_comments: {
         Row: {
           author_id: string
-          body: string
+          comment: string
           contract_id: string
           created_at: string
-          document_version_id: string | null
           id: string
+          metadata: Json | null
           parent_id: string | null
-          position_end: number | null
-          position_start: number | null
-          resolved_at: string | null
-          resolved_by: string | null
-          selected_text: string | null
           updated_at: string
         }
         Insert: {
           author_id: string
-          body: string
+          comment: string
           contract_id: string
           created_at?: string
-          document_version_id?: string | null
           id?: string
+          metadata?: Json | null
           parent_id?: string | null
-          position_end?: number | null
-          position_start?: number | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          selected_text?: string | null
           updated_at?: string
         }
         Update: {
           author_id?: string
-          body?: string
+          comment?: string
           contract_id?: string
           created_at?: string
-          document_version_id?: string | null
           id?: string
+          metadata?: Json | null
           parent_id?: string | null
-          position_end?: number | null
-          position_start?: number | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          selected_text?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -334,24 +319,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "draft_comments_document_version_id_fkey"
-            columns: ["document_version_id"]
-            isOneToOne: false
-            referencedRelation: "document_drafts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "draft_comments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "draft_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "draft_comments_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -391,48 +362,6 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finding_comments: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          finding_id: string
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          finding_id: string
-          id?: string
-          updated_at?: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          finding_id?: string
-          id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finding_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finding_comments_finding_id_fkey"
-            columns: ["finding_id"]
-            isOneToOne: false
-            referencedRelation: "review_findings"
             referencedColumns: ["id"]
           },
         ]
@@ -699,8 +628,8 @@ export type Database = {
       }
       match_legal_articles: {
         Args: {
-          match_count?: number
-          match_threshold?: number
+          match_count: number
+          match_threshold: number
           query_embedding: string
         }
         Returns: {
@@ -710,6 +639,7 @@ export type Database = {
           content: string
           explanation: string
           id: string
+          name: string
           regulation_id: string
           section_title: string
           similarity: number
@@ -750,12 +680,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -779,11 +709,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -804,11 +734,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -829,11 +759,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -846,11 +776,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
