@@ -103,3 +103,14 @@ export function validateContractFile(file: File | null): import("@/types/contrac
     errors,
   };
 }
+
+export const saveDraftChatSchema = z.object({
+  question: z.string().trim().min(1, "Pertanyaan tidak boleh kosong"),
+  answer: z.string().trim().min(1, "Jawaban tidak boleh kosong"),
+  chatId: z.string().uuid("ID percakapan tidak valid").optional().nullable(),
+  title: z.string().trim().max(250, "Judul maksimal 250 karakter").optional().nullable(),
+  lastInteractionId: z.string().trim().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+export type SaveDraftChatDTO = z.infer<typeof saveDraftChatSchema>;

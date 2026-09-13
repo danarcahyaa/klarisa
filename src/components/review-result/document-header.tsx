@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, EllipsisVertical } from "lucide-react";
 
 import { formatIndonesianDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -60,11 +60,22 @@ export function DocumentHeader({
           </small>
         </span>
       )}
-      {!isLoading && status && (
-        <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">
-          {status}
-        </span>
-      )}
+      <div className="ml-auto flex items-center gap-3">
+        {!isLoading && status && (
+          <span className="hidden text-xs font-medium text-slate-500 sm:block">
+            {status}
+          </span>
+        )}
+
+        <div className="flex">
+          <Button
+            variant={"ghost"}
+            size={"xs"}
+          >
+            <EllipsisVertical />
+          </Button>
+        </div>
+      </div>
     </header>
   );
 }

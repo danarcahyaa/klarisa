@@ -6,11 +6,12 @@ import { createErrorResponse } from "@/lib/response";
 import { createEmbeddingService } from "@/services/embedding.service";
 import type {
   AnyChunkItem,
+  DraftClauseChunk,
   GenerateEmbeddingInput,
   MatchOptions,
 } from "@/types/embedding.type";
 
-export type { AnyChunkItem, GenerateEmbeddingInput, MatchOptions };
+export type { AnyChunkItem, DraftClauseChunk, GenerateEmbeddingInput, MatchOptions };
 
 /**
  * Server action: generates vector embeddings in batches via EmbeddingService.
@@ -28,7 +29,7 @@ export async function generateEmbeddingAction<T extends AnyChunkItem>(
   }
 
   const embeddingService = createEmbeddingService(createAdminClient());
-  return embeddingService.generateEmbeddings<T>(input);
+  return embeddingService.generateChunkEmbeddings<T>(input);
 }
 
 /**
@@ -49,5 +50,5 @@ export async function matchEmbeddingAction<T extends { embedding: number[] }>(
   }
 
   const embeddingService = createEmbeddingService(createAdminClient());
-  return embeddingService.matchEmbeddings<T>(embeddedChunks, options);
+  return embeddingService.matchChunkEmbeddings<T>(embeddedChunks, options);
 }

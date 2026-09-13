@@ -23,6 +23,37 @@ export class ChatRepository {
   }
 
   /**
+   * Search and paginate chat threads for a specific user with optional title filtering.
+   */
+  async searchChatsByUser(
+    userId: string,
+    options: { query?: string; from: number; to: number }
+  ) {
+    let queryBuilder = this.supabase
+      .from("chats")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .range(options.from, options.to);
+
+    if (options.query && options.query.trim().length > 0) {
+      queryBuilder = queryBuilder.ilike("title", `%${options.query.trim()}%`);
+    }
+
+    return queryBuilder;
+  }
+
+  /**
+   * List paginated chat threads for a specific user (lazy pagination).
+   */
+  async listChatsPaginated(
+    userId: string,
+    options: { from: number; to: number; query?: string }
+  ) {
+    return this.searchChatsByUser(userId, options);
+  }
+
+  /**
    * Find a specific chat thread by ID belonging to a specific user, including its conversation messages.
    */
   async findChatById(userId: string, chatId: string) {
@@ -78,6 +109,22 @@ export class ChatRepository {
       .select("*")
       .eq("chat_id", chatId)
       .order("created_at", { ascending: true });
+  }
+
+  /**
+   * List paginated conversation Q&A entries for a specific chat ID.
+   * Defaults to descending order (created_at DESC) so that pagination retrieves the latest conversations first.
+   */
+  async listPaginatedConversationsByChatId(
+    chatId: string,
+    options: { from: number; to: number; ascending?: boolean }
+  ) {
+    return this.supabase
+      .from("chat_conversations")
+      .select("*", { count: "exact" })
+      .eq("chat_id", chatId)
+      .order("created_at", { ascending: options.ascending ?? false })
+      .range(options.from, options.to);
   }
 
   /**

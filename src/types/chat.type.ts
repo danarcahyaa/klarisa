@@ -26,7 +26,29 @@ export type ChatConversationInsert = TablesInsert<"chat_conversations">;
  */
 export type ChatWithConversations = ChatRow & {
   chat_conversations: ChatConversationRow[];
+  hasMoreConversations?: boolean;
+  totalConversations?: number;
 };
+
+/**
+ * DTO for paginating conversation messages within a specific chat.
+ */
+export interface ListConversationsDTO {
+  chat_id: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Paginated response structure for conversation messages within a chat.
+ */
+export interface PaginatedConversationsData {
+  conversations: ChatConversationRow[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
 /**
  * DTO for creating a new chat thread. Title is optional; if omitted, first question text is used as title.
@@ -52,6 +74,26 @@ export interface AddConversationDTO {
   chat_id: string;
   question: string;
   answer: string;
+}
+
+/**
+ * DTO for searching and paginating chat threads.
+ */
+export interface SearchChatsDTO {
+  query?: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Paginated response structure for chat listings.
+ */
+export interface PaginatedChatsData {
+  chats: ChatRow[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 /**

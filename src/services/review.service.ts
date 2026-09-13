@@ -13,7 +13,8 @@ import {
   sleep,
 } from "@/lib/utils";
 import { ReviewRepository, createReviewRepository } from "@/repositories/review.repository";
-import { llmService } from "@/services/llm.service";
+import { geminiService } from "@/services/gemini.service";
+import { groqService } from "@/services/groq.service";
 import type { Database } from "@/types/database.type";
 import type { UploadContractDocumentDTO } from "@/types/contract.type";
 import {
@@ -544,12 +545,16 @@ ${chunksText}`;
       const responseSchema =
         provider === "groq" ? groqReasoningBatchSchema : reasoningBatchSchema;
 
-      const llmResponse = await llmService.generateCompletion(userPrompt, {
-        provider,
+      const completionOptions = {
         systemInstruction: systemPrompt,
         responseSchema,
         temperature: 0.1,
-      });
+      };
+
+      const llmResponse =
+        provider === "gemini"
+          ? await geminiService.generateCompletion(userPrompt, completionOptions)
+          : await groqService.generateCompletion(userPrompt, completionOptions);
 
       if (llmResponse.success && llmResponse.data) {
         const outputs = this.parseLlmBatchOutput(llmResponse.data.text);

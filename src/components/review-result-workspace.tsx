@@ -50,9 +50,13 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
   return (
     <div className="relative min-h-svh bg-white">
       <div className="grid min-h-svh grid-cols-1 lg:grid-cols-[1fr_480px]">
-        <div className="flex flex-col h-svh max-h-svh border-b border-slate-200 lg:border-r lg:border-b-0 bg-white overflow-hidden">
-          <DocumentHeader fileName={fileName} createdAt={createdAt} isLoading={isLoading} />
+        <div className="flex flex-col h-svh max-h-svh border-b border-slate-200 lg:border-r lg:border-b-0 bg-white">
           <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <DocumentHeader
+              fileName={fileName}
+              createdAt={createdAt}
+              isLoading={isLoading}
+            />
             {isLoading ? (
               <div className="flex flex-col gap-2 px-10 py-15">
                 <Skeleton className="h-4 w-full" />

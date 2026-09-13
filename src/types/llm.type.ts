@@ -151,3 +151,53 @@ export interface LlmChunkOutput {
   legal_reasoning: string;
   recommendation: string;
 }
+
+/**
+ * Streaming event emitted during Gemini interaction streaming.
+ */
+export type GeminiInteractionStreamEvent =
+  | { type: "text_delta"; text: string; index: number }
+  | { type: "thought_delta"; signature?: string; index: number }
+  | { type: "tool_call"; toolCall: GeminiInteractionToolCall; index: number }
+  | { type: "interaction_created"; interactionId: string;}
+  | { type: "status_update"; status: string }
+  | { type: "interaction_completed"; data: GeminiInteraction }
+  | { type: "error"; error: string };
+
+/**
+ * Options for Gemini Interactions API calls.
+ */
+export interface GeminiInteractionOptions {
+  /** Optional previous interaction ID to continue a multi-turn session. */
+  interactionId?: string;
+  /** System instruction or persona guidance for the interaction. */
+  systemInstruction?: string;
+  /** Tool declarations (functions, search, etc.) the model may call. */
+  tools?: unknown[];
+  /** Optional callback invoked on each streaming text chunk. */
+  onChunk?: (textDelta: string) => void;
+  /** Optional callback invoked when a tool call is extracted from stream. */
+  onToolCall?: (toolCall: GeminiInteractionToolCall) => void;
+  /** Optional callback invoked on each raw stream event. */
+  onEvent?: (event: unknown) => void;
+}
+
+/**
+ * Tool call invocation returned by Gemini Interaction.
+ */
+export interface GeminiInteractionToolCall {
+  id?: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export interface GeminiInteraction {
+  text: string;
+  interactionId?: string;
+  toolCalls?: GeminiInteractionToolCall[];
+  status?: string;
+  steps?: unknown[];
+  outputs?: unknown[];
+}
+
+export type GeminiInteractionResponse = BaseResponse<GeminiInteraction>;

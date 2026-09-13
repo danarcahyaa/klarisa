@@ -24,13 +24,13 @@ export class EmbeddingService {
   constructor(private client?: SupabaseClient<Database>) {}
 
   /**
-   * Generates vector embeddings in batches using Google Gemini API (`gemini-embedding-2`).
+   * Generates vector embeddings for chunks in batches using Google Gemini API (`gemini-embedding-2`).
    * Batching prevents HTTP 429 rate limit errors while maintaining original chunk structures.
    *
    * @param input - Data payload containing chunks array and optional batch configuration.
    * @returns BaseResponse containing embedded chunks.
    */
-  async generateEmbeddings<T extends AnyChunkItem>(
+  async generateChunkEmbeddings<T extends AnyChunkItem>(
     input: GenerateEmbeddingInput<T>
   ): Promise<BaseResponse<{ chunks: EmbeddedChunkResult<T>[] }>> {
     try {
@@ -59,7 +59,12 @@ export class EmbeddingService {
         const batch = batches[i];
 
         for (const chunk of batch) {
-          const textToEmbed = "text" in chunk ? chunk.text : chunk.content;
+          const textToEmbed =
+            "search_intent" in chunk
+              ? chunk.search_intent
+              : "text" in chunk
+              ? chunk.text
+              : chunk.content;
           const values = await this.embedContentWithRetry(ai, textToEmbed);
 
           embeddedChunks.push({
@@ -78,7 +83,7 @@ export class EmbeddingService {
         "Embedding berhasil dibuat untuk semua bagian dokumen."
       );
     } catch (error) {
-      console.error("[EmbeddingService.generateEmbeddings] error:", error);
+      console.error("[EmbeddingService.generateChunkEmbeddings] error:", error);
       return createErrorResponse<{ chunks: EmbeddedChunkResult<T>[] }>(
         error instanceof Error
           ? error.message
@@ -145,13 +150,13 @@ export class EmbeddingService {
   }
 
   /**
-   * Performs vector similarity matching against the legal articles repository in Supabase.
+   * Performs vector similarity matching for chunk embeddings against the legal articles repository in Supabase.
    *
    * @param embeddedChunks - Chunks adorned with vector embeddings.
    * @param options         - Similarity search parameters (threshold, count).
    * @returns BaseResponse containing matched regulations for each chunk.
    */
-  async matchEmbeddings<T extends { embedding: number[] }>(
+  async matchChunkEmbeddings<T extends { embedding: number[] }>(
     embeddedChunks: T[],
     options: MatchOptions = {}
   ): Promise<BaseResponse<{ chunks: MatchedChunkResult<T>[] }>> {
@@ -197,7 +202,7 @@ export class EmbeddingService {
         "Pencarian regulasi berhasil dilakukan."
       );
     } catch (error) {
-      console.error("[EmbeddingService.matchEmbeddings] error:", error);
+      console.error("[EmbeddingService.matchChunkEmbeddings] error:", error);
       return createErrorResponse<{ chunks: MatchedChunkResult<T>[] }>(
         error instanceof Error
           ? error.message

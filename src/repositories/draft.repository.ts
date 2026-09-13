@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database, TablesInsert } from "@/types/database.type";
+import type { Database, Json, TablesInsert } from "@/types/database.type";
 import type { ContractDraftRow, ContractRow } from "@/types/contract.type";
 
 export type ContractRecord = ContractRow & {
@@ -249,6 +249,31 @@ export class DraftRepository {
 
   async createDraftVersion(payload: TablesInsert<"document_drafts">) {
     return this.supabase.from("document_drafts").insert(payload).select().single();
+  }
+
+  /**
+   * Saves an AI chat conversation atomically using the save_chat_conversation RPC function.
+   *
+   * @param payload Parameters for saving the chat conversation
+   */
+  async saveChatConversation(payload: {
+    userId: string;
+    question: string;
+    answer: string;
+    chatId?: string | null;
+    title?: string | null;
+    lastInteractionId?: string | null;
+    metadata?: Json | null;
+  }) {
+    return this.supabase.rpc("save_chat_conversation", {
+      p_user_id: payload.userId,
+      p_question: payload.question,
+      p_answer: payload.answer,
+      p_chat_id: payload.chatId ?? null,
+      p_title: payload.title ?? null,
+      p_last_interaction_id: payload.lastInteractionId ?? null,
+      p_metadata: payload.metadata ?? null,
+    });
   }
 }
 

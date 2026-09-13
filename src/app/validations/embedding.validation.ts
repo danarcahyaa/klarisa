@@ -23,6 +23,19 @@ export const documentChunkSchema = z.object({
 });
 
 /**
+ * Validation schema for draft contract clause intent chunk.
+ */
+export const draftClauseChunkSchema = z.object({
+  clause_name: z
+    .string({ message: "Nama klausul (clause_name) harus berupa string." })
+    .trim(),
+  search_intent: z
+    .string({ message: "Search intent (search_intent) harus berupa string." })
+    .trim()
+    .min(1, "Search intent tidak boleh kosong."),
+});
+
+/**
  * Validation schema for contract embedding requests.
  * Supports single string, array of strings, or array of chunk objects via `content` or `chunks`.
  */
@@ -32,7 +45,7 @@ export const generateEmbeddingSchema = z
       .union([
         z.string().trim().min(1, "Konten teks tidak boleh kosong."),
         z.array(z.string().trim().min(1, "Item konten tidak boleh kosong.")).min(1, "Array konten tidak boleh kosong."),
-        z.array(z.union([contractChunkItemSchema, documentChunkSchema])).min(1, "Array chunk tidak boleh kosong."),
+        z.array(z.union([contractChunkItemSchema, documentChunkSchema, draftClauseChunkSchema])).min(1, "Array chunk tidak boleh kosong."),
       ])
       .optional(),
     chunks: z
@@ -41,6 +54,7 @@ export const generateEmbeddingSchema = z
           z.string().trim().min(1, "Chunk tidak boleh kosong."),
           contractChunkItemSchema,
           documentChunkSchema,
+          draftClauseChunkSchema,
         ])
       )
       .min(1, "Array chunk tidak boleh kosong.")

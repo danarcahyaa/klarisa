@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import '../styles/_variables.css';
+@import '../styles/_keyframe-animations.scss';
 @config "../../tailwind.config.ts";
-
+@plugin "@tailwindcss/typography";
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -238,10 +240,20 @@
     outline: none !important;
     border: none !important;
     box-shadow: none !important;
+    font-family: var(--font-dm), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 }
 
 /* Custom Utility Classes for Klarisa LegalTech Platform */
+
+/* Hide scrollbar while keeping scroll functionality */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 
 .doc-paper {
   font-family: "Times New Roman", Times, serif;
@@ -359,24 +371,70 @@
 
 .docx-rendered-content h1, 
 .docx-rendered-content .doc-h1 {
-  font-size: 18px;
+  font-size: 1.5rem;
   font-family: 'Times New Roman', Times, serif;
-  font-weight: 700;
-  margin-bottom: 10px;
+  font-weight: bold;
+  line-height: 1.25;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
   color: #0f172a;
 }
 
 .docx-rendered-content h2, 
 .docx-rendered-content .doc-h2 {
   font-family: 'Times New Roman', Times, serif;
-  font-size: 16px;
-  font-weight: 600;
-  margin-top: 18px;
-  margin-bottom: 8px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 1.333;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
+.docx-rendered-content h3, 
+.docx-rendered-content .doc-h3 {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 1.125rem;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.docx-rendered-content h4, 
+.docx-rendered-content .doc-h4 {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.docx-rendered-content h5, 
+.docx-rendered-content .doc-h5 {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.docx-rendered-content h6, 
+.docx-rendered-content .doc-h6 {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+
 .docx-rendered-content p {
-  margin-bottom: 5px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
   font-family: 'Times New Roman', Times, serif;
   text-align: justify;
 }
@@ -462,4 +520,39 @@ mark.active-highlight {
   box-shadow: none !important;
   --box-shadow: none !important;
   -webkit-box-shadow: none !important;
+}
+
+.tiptap h1 {
+  font-size: 1.5rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap h2 {
+  font-size: 1.25rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap h3 {
+  font-size: 1.125rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap h4 {
+  font-size: 1rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap h5 {
+  font-size: 0.875rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap h6 {
+  font-size: 0.75rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+}
+.tiptap p {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14px;
 }

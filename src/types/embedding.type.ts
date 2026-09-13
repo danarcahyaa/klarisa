@@ -3,9 +3,20 @@ import type { ContractChunkItem } from "./contract-review.type";
 import type { MatchLegalArticleResult } from "./legal.type";
 
 /**
- * Union type representing any chunk structure (new pipeline DocumentChunk or legacy ContractChunkItem).
+ * Chunk structure for AI-generated draft contract clause intents.
  */
-export type AnyChunkItem = DocumentChunk | ContractChunkItem;
+export interface DraftClauseChunk {
+  clause_name: string;
+  search_intent: string;
+}
+
+/**
+ * Union type representing any chunk structure (new pipeline DocumentChunk, legacy ContractChunkItem, or DraftClauseChunk).
+ */
+export type AnyChunkItem =
+  | DocumentChunk
+  | ContractChunkItem
+  | DraftClauseChunk;
 
 /**
  * Input structure for batch embedding generation.

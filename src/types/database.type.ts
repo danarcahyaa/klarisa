@@ -20,6 +20,7 @@ export type Database = {
           chat_id: string
           created_at: string
           id: string
+          metadata: Json | null
           question: string
           updated_at: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           chat_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           question: string
           updated_at?: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           chat_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           question?: string
           updated_at?: string
         }
@@ -53,6 +56,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_interaction_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -60,6 +64,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_interaction_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -67,6 +72,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_interaction_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -644,6 +650,18 @@ export type Database = {
           section_title: string
           similarity: number
         }[]
+      }
+      save_chat_conversation: {
+        Args: {
+          p_answer: string
+          p_chat_id?: string | null
+          p_last_interaction_id?: string | null
+          p_metadata?: Json | null
+          p_question: string
+          p_title?: string | null
+          p_user_id: string
+        }
+        Returns: Json
       }
       upload_contract_review: {
         Args: {

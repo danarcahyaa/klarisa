@@ -39,6 +39,26 @@ export function sanitizeString(value?: string | null): string {
 }
 
 /**
+ * Truncate text to a maximum number of words (defaults to 7 words) for chat titles.
+ *
+ * @param text - The input text or prompt.
+ * @param maxWords - Maximum number of words (default: 7).
+ * @returns Truncated string containing at most maxWords words.
+ */
+export function truncateWords(text?: string | null, maxWords: number = 7): string {
+  if (!text) return "";
+  const cleaned = text.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+
+  const words = cleaned.split(" ");
+  if (words.length <= maxWords) {
+    return cleaned;
+  }
+
+  return words.slice(0, maxWords).join(" ");
+}
+
+/**
  * Remove executable HTML while preserving basic rich-text formatting.
  */
 export function sanitizeContractHtml(html: string): string {
