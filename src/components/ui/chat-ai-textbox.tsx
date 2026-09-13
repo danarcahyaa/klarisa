@@ -99,3 +99,6 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
 )
 
 ChatAiTextbox.displayName = "ChatAiTextbox"
+
+export const AIChatBot = ChatAiTextbox
+

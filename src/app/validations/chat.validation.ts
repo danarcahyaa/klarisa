@@ -54,7 +54,33 @@ export const addConversationSchema = z.object({
     .min(1, "Jawaban wajib diisi."),
 });
 
+/**
+ * Zod schema for validating search and pagination parameters on chat listings.
+ */
+export const searchChatsSchema = z.object({
+  query: z
+    .string()
+    .max(100, "Kata kunci pencarian maksimal 100 karakter.")
+    .optional(),
+  page: z.number().int().min(1, "Halaman minimal 1.").default(1),
+  limit: z.number().int().min(1).max(50, "Batas maksimal 50 per halaman.").default(15),
+});
+
+/**
+ * Zod schema for validating lazy pagination parameters for conversation messages in a chat.
+ */
+export const listConversationsSchema = z.object({
+  chat_id: z
+    .string()
+    .min(1, "ID percakapan wajib diisi.")
+    .uuid("ID percakapan tidak valid."),
+  page: z.number().int().min(1, "Halaman minimal 1.").default(1),
+  limit: z.number().int().min(1).max(50, "Batas maksimal 50 per halaman.").default(15),
+});
+
 export type CreateChatInput = z.infer<typeof createChatSchema>;
 export type CreateChatWithQuestionInput = z.infer<typeof createChatWithQuestionSchema>;
 export type UpdateChatTitleInput = z.infer<typeof updateChatTitleSchema>;
 export type AddConversationInput = z.infer<typeof addConversationSchema>;
+export type SearchChatsInput = z.infer<typeof searchChatsSchema>;
+export type ListConversationsInput = z.infer<typeof listConversationsSchema>;

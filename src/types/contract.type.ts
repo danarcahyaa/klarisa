@@ -126,8 +126,16 @@ export interface UpdateDraftCommentDTO {
 }
 
 export type ContractResponse<T> = BaseResponse<T>;
+
+export interface SaveDraftChatResult {
+  chat_id: string;
+  conversation_id: string;
+  success: boolean;
+}
+
 export type {
   DocumentValidationResult,
   UploadContractDocumentDTO,
 } from "./contract-review.type";
+export type { SaveDraftChatDTO } from "@/app/validations/contract.validation";
 

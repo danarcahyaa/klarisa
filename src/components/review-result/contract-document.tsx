@@ -8,11 +8,12 @@ export type ContractDocumentProps = {
   onSelectFinding?: (findingId: string) => void;
 };
 
-export function ContractDocument({
+/** Read-only view: highlights risky clauses and supports click selection */
+function ContractReadView({
   htmlContent,
   activeFinding,
   onSelectFinding,
-}: ContractDocumentProps) {
+}: Pick<ContractDocumentProps, "htmlContent" | "activeFinding" | "onSelectFinding">) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,8 +43,9 @@ export function ContractDocument({
 
   if (htmlContent) {
     return (
-      <article className="docx-rendered-content w-full p-6 sm:p-10 lg:p-12 font-serif text-justify">
+      <article className="docx-rendered-content w-full p-6 sm:p-10 lg:p-12 font-serif text-sm leading-6 text-slate-800">
         <div
+          className="max-w-4xl mx-auto w-full"
           ref={containerRef}
           onClick={handleClick}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
@@ -68,5 +70,21 @@ export function ContractDocument({
         </p>
       </section>
     </article>
+  );
+}
+
+export function ContractDocument({
+  htmlContent,
+  activeFinding,
+  onSelectFinding,
+}: ContractDocumentProps) {
+  return (
+    <div className="animate-in fade-in duration-200">
+      <ContractReadView
+        htmlContent={htmlContent}
+        activeFinding={activeFinding}
+        onSelectFinding={onSelectFinding}
+      />
+    </div>
   );
 }

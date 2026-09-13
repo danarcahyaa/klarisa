@@ -5,7 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/response";
 import { createChatService } from "@/services/chat.service";
-import type { AddConversationDTO, CreateChatDTO, CreateChatWithQuestionDTO } from "@/types/chat.type";
+import type {
+  AddConversationDTO,
+  CreateChatDTO,
+  CreateChatWithQuestionDTO,
+  ListConversationsDTO,
+  SearchChatsDTO,
+} from "@/types/chat.type";
 
 /**
  * Server action to create a new chat session.
@@ -78,6 +84,31 @@ export async function getUserChatsAction() {
 }
 
 /**
+ * Server action to search and paginate chat sessions belonging to the current user.
+ */
+export async function searchUserChatsAction(params: SearchChatsDTO = {}) {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
+    return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  const chatService = createChatService(createAdminClient());
+  return chatService.searchChats(user.id, params);
+}
+
+/**
+ * Server action to list chat sessions with lazy pagination for the current user.
+ */
+export async function listUserChatsPaginatedAction(params: SearchChatsDTO = {}) {
+  return searchUserChatsAction(params);
+}
+
+/**
  * Server action to fetch detail of a specific chat session with its messages.
  */
 export async function getChatDetailAction(chatId: string) {
@@ -93,6 +124,24 @@ export async function getChatDetailAction(chatId: string) {
 
   const chatService = createChatService(createAdminClient());
   return chatService.getChatDetail(user.id, chatId);
+}
+
+/**
+ * Server action to list conversation messages for a specific chat with lazy pagination.
+ */
+export async function listConversationsAction(params: ListConversationsDTO) {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
+    return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  const chatService = createChatService(createAdminClient());
+  return chatService.listConversations(user.id, params);
 }
 
 /**

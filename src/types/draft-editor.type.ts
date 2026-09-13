@@ -3,7 +3,7 @@ import type { DraftComment, DraftVersionContent } from "@/types/contract.type";
 
 // Status types
 export type SaveStatus = "saved" | "saving" | "error";
-export type SidebarTab = "conversation" | "discussion";
+export type SidebarTab = "klarisa-ai" | "komentar" | "conversation" | "discussion";
 
 // Message types
 export type AiMessage = {

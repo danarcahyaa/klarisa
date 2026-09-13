@@ -11,11 +11,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const { user, service } = context;
-  const recentResult = await service.list(user.id, { type: "draft" });
-  const recentDocuments = (recentResult.data ?? []).slice(0, 3).map((draft) => ({
-    id: draft.id,
-    title: draft.title,
-  }));
+  // const recentResult = await service.list(user.id, { type: "draft" });
+  // const recentDocuments = (recentResult.data ?? []).slice(0, 3).map((draft) => ({
+  //   id: draft.id,
+  //   title: draft.title,
+  // }));
 
   const name =
     user.user_metadata?.full_name ??
@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <DashboardShell
       user={{ name, email: user.email ?? "", initials: initials || "K" }}
-      recentDocuments={recentDocuments}
+      recentDocuments={[]}
     >
       {children}
     </DashboardShell>

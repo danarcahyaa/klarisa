@@ -5,7 +5,7 @@
  * Ensures backward compatibility with @/components/draft-editor imports.
  */
 
-export { DraftEditor } from "@/components/draf/text-editor";
+export { DraftEditor } from "@/components/draf/draft-editor";
 export {
   DRAFT_BACKUP_KEY,
   LEGACY_DRAFT_KEY,

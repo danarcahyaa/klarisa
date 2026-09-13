@@ -1,50 +1,9 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import ChatAI from "@/components/draf/chat-ai/chat-ai";
 
-import { DraftEditor } from "@/components/draft-editor";
-import { DraftOnboarding } from "@/components/draft-onboarding";
-import { getDraftServerContext } from "@/lib/draft-context";
-
-interface CreateContractPageProps {
-  searchParams: Promise<{ id?: string }>;
-}
-
-export default async function CreateContractPage({ searchParams }: CreateContractPageProps) {
-  const { id } = await searchParams;
-  const context = await getDraftServerContext();
-
-  if (!context) {
-    return (
-      <main className="grid min-h-[calc(100svh-57px)] place-items-center px-5">
-        <p className="text-sm font-semibold text-red-500">Sesi Anda telah berakhir.</p>
-      </main>
-    );
-  }
-
-  if (!id) {
-    return <DraftOnboarding />;
-  }
-
-  const result = await context.service.detail(context.user.id, id);
-
-  if (!result.success || !result.data) {
-    return (
-      <main className="grid min-h-[calc(100svh-57px)] place-items-center px-5">
-        <section className="max-w-md text-center">
-          <p className="text-sm font-semibold text-red-500">
-            {result.error ?? "Draft tidak ditemukan."}
-          </p>
-          <Link
-            href="/dashboard/search"
-            className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-klarisa-secondary"
-          >
-            <ArrowLeft className="size-4" />
-            Kembali ke daftar dokumen
-          </Link>
-        </section>
-      </main>
-    );
-  }
-
-  return <DraftEditor initialDraft={result.data} />;
+export default function CreateContractPage() {
+  return (
+    <div className="w-full min-h-svh flex flex-col">
+      <ChatAI />
+    </div>
+  );
 }

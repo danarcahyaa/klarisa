@@ -1,46 +1,32 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
-  addDraftCommentSchema,
   contractQuerySchema,
-  createDraftSchema,
   draftEntityIdSchema,
-  draftVersionIdSchema,
-  inviteDraftCollaboratorSchema,
-  saveDraftSchema,
-  updateDraftCollaboratorSchema,
-  updateDraftCommentSchema,
+  saveDraftChatSchema,
+  type SaveDraftChatDTO,
 } from "@/app/validations/contract.validation";
-import {
-  decryptContractContent,
-  encryptContractContent,
-} from "@/lib/contract-encryption";
+import { decryptContractContent } from "@/lib/contract-encryption";
 import {
   createErrorResponse,
   createSuccessResponse,
   mapSupabaseError,
 } from "@/lib/response";
-import { sanitizeContractHtml } from "@/lib/utils";
 import { DEFAULT_DRAFT_CONTENT } from "@/lib/draft-template";
 import {
   DraftRepository,
   type ContractRecord,
 } from "@/repositories/draft.repository";
 import type {
-  AddDraftCommentDTO,
   ContractDetail,
   ContractListItem,
   ContractQuery,
-  CreateDraftDTO,
-  DraftCollaborator,
-  DraftComment,
-  DraftVersionContent,
-  InviteDraftCollaboratorDTO,
-  SaveDraftDTO,
-  UpdateDraftCollaboratorDTO,
-  UpdateDraftCommentDTO,
+  SaveDraftChatResult,
 } from "@/types/contract.type";
-import type { Database } from "@/types/database.type";
+import type { Database, Json } from "@/types/database.type";
+import type { BaseResponse } from "@/types/response.type";
 import { createClient } from "@/lib/supabase/client";
 import {
   mapCollaborator,
@@ -51,6 +37,12 @@ import {
   type DraftCollaboratorRecord,
   type DraftCommentRecord,
 } from "./draft-mapper";
+import type {
+  GeminiInteractionOptions,
+  GeminiInteractionResponse,
+} from "@/types/llm.type";
+import { GeminiService, geminiService as defaultGeminiService } from "./gemini.service";
+import { EXTRACT_CONTRACT_CLAUSE } from "@/lib/gemini/tools";
 
 /**
  * Service orchestrating business logic for draft management,
@@ -59,13 +51,20 @@ import {
 export class DraftService {
   constructor(
     private readonly repository: DraftRepository = new DraftRepository(createClient()),
+    private readonly geminiService: GeminiService = defaultGeminiService,
   ) {}
 
   withClient(client: SupabaseClient<Database>) {
-    return new DraftService(new DraftRepository(client));
+    return new DraftService(new DraftRepository(client), this.geminiService);
   }
 
-  async getDraftList(userId: string, input?: ContractQuery) {
+  /**
+   * Retrieves all contracts and drafts for a user, with optional filtering.
+   */
+  async getDraftList(
+    userId: string,
+    input?: ContractQuery,
+  ): Promise<BaseResponse<ContractListItem[]>> {
     const queryValidation = contractQuerySchema.safeParse(input ?? {});
     if (!queryValidation.success) {
       return createErrorResponse<ContractListItem[]>(
@@ -80,7 +79,128 @@ export class DraftService {
       );
     }
 
-    return createSuccessResponse((result.data ?? []).map(mapListItem));
+    let items = (result.data ?? []).map(mapListItem);
+
+    if (queryValidation.data.type) {
+      items = items.filter((item) => item.type === queryValidation.data.type);
+    }
+    if (queryValidation.data.shared !== undefined) {
+      items = items.filter(
+        (item) => Boolean(item.metadata?.shared) === queryValidation.data.shared,
+      );
+    }
+    if (queryValidation.data.query && queryValidation.data.query.trim().length > 0) {
+      const q = queryValidation.data.query.trim().toLowerCase();
+      items = items.filter((item) => item.title.toLowerCase().includes(q));
+    }
+
+    return createSuccessResponse(items, "Daftar dokumen berhasil dimuat.");
+  }
+
+  /**
+   * Alias for getDraftList — used by search page, shared page, and dashboard.
+   */
+  async list(
+    userId: string,
+    query?: ContractQuery,
+  ): Promise<BaseResponse<ContractListItem[]>> {
+    return this.getDraftList(userId, query);
+  }
+
+  async generateDraft(
+    prompt: string,
+    options?: GeminiInteractionOptions,
+  ): Promise<GeminiInteractionResponse> {
+    try {
+      const firstTurn = await this.initialTurn(prompt, options);
+      if (firstTurn.error) return createErrorResponse(firstTurn.error);
+      if (!firstTurn || !firstTurn.data) {
+        return createSuccessResponse({
+          text: "",
+          interactionId: "",
+          model: "",
+          toolCalls: [],
+          status: "",
+          steps: [],
+          outputs: [],
+        });
+      }
+
+      return createSuccessResponse(firstTurn.data);
+    } catch (error) {
+      console.error("[Draft Service] Error generating draft:", error);
+      return createErrorResponse("Gagal membuat draft.");
+    }
+  }
+
+  async *streamDraft(
+    prompt: string,
+    options?: GeminiInteractionOptions
+  ) {
+    const systemPrompt = await this.buildSystemPrompt();
+    yield* this.geminiService.streamInteractions(prompt, {
+      ...options,
+      tools: [EXTRACT_CONTRACT_CLAUSE],
+      systemInstruction: systemPrompt,
+    });
+  }
+
+  /**
+   * Saves an AI chat question and response atomically using RPC.
+   *
+   * @param userId - ID of the authenticated user.
+   * @param payload - The chat question, answer, and optional session data.
+   * @returns BaseResponse containing the chat_id, conversation_id, and success status.
+   */
+  async saveAiChat(
+    userId: string,
+    payload: SaveDraftChatDTO
+  ): Promise<BaseResponse<SaveDraftChatResult>> {
+    try {
+      const validation = saveDraftChatSchema.safeParse(payload);
+      if (!validation.success) {
+        return createErrorResponse<SaveDraftChatResult>(
+          validation.error.issues[0]?.message ?? "Data percakapan tidak valid."
+        );
+      }
+
+      const { question, answer, chatId, title, lastInteractionId, metadata } =
+        validation.data;
+
+      const result = await this.repository.saveChatConversation({
+        userId,
+        question: question.trim(),
+        answer: answer.trim(),
+        chatId: chatId ?? null,
+        title: title?.trim() || null,
+        lastInteractionId: lastInteractionId?.trim() || null,
+        metadata: (metadata as Json) ?? null,
+      });
+
+      if (result.error) {
+        console.error("[DraftService] Error saving AI chat conversation:", result.error);
+        return createErrorResponse<SaveDraftChatResult>(
+          mapSupabaseError(result.error.message)
+        );
+      }
+
+      if (!result.data) {
+        return createErrorResponse<SaveDraftChatResult>(
+          "Gagal menyimpan percakapan AI."
+        );
+      }
+
+      const responseData = result.data as unknown as SaveDraftChatResult;
+      return createSuccessResponse<SaveDraftChatResult>(
+        responseData,
+        "Percakapan berhasil disimpan."
+      );
+    } catch (error) {
+      console.error("[DraftService] Unexpected error in saveAiChat:", error);
+      return createErrorResponse<SaveDraftChatResult>(
+        "Terjadi kesalahan saat menyimpan percakapan."
+      );
+    }
   }
 
   async getDraftDetail(userId: string, contractId: string) {
@@ -190,517 +310,50 @@ export class DraftService {
     return createSuccessResponse(detail);
   }
 
-  async createDraft(userId: string, input: CreateDraftDTO) {
-    const validation = createDraftSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<{ id: string }>(
-        validation.error.issues[0]?.message ?? "Data draft tidak valid.",
-      );
-    }
+  private async buildSystemPrompt() {
+    return `Kamu adalah asisten penyusun draf kontrak hukum di Indonesia.
 
-    const created = await this.repository.createContract({
-      user_id: userId,
-      title: validation.data.title || "Draft Baru",
-      type: "draft",
-    });
+ATURAN PERILAKU & FORMAT RESPONS:
 
-    if (created.error || !created.data) {
-      return createErrorResponse<{ id: string }>(
-        mapSupabaseError(created.error?.message ?? "Gagal membuat draft baru."),
-      );
-    }
+1. KETIKA PENGGUNA MEMINTA MEMBUAT ATAU MENYUSUN DRAF KONTRAK:
+   - Jika input berkaitan dengan pembuatan, penyesuaian, analisis, atau penyusunan draf kontrak/perjanjian:
+   - Panggil fungsi tool "extract_contract_clauses".
+   - Identifikasi jenis kontrak ("contract_type") dan pasal-pasal esensial ("clauses") sesuai hukum Indonesia (seperti Wanprestasi, Force Majeure, Hak & Kewajiban, Jangka Waktu, Kompensasi, Penyelesaian Sengketa, Domisili Hukum, dsb.).
+   - Untuk setiap pasal, susun "semantic_query" singkat mengenai maksud substansi hukumnya.
+   - JANGAN menulis isi lengkap kontrak pada tahap ini, cukup panggil fungsi "extract_contract_clauses".
 
-    return createSuccessResponse(
-      { id: created.data.id },
-      "Draft baru berhasil dibuat.",
-    );
+2. KETIKA PENGGUNA BERTANYA, MENYAPA, ATAU MEMINTA KLARIFIKASI:
+   - Jika pengguna memberikan sapaan ("Halo", "Selamat pagi"), pertanyaan seputar substansi kontrak, atau permintaannya masih belum jelas mengenai detail kontrak:
+   - Jawablah LANGSUNG menggunakan teks percakapan biasa secara singkat, wajar, dan sopan dalam Bahasa Indonesia (tanpa memanggil tool).
+
+3. KETIKA PERMINTAAN DI LUAR LINGKUP HUKUM KONTRAK:
+   - Jika pengguna mengajukan pertanyaan atau permintaan di luar lingkup penyusunan kontrak (seperti pengetahuan umum, sains, teknologi umum, sejarah, dsb.):
+   - Jawablah secara singkat dan sopan (cukup 1-2 kalimat) bahwa kamu hanya dapat membantu dalam penyusunan draf kontrak hukum.
+   - DILARANG menjawab atau mengulas substansi pertanyaan di luar topik tersebut (contoh: jangan menjelaskan siapa penemu bola lampu atau sejarahnya).
+   - DILARANG menyebutkan atau mendaftar contoh jenis-jenis kontrak (jangan sebutkan contoh seperti PKWT, sewa-menyewa, jual beli, MOU, dsb.).
+   - DILARANG menggunakan istilah atau gelar berbahasa Inggris yang berlebihan seperti "Indonesian Contract Drafting Architect". Gunakan bahasa Indonesia yang wajar dan sederhana.`;
   }
 
-  async saveDraft(userId: string, contractId: string, input: SaveDraftDTO) {
-    const idValidation = draftEntityIdSchema.safeParse(contractId);
-    if (!idValidation.success) {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        idValidation.error.issues[0]?.message ?? "Draft tidak valid.",
-      );
-    }
-
-    const validation = saveDraftSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        validation.error.issues[0]?.message ?? "Isi draft tidak valid.",
-      );
-    }
-
-    const current = await this.repository.findDraftById(contractId);
-    if (current.error || !current.data) {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        "Draft tidak ditemukan.",
-      );
-    }
-
-    if (current.data.user_id !== userId) {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        "Anda tidak memiliki izin untuk menyimpan perubahan draft.",
-      );
-    }
-
-    const sanitizedHtml = sanitizeContractHtml(validation.data.content);
-
-    let encryptedContent = "";
+  async initialTurn(input: string, options?: GeminiInteractionOptions) {
     try {
-      encryptedContent = await encryptContractContent(sanitizedHtml);
-    } catch {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        "Gagal mengamankan isi draft.",
-      );
-    }
-
-    const currentMeta = metadataOf(
-      (current.data as ContractRecord).contract_draft?.metadata,
-    );
-    let activeVersionId = currentMeta.active_version_id || "";
-    let versionNumber = Number(currentMeta.version ?? 1);
-
-    if (validation.data.createVersion || !activeVersionId) {
-      versionNumber = validation.data.createVersion
-        ? versionNumber + 1
-        : Math.max(1, versionNumber);
-
-      const createdVersion = await this.repository.createDraftVersion({
-        document_id: contractId,
-        created_by: userId,
-        title: validation.data.title,
-        body: encryptedContent,
-        version: versionNumber,
+      const systemPrompt = await this.buildSystemPrompt();
+      const firstTurn = await this.geminiService.interactions(input, {
+        ...options,
+        tools: [EXTRACT_CONTRACT_CLAUSE],
+        systemInstruction: systemPrompt,
       });
 
-      if (createdVersion.error || !createdVersion.data) {
-        return createErrorResponse<{ activeVersionId: string; version: number }>(
-          mapSupabaseError(
-            createdVersion.error?.message ?? "Gagal menyimpan versi draft.",
-          ),
-        );
+      if (firstTurn.error) {
+        throw new Error(firstTurn.error);
       }
-      activeVersionId = createdVersion.data.id;
+
+      return firstTurn;
+    } catch (error) {
+      console.error("[DraftService] Error generating initial draft:", error);
+      throw error;
     }
-
-    const updated = await this.repository.updateDraftMetadata(contractId, {
-      ...currentMeta,
-      version: versionNumber,
-      active_version_id: activeVersionId,
-    });
-
-    if (updated.error) {
-      return createErrorResponse<{ activeVersionId: string; version: number }>(
-        mapSupabaseError(updated.error.message),
-      );
-    }
-
-    return createSuccessResponse(
-      { activeVersionId, version: versionNumber },
-      validation.data.createVersion
-        ? `Versi ${String(versionNumber).padStart(2, "0")} tersimpan.`
-        : "Perubahan draft disimpan.",
-    );
-  }
-
-  async deleteDraft(userId: string, contractId: string) {
-    const idValidation = draftEntityIdSchema.safeParse(contractId);
-    if (!idValidation.success) {
-      return createErrorResponse<{ id: string }>(
-        idValidation.error.issues[0]?.message ?? "Draft tidak valid.",
-      );
-    }
-
-    const result = await this.repository.deleteContract(userId, contractId);
-    if (result.error) {
-      return createErrorResponse<{ id: string }>(
-        mapSupabaseError(result.error.message),
-      );
-    }
-
-    return createSuccessResponse({ id: contractId }, "Draft berhasil dihapus.");
-  }
-
-  async getDraftVersion(userId: string, contractId: string, versionId: string) {
-    const idValidation = draftVersionIdSchema.safeParse(versionId);
-    if (!idValidation.success) {
-      return createErrorResponse<DraftVersionContent>(
-        idValidation.error.issues[0]?.message ?? "Versi draft tidak valid.",
-      );
-    }
-
-    const versionResult = await this.repository.findDraftVersion(
-      contractId,
-      versionId,
-    );
-    if (versionResult.error || !versionResult.data) {
-      return createErrorResponse<DraftVersionContent>(
-        mapSupabaseError(
-          versionResult.error?.message ?? "Versi draft tidak ditemukan.",
-        ),
-      );
-    }
-
-    let content = DEFAULT_DRAFT_CONTENT;
-    if (versionResult.data.body) {
-      try {
-        content = await decryptContractContent(versionResult.data.body);
-      } catch {
-        return createErrorResponse<DraftVersionContent>(
-          "Gagal dekripsi isi versi draft.",
-        );
-      }
-    }
-
-    return createSuccessResponse({
-      id: versionResult.data.id,
-      title: versionResult.data.title,
-      version: versionResult.data.version,
-      createdAt: versionResult.data.created_at,
-      createdBy: versionResult.data.created_by,
-      content,
-    });
-  }
-
-  async restoreDraftVersion(
-    userId: string,
-    contractId: string,
-    versionId: string,
-  ) {
-    const versionResult = await this.getDraftVersion(
-      userId,
-      contractId,
-      versionId,
-    );
-    if (!versionResult.success || !versionResult.data) {
-      return createErrorResponse<DraftVersionContent>(
-        versionResult.error ?? "Versi draft tidak ditemukan.",
-      );
-    }
-
-    const saveResult = await this.saveDraft(userId, contractId, {
-      title: versionResult.data.title,
-      content: versionResult.data.content,
-      createVersion: true,
-    });
-
-    if (!saveResult.success) {
-      return createErrorResponse<DraftVersionContent>(
-        saveResult.error ?? "Gagal memulihkan versi draft.",
-      );
-    }
-
-    return createSuccessResponse(
-      versionResult.data,
-      "Versi berhasil dipulihkan.",
-    );
-  }
-
-  async inviteCollaborator(
-    userId: string,
-    contractId: string,
-    input: InviteDraftCollaboratorDTO,
-  ) {
-    const validation = inviteDraftCollaboratorSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<DraftCollaborator>(
-        validation.error.issues[0]?.message ?? "Email tidak valid.",
-      );
-    }
-
-    const targetUser = await this.repository.findAuthUserByEmail(
-      validation.data.email,
-    );
-    if (targetUser.error || !targetUser.data) {
-      return createErrorResponse<DraftCollaborator>(
-        "Pengguna dengan email tersebut tidak ditemukan.",
-      );
-    }
-
-    const result = await this.repository.upsertCollaborator({
-      contract_id: contractId,
-      user_id: targetUser.data.id,
-      invited_by: userId,
-      role: "commenter",
-    });
-
-    if (result.error || !result.data) {
-      return createErrorResponse<DraftCollaborator>(
-        mapSupabaseError(result.error?.message ?? "Gagal menambahkan pihak terkait."),
-      );
-    }
-
-    return createSuccessResponse(
-      mapCollaborator(result.data as DraftCollaboratorRecord),
-      "Pihak terkait berhasil ditambahkan.",
-    );
-  }
-
-  async updateCollaboratorRole(
-    userId: string,
-    contractId: string,
-    input: UpdateDraftCollaboratorDTO,
-  ) {
-    const validation = updateDraftCollaboratorSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<DraftCollaborator>(
-        validation.error.issues[0]?.message ?? "Data pihak terkait tidak valid.",
-      );
-    }
-
-    const result = await this.repository.updateCollaboratorRole(
-      contractId,
-      validation.data.userId,
-      validation.data.role,
-    );
-
-    if (result.error || !result.data) {
-      return createErrorResponse<DraftCollaborator>(
-        mapSupabaseError(result.error?.message ?? "Gagal memperbarui akses."),
-      );
-    }
-
-    return createSuccessResponse(
-      mapCollaborator(result.data as DraftCollaboratorRecord),
-      "Peran pihak terkait berhasil diperbarui.",
-    );
-  }
-
-  async removeCollaborator(
-    userId: string,
-    contractId: string,
-    targetUserId: string,
-  ) {
-    const idValidation = draftEntityIdSchema.safeParse(targetUserId);
-    if (!idValidation.success) {
-      return createErrorResponse<{ userId: string; shared: boolean }>(
-        idValidation.error.issues[0]?.message ?? "Pengguna tidak valid.",
-      );
-    }
-
-    const result = await this.repository.deleteCollaborator(
-      contractId,
-      idValidation.data,
-    );
-    if (result.error) {
-      return createErrorResponse<{ userId: string; shared: boolean }>(
-        mapSupabaseError(result.error.message),
-      );
-    }
-
-    const remaining = await this.repository.listCollaborators(contractId);
-    const isShared = (remaining.data?.length ?? 0) > 0;
-
-    return createSuccessResponse(
-      { userId: idValidation.data, shared: isShared },
-      "Akses pihak terkait dicabut.",
-    );
-  }
-
-  async addComment(
-    userId: string,
-    contractId: string,
-    input: AddDraftCommentDTO,
-  ) {
-    const validation = addDraftCommentSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<DraftComment>(
-        validation.error.issues[0]?.message ?? "Komentar tidak valid.",
-      );
-    }
-
-    const current = await this.repository.findDraftById(contractId);
-    if (current.error || !current.data) {
-      return createErrorResponse<DraftComment>("Draft tidak ditemukan.");
-    }
-
-    const currentMetadata = metadataOf(
-      (current.data as ContractRecord).contract_draft?.metadata,
-    );
-    const activeVersionId = currentMetadata.active_version_id;
-
-    const result = await this.repository.createComment({
-      contract_id: contractId,
-      author_id: userId,
-      comment: validation.data.body,
-      parent_id: validation.data.parentId ?? null,
-      metadata: {
-        document_version_id: activeVersionId ?? null,
-        selected_text: validation.data.selectedText ?? null,
-        resolved_at: null,
-        resolved_by: null,
-      },
-    });
-
-    if (result.error || !result.data) {
-      return createErrorResponse<DraftComment>(
-        mapSupabaseError(result.error?.message ?? "Komentar gagal dikirim."),
-      );
-    }
-
-    return createSuccessResponse(
-      mapComment(result.data as DraftCommentRecord, userId),
-      "Komentar berhasil dikirim.",
-    );
-  }
-
-  async deleteComment(userId: string, contractId: string, commentId: string) {
-    const idValidation = draftEntityIdSchema.safeParse(commentId);
-    if (!idValidation.success) {
-      return createErrorResponse<{ id: string }>(
-        idValidation.error.issues[0]?.message ?? "Komentar tidak valid.",
-      );
-    }
-
-    const result = await this.repository.deleteComment(contractId, commentId);
-    if (result.error) {
-      return createErrorResponse<{ id: string }>(
-        mapSupabaseError(result.error.message),
-      );
-    }
-
-    return createSuccessResponse({ id: commentId }, "Komentar dihapus.");
-  }
-
-  async updateComment(
-    userId: string,
-    contractId: string,
-    commentId: string,
-    input: UpdateDraftCommentDTO,
-  ) {
-    const idValidation = draftEntityIdSchema.safeParse(commentId);
-    if (!idValidation.success) {
-      return createErrorResponse<DraftComment>(
-        idValidation.error.issues[0]?.message ?? "Komentar tidak valid.",
-      );
-    }
-
-    const validation = updateDraftCommentSchema.safeParse(input);
-    if (!validation.success) {
-      return createErrorResponse<DraftComment>(
-        validation.error.issues[0]?.message ?? "Komentar tidak valid.",
-      );
-    }
-
-    const result = await this.repository.updateComment(
-      contractId,
-      commentId,
-      validation.data.body,
-    );
-    if (result.error || !result.data) {
-      return createErrorResponse<DraftComment>(
-        mapSupabaseError(result.error?.message ?? "Gagal mengedit komentar."),
-      );
-    }
-
-    return createSuccessResponse(
-      mapComment(result.data as DraftCommentRecord, userId),
-      "Komentar diperbarui.",
-    );
-  }
-
-  async setCommentResolved(
-    userId: string,
-    contractId: string,
-    commentId: string,
-    isResolved: boolean,
-  ) {
-    const idValidation = draftEntityIdSchema.safeParse(commentId);
-    if (!idValidation.success) {
-      return createErrorResponse<DraftComment>(
-        idValidation.error.issues[0]?.message ?? "Komentar tidak valid.",
-      );
-    }
-
-    const resolvedAt = isResolved ? new Date().toISOString() : null;
-    const resolvedBy = isResolved ? userId : null;
-
-    const result = await this.repository.setCommentResolved(
-      contractId,
-      commentId,
-      resolvedAt,
-      resolvedBy,
-    );
-    if (result.error) {
-      return createErrorResponse<DraftComment>(
-        mapSupabaseError(result.error.message),
-      );
-    }
-
-    const commentRecord = await this.repository.findComment(
-      contractId,
-      commentId,
-    );
-    if (commentRecord.error || !commentRecord.data) {
-      return createErrorResponse<DraftComment>("Komentar tidak ditemukan.");
-    }
-
-    return createSuccessResponse(
-      mapComment(commentRecord.data as DraftCommentRecord, userId),
-      isResolved ? "Komentar ditandai selesai." : "Komentar dibuka kembali.",
-    );
-  }
-
-  /**
-   * Alias for getDraftList — used by dashboard page and layout.
-   */
-  async list(userId: string, query?: ContractQuery) {
-    return this.getDraftList(userId, query);
-  }
-
-  /**
-   * Alias for getDraftDetail — used by create page.
-   */
-  async detail(userId: string, contractId: string) {
-    return this.getDraftDetail(userId, contractId);
-  }
-
-  /**
-   * Marks a draft as shared by updating its metadata flag.
-   * Used by shareDraftAction in draft.action.ts.
-   */
-  async shareDraft(userId: string, contractId: string) {
-    const idValidation = draftEntityIdSchema.safeParse(contractId);
-    if (!idValidation.success) {
-      return createErrorResponse<{ status: "shared" }>(
-        idValidation.error.issues[0]?.message ?? "Draft tidak valid.",
-      );
-    }
-
-    const current = await this.repository.findDraftById(contractId);
-    if (current.error || !current.data) {
-      return createErrorResponse<{ status: "shared" }>("Draft tidak ditemukan.");
-    }
-
-    if ((current.data as ContractRecord).user_id !== userId) {
-      return createErrorResponse<{ status: "shared" }>(
-        "Anda tidak memiliki izin untuk membagikan draft ini.",
-      );
-    }
-
-    const currentMeta = metadataOf(
-      (current.data as ContractRecord).contract_draft?.metadata,
-    );
-    const updatedMeta = { ...currentMeta, shared: true };
-
-    const updateResult = await this.repository.updateDraftMeta(
-      contractId,
-      updatedMeta,
-    );
-    if (updateResult.error) {
-      return createErrorResponse<{ status: "shared" }>(
-        mapSupabaseError(updateResult.error.message),
-      );
-    }
-
-    return createSuccessResponse(
-      { status: "shared" as const },
-      "Draft berhasil dibagikan.",
-    );
   }
 }
-
 
 export const draftService = new DraftService();
 

@@ -5,9 +5,12 @@ import {
   addConversationSchema,
   createChatSchema,
   createChatWithQuestionSchema,
+  listConversationsSchema,
+  searchChatsSchema,
   updateChatTitleSchema,
 } from "@/app/validations/chat.validation";
 import { createErrorResponse, createSuccessResponse, mapSupabaseError } from "@/lib/response";
+import { sanitizeString, truncateWords } from "@/lib/utils";
 import type {
   AddConversationDTO,
   ChatConversationRow,
@@ -16,6 +19,10 @@ import type {
   ChatWithConversations,
   CreateChatDTO,
   CreateChatWithQuestionDTO,
+  ListConversationsDTO,
+  PaginatedChatsData,
+  PaginatedConversationsData,
+  SearchChatsDTO,
 } from "@/types/chat.type";
 
 export class ChatService {
@@ -23,13 +30,14 @@ export class ChatService {
 
   /**
    * Helper function to derive a chat title from explicit title input or the first user question.
+   * Limits automatically generated titles to a maximum of 7 words.
    */
   private deriveTitle(title?: string, question?: string): string {
     if (title && title.trim().length > 0) {
-      return title.trim().slice(0, 255);
+      return truncateWords(title, 7);
     }
     if (question && question.trim().length > 0) {
-      return question.trim().slice(0, 100);
+      return truncateWords(question, 7);
     }
     return "Percakapan Baru";
   }
@@ -121,25 +129,154 @@ export class ChatService {
   }
 
   /**
-   * Retrieve a specific chat session with its full message history.
+   * Search and paginate chat sessions for an authenticated user.
    */
-  async getChatDetail(userId: string, chatId: string): Promise<ChatResponse<ChatWithConversations>> {
-    if (!chatId) {
-      return createErrorResponse("ID percakapan tidak valid.");
+  async searchChats(
+    userId: string,
+    params: SearchChatsDTO
+  ): Promise<ChatResponse<PaginatedChatsData>> {
+    const validation = searchChatsSchema.safeParse(params);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Parameter pencarian tidak valid.";
+      return createErrorResponse(firstError);
     }
 
-    const { data, error } = await this.repo.findChatById(userId, chatId);
+    const { query, page, limit } = validation.data;
+    const sanitizedQuery = query ? sanitizeString(query) : undefined;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await this.repo.searchChatsByUser(userId, {
+      query: sanitizedQuery,
+      from,
+      to,
+    });
+
     if (error) {
       return createErrorResponse(mapSupabaseError(error.message));
     }
 
-    if (!data) {
+    const total = count ?? 0;
+    const hasMore = total > to + 1;
+
+    return createSuccessResponse(
+      {
+        chats: (data as ChatRow[]) || [],
+        total,
+        page,
+        limit,
+        hasMore,
+      },
+      "Daftar percakapan berhasil dimuat."
+    );
+  }
+
+  /**
+   * List paginated chat sessions for an authenticated user with lazy pagination.
+   */
+  async listChatsPaginated(
+    userId: string,
+    params: SearchChatsDTO = {}
+  ): Promise<ChatResponse<PaginatedChatsData>> {
+    return this.searchChats(userId, params);
+  }
+
+  /**
+   * Retrieve a specific chat session with its initial lazy-paginated message history.
+   */
+  async getChatDetail(
+    userId: string,
+    chatId: string,
+    limit = 15
+  ): Promise<ChatResponse<ChatWithConversations>> {
+    if (!chatId) {
+      return createErrorResponse("ID percakapan tidak valid.");
+    }
+
+    const { data: chatData, error: chatError } = await this.repo.findChatById(userId, chatId);
+    if (chatError) {
+      return createErrorResponse(mapSupabaseError(chatError.message));
+    }
+
+    if (!chatData) {
       return createErrorResponse("Percakapan tidak ditemukan atau Anda tidak memiliki akses.");
     }
 
+    // Retrieve initial page of conversations (latest conversations first, sorted chronologically)
+    const { data: convData, count, error: convError } =
+      await this.repo.listPaginatedConversationsByChatId(chatId, {
+        from: 0,
+        to: limit - 1,
+        ascending: false,
+      });
+
+    if (convError) {
+      return createErrorResponse(mapSupabaseError(convError.message));
+    }
+
+    const total = count ?? 0;
+    const hasMore = total > limit;
+    // Reverse slice so the retrieved window is presented chronologically (earlier to later)
+    const chronologicalConversations = ((convData || []) as ChatConversationRow[]).slice().reverse();
+
+    const result: ChatWithConversations = {
+      ...chatData,
+      chat_conversations: chronologicalConversations,
+      hasMoreConversations: hasMore,
+      totalConversations: total,
+    };
+
+    return createSuccessResponse(result, "Detail percakapan berhasil dimuat.");
+  }
+
+  /**
+   * List paginated conversation entries for a specific chat thread with lazy pagination.
+   */
+  async listConversations(
+    userId: string,
+    params: ListConversationsDTO
+  ): Promise<ChatResponse<PaginatedConversationsData>> {
+    const validation = listConversationsSchema.safeParse(params);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Parameter percakapan tidak valid.";
+      return createErrorResponse(firstError);
+    }
+
+    const { chat_id, page, limit } = validation.data;
+
+    // Verify chat ownership
+    const { data: chat, error: chatError } = await this.repo.findChatById(userId, chat_id);
+    if (chatError || !chat) {
+      return createErrorResponse("Percakapan tidak ditemukan atau Anda tidak memiliki akses.");
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await this.repo.listPaginatedConversationsByChatId(chat_id, {
+      from,
+      to,
+      ascending: false,
+    });
+
+    if (error) {
+      return createErrorResponse(mapSupabaseError(error.message));
+    }
+
+    const total = count ?? 0;
+    const hasMore = total > to + 1;
+    // Reverse slice so the retrieved window is presented chronologically (earlier to later)
+    const chronologicalConversations = ((data || []) as ChatConversationRow[]).slice().reverse();
+
     return createSuccessResponse(
-      data as ChatWithConversations,
-      "Detail percakapan berhasil dimuat."
+      {
+        conversations: chronologicalConversations,
+        total,
+        page,
+        limit,
+        hasMore,
+      },
+      "Daftar pesan percakapan berhasil dimuat."
     );
   }
 

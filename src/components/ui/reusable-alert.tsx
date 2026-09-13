@@ -84,9 +84,9 @@ export const ReusableAlert = React.forwardRef<HTMLDivElement, ReusableAlertProps
         {iconElement && <div className="shrink-0 mt-0.5">{iconElement}</div>}
 
         <div className="flex-1 min-w-0">
-          {title && <AlertTitle className="font-bold text-sm">{title}</AlertTitle>}
+          {title && <AlertTitle className="font-medium text-sm">{title}</AlertTitle>}
           {content && (
-            <AlertDescription className="text-xs leading-relaxed opacity-90">
+            <AlertDescription className="text-xs leading-relaxed opacity-80">
               {content}
             </AlertDescription>
           )}
