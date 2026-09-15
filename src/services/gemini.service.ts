@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 import { createErrorResponse, createSuccessResponse } from "@/lib/response";
+import { formatLimitationErrorMessage, isLimitationError } from "@/lib/utils";
 import type {
   GeminiInteraction,
   GeminiInteractionOptions,
@@ -114,16 +115,15 @@ export class GeminiService {
       throw lastError;
     } catch (error) {
       const rawErrorMsg = error instanceof Error ? error.message : String(error);
-      let userFriendlyMessage = "Gagal memproses permintaan LLM dengan provider gemini.";
+      const lowerError = rawErrorMsg.toLowerCase();
+      let userFriendlyMessage = "Gagal memproses permintaan.";
 
-      if (rawErrorMsg.includes("503") || rawErrorMsg.includes("high demand") || rawErrorMsg.includes("UNAVAILABLE")) {
-        userFriendlyMessage = "Layanan server AI sedang mengalami beban lonjakan tinggi sementara. Silakan coba beberapa saat lagi.";
-      } else if (rawErrorMsg.includes("429") || rawErrorMsg.includes("RESOURCE_EXHAUSTED") || rawErrorMsg.includes("rate_limit")) {
-        userFriendlyMessage = "Batas penggunaan API (rate limit) telah tercapai. Silakan tunggu sejenak dan coba kembali.";
-      } else if (rawErrorMsg.includes("API key") || rawErrorMsg.includes("GEMINI_API_KEY")) {
-        userFriendlyMessage = "Konfigurasi kunci API (API Key) AI belum sesuai. Harap periksa pengaturan lingkungan.";
-      } else if (rawErrorMsg) {
-        userFriendlyMessage = rawErrorMsg;
+      if (isLimitationError(rawErrorMsg)) {
+        userFriendlyMessage = formatLimitationErrorMessage(rawErrorMsg);
+      } else if (lowerError.includes("api key") || lowerError.includes("gemini_api_key")) {
+        userFriendlyMessage = "Layanan sedang tidak dapat diakses saat ini.";
+      } else {
+        userFriendlyMessage = "Terjadi kendala saat memproses permintaan. Coba lagi nanti.";
       }
 
       console.error("[GeminiService] Generation failed for provider gemini:", error);
@@ -163,7 +163,25 @@ export class GeminiService {
         payload.tools = tools;
       }
 
-      const response = await ai.interactions.create(payload as any);
+      let response;
+      try {
+        response = await ai.interactions.create(payload as any);
+      } catch (err: unknown) {
+        const errStr = String(err);
+        // If previous_interaction_id is expired or not found on Google's backend (404), retry as a fresh interaction
+        if (
+          payload.previous_interaction_id &&
+          (errStr.includes("404") || errStr.includes("not_found") || errStr.includes("Requested entity was not found"))
+        ) {
+          console.warn(
+            `[GeminiService] previous_interaction_id "${payload.previous_interaction_id}" not found on Google servers (expired). Retrying as fresh interaction...`
+          );
+          delete payload.previous_interaction_id;
+          response = await ai.interactions.create(payload as any);
+        } else {
+          throw err;
+        }
+      }
 
       const stepList = Array.isArray(response.steps) ? response.steps : [];
       const toolCalls: GeminiInteractionToolCall[] = [];
@@ -246,17 +264,15 @@ export class GeminiService {
    */
   private mapGeminiInteractionError(error: unknown): string {
     const rawErrorMsg = error instanceof Error ? error.message : String(error);
+    const lowerError = rawErrorMsg.toLowerCase();
 
-    if (rawErrorMsg.includes("503") || rawErrorMsg.includes("high demand") || rawErrorMsg.includes("UNAVAILABLE")) {
-      return "Layanan server AI sedang mengalami beban lonjakan tinggi sementara. Silakan coba beberapa saat lagi.";
+    if (isLimitationError(rawErrorMsg)) {
+      return formatLimitationErrorMessage(rawErrorMsg);
     }
-    if (rawErrorMsg.includes("429") || rawErrorMsg.includes("RESOURCE_EXHAUSTED") || rawErrorMsg.includes("rate_limit")) {
-      return "Batas penggunaan API (rate limit) telah tercapai. Silakan tunggu sejenak dan coba kembali.";
+    if (lowerError.includes("api key") || lowerError.includes("gemini_api_key")) {
+      return "Layanan sedang tidak dapat diakses saat ini.";
     }
-    if (rawErrorMsg.includes("API key") || rawErrorMsg.includes("GEMINI_API_KEY")) {
-      return "Konfigurasi kunci API (API Key) AI belum sesuai. Harap periksa pengaturan lingkungan.";
-    }
-    return rawErrorMsg || "Gagal memproses interaksi dengan Gemini.";
+    return "Terjadi kendala saat memproses permintaan. Coba lagi nanti.";
   }
 
   /**
@@ -300,10 +316,30 @@ export class GeminiService {
         payload.tools = tools;
       }
 
-      const stream = await ai.interactions.create(payload as any);
+      let stream;
+      let finalInteractionId = interactionId;
+
+      try {
+        stream = await ai.interactions.create(payload as any);
+      } catch (err: unknown) {
+        const errStr = String(err);
+        // If previous_interaction_id is expired or not found on Google's backend (404), retry stream as a fresh interaction
+        if (
+          payload.previous_interaction_id &&
+          (errStr.includes("404") || errStr.includes("not_found") || errStr.includes("Requested entity was not found"))
+        ) {
+          console.warn(
+            `[GeminiService] previous_interaction_id "${payload.previous_interaction_id}" not found on Google servers (expired). Retrying stream as fresh interaction...`
+          );
+          delete payload.previous_interaction_id;
+          finalInteractionId = undefined;
+          stream = await ai.interactions.create(payload as any);
+        } else {
+          throw err;
+        }
+      }
 
       let fullText = "";
-      let finalInteractionId = interactionId;
       let status = "completed";
       const steps: Record<number, any> = {};
       const rawArgs: Record<number, string> = {};
@@ -399,7 +435,9 @@ export class GeminiService {
       return createSuccessResponse(finalData, "Interaksi dengan Gemini berhasil diproses.");
     } catch (error) {
       console.error("[GeminiService] Interaction stream failed:", error);
-      return createErrorResponse(this.mapGeminiInteractionError(error));
+      const mappedError = this.mapGeminiInteractionError(error);
+      yield { type: "error", error: mappedError };
+      return createErrorResponse(mappedError);
     }
   }
 

@@ -2,6 +2,14 @@ import type { GeminiInteraction } from "./llm.type";
 import type { AIChatBoxRef } from "@/components/ai-chat-box";
 
 /**
+ * Individual status step entry displayed during multi-phase AI operations.
+ */
+export interface ChatStatusStep {
+  text: string;
+  isShimmer?: boolean;
+}
+
+/**
  * Chat message item representing either user or AI messages in a draft session.
  */
 export interface ChatMessageItem {
@@ -9,6 +17,41 @@ export interface ChatMessageItem {
   role: "user" | "ai";
   content: string;
   date: string;
+  isShimmer?: boolean;
+  statusSteps?: ChatStatusStep[];
+  metadata?: Record<string, unknown> | null;
+}
+
+/**
+ * Options for upserting an AI chat message item.
+ */
+export interface UpsertAiChatMessageOptions {
+  date?: string;
+  isShimmer?: boolean;
+  statusSteps?: ChatStatusStep[];
+  metadata?: Record<string, unknown> | null;
+}
+
+/**
+ * Status payload passed during contract clause extraction and regulation matching.
+ */
+export interface ClauseMatchingStatus {
+  message: string;
+  isShimmer: boolean;
+  statusSteps?: ChatStatusStep[];
+}
+
+/**
+ * Result structure returned after extracting clauses and matching legal regulations.
+ */
+export interface MatchRegulationsResult {
+  contractType: string;
+  matchedArticles: Array<{
+    name?: string | null;
+    article_number?: string | null;
+    content?: string | null;
+  }>;
+  statusSteps: ChatStatusStep[];
 }
 
 
@@ -19,6 +62,7 @@ export interface ChatMessageItem {
 export interface StreamDraftClientOptions {
   prompt: string;
   interactionId?: string;
+  signal?: AbortSignal;
   onChunk?: (textDelta: string, fullText: string) => void;
   onInteractionId?: (interactionId: string) => void;
 }
@@ -49,6 +93,7 @@ export interface UseInitialChatOptions {
  */
 export interface UseInitialChatReturn {
   handleInitialChat: (text?: string) => Promise<void>;
+  handleStop: () => void;
 }
 
 /**
@@ -102,6 +147,7 @@ export interface UseInteractionChatOptions {
   streamingAiId: string | null;
   setStreamingAiId: (id: string | null) => void;
   handleInitialChat: (text?: string) => Promise<void>;
+  handleStopInitialChat?: () => void;
   onGenerated?: (data: GeminiInteraction) => void;
 }
 
@@ -112,5 +158,6 @@ export interface UseInteractionChatReturn {
   chatBoxRef: React.RefObject<AIChatBoxRef | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   handleSend: (text: string) => Promise<void>;
+  handleStop: () => void;
   handleSelectTemplate: (templatePrompt: string) => void;
 }

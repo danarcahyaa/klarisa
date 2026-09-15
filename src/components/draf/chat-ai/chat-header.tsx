@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Pencil, Pin, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ActionPopover } from "@/components/ui/action-popover";
@@ -21,17 +21,21 @@ export interface ChatHeaderProps {
   onRename?: (newTitle: string) => void;
   /** Callback fired when user deletes the chat */
   onDelete?: () => void;
+  /** Callback fired when user starts a new conversation */
+  onNewChat?: () => void;
   /** Callback fired when a chat item is selected from search dialog */
   onSelectChat?: (chatId: string) => void;
   /** Optional custom CSS classes */
   className?: string;
   /** Whether chat details are currently loading */
   isLoading?: boolean;
+  /** Whether AI generation or database persistence is currently in progress */
+  isActionDisabled?: boolean;
 }
 
 /**
  * Sticky header component for active draft chat sessions.
- * Displays chat title, dropdown options popover (Sematkan, Ganti Nama, Hapus),
+ * Displays chat title, dropdown options popover (Percakapan baru, Ganti Nama, Hapus),
  * and handles rename / delete dialog workflows.
  */
 export function ChatHeader({
@@ -39,28 +43,23 @@ export function ChatHeader({
   chatId,
   onRename,
   onDelete,
+  onNewChat,
   onSelectChat,
   className,
   isLoading = false,
+  isActionDisabled = false,
 }: ChatHeaderProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const displayTitle = title?.trim() || "Draf Kontrak";
 
-  const handleTogglePin = () => {
+  const handleNewChat = () => {
     setIsPopoverOpen(false);
-    const nextState = !isPinned;
-    setIsPinned(nextState);
-    if (nextState) {
-      toast.success("Percakapan berhasil disematkan.");
-    } else {
-      toast.info("Sematan percakapan dilepas.");
-    }
+    onNewChat?.();
   };
 
   const handleSaveRename = async (newTitle: string) => {
@@ -170,20 +169,15 @@ export function ChatHeader({
                       onClick: () => setIsSearchOpen(true),
                     },
                     {
-                      text: isPinned ? "Lepas Sematan" : "Sematkan",
-                      icon: (
-                        <Pin
-                          className={cn(
-                            "size-3.5 text-slate-500",
-                            isPinned && "fill-slate-600 text-slate-700"
-                          )}
-                        />
-                      ),
-                      onClick: handleTogglePin,
+                      text: "Percakapan baru",
+                      icon: <Plus className="size-3.5 text-slate-500" />,
+                      disabled: isActionDisabled,
+                      onClick: handleNewChat,
                     },
                     {
                       text: "Ganti Nama",
                       icon: <Pencil className="size-3.5 text-slate-500" />,
+                      disabled: isActionDisabled,
                       onClick: () => setIsRenameOpen(true),
                     },
                   ]}
@@ -192,6 +186,7 @@ export function ChatHeader({
                       text: "Hapus",
                       icon: <Trash2 className="size-3.5 text-red-500" />,
                       variant: "destructive",
+                      disabled: isActionDisabled,
                       onClick: () => setIsDeleteOpen(true),
                     },
                   ]}

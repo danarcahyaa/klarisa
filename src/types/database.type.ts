@@ -651,6 +651,15 @@ export type Database = {
           similarity: number
         }[]
       }
+      create_draft_document: {
+        Args: {
+          p_content?: string
+          p_metadata?: Json | null
+          p_title: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       save_chat_conversation: {
         Args: {
           p_answer: string

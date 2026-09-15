@@ -140,7 +140,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
         {recentDocuments.map((document) => (
           <Link
             key={document.id}
-            href={`/dashboard/create?id=${document.id}`}
+            href={`/dashboard/create?chat_id=${document.id}`}
             onClick={() => setIsOpen(false)}
             className="truncate text-xs font-medium text-slate-600 transition-colors hover:text-klarisa-secondary"
           >

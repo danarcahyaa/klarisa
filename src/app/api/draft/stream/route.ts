@@ -33,14 +33,26 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const event of context.service.streamDraft(prompt, { interactionId })) {
+            if (req.signal.aborted) {
+              break;
+            }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
           }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat streaming draf.";
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
+          if (!req.signal.aborted) {
+            const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat streaming draf.";
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
+          }
         } finally {
-          controller.close();
+          try {
+            controller.close();
+          } catch {
+            // Stream controller already closed
+          }
         }
+      },
+      cancel() {
+        // Consumer aborted or closed SSE stream connection
       },
     });
 

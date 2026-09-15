@@ -37,7 +37,7 @@ export function useActionChat({
     if (initialChatId) return true;
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      return Boolean(params.get("chat_id"));
+      return Boolean(params.get("chat_id") || params.get("id"));
     }
     return false;
   });
@@ -45,11 +45,13 @@ export function useActionChat({
   const [isLoadingMoreConversations, setIsLoadingMoreConversations] = useState<boolean>(false);
   const [conversationsPage, setConversationsPage] = useState<number>(1);
   const isFetchingConversationsRef = useRef<boolean>(false);
+  const loadingChatIdRef = useRef<string | null>(null);
 
   /**
    * Reset active chat session and synchronize URL params.
    */
   const reset = useCallback(() => {
+    loadingChatIdRef.current = null;
     setPrompt("");
     setMessages([]);
     setChatId(null);
@@ -72,6 +74,10 @@ export function useActionChat({
         url.searchParams.delete("chat_id");
         changed = true;
       }
+      if (url.searchParams.has("id")) {
+        url.searchParams.delete("id");
+        changed = true;
+      }
       if (changed) {
         window.history.replaceState(null, "", url.toString());
       }
@@ -86,7 +92,7 @@ export function useActionChat({
       let idToLoad = targetChatId;
       if (!idToLoad && typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
-        idToLoad = params.get("chat_id") || undefined;
+        idToLoad = params.get("chat_id") || params.get("id") || undefined;
       }
 
       if (!idToLoad) {
@@ -94,12 +100,19 @@ export function useActionChat({
         return false;
       }
 
+      loadingChatIdRef.current = idToLoad;
+
       try {
         setIsLoadingChat(true);
         setError(null);
         setMessages([]);
 
         const res = await getChatDetailAction(idToLoad);
+        // If another chat load was requested while this network request was in-flight, discard stale result
+        if (loadingChatIdRef.current !== idToLoad) {
+          return false;
+        }
+
         if (!res.success || !res.data) {
           throw new Error(res.error ?? "Gagal memuat detail percakapan.");
         }
@@ -123,11 +136,14 @@ export function useActionChat({
               content: conv.question,
               date: conv.created_at,
             });
+            const convMeta = conv.metadata as Record<string, unknown> | null;
             loadedMessages.push({
               id: `a-${conv.id}`,
               role: "ai",
               content: conv.answer,
               date: conv.created_at,
+              statusSteps: (convMeta?.statusSteps as any) ?? undefined,
+              metadata: convMeta ?? null,
             });
           }
           setMessages(loadedMessages);
@@ -139,25 +155,37 @@ export function useActionChat({
           setHasMoreConversations(false);
         }
 
-        // Sync URL query param to chat_id
+        // Sync URL query param to chat_id and clean legacy id param
         if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
+          let changed = false;
           if (url.searchParams.get("chat_id") !== chatData.id) {
             url.searchParams.set("chat_id", chatData.id);
+            changed = true;
+          }
+          if (url.searchParams.has("id")) {
+            url.searchParams.delete("id");
+            changed = true;
+          }
+          if (changed) {
             window.history.replaceState(null, "", url.toString());
           }
         }
 
         return true;
       } catch (err) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : "Terjadi kesalahan saat memuat riwayat percakapan.";
-        setError(msg);
+        if (loadingChatIdRef.current === idToLoad) {
+          const msg =
+            err instanceof Error
+              ? err.message
+              : "Terjadi kesalahan saat memuat riwayat percakapan.";
+          setError(msg);
+        }
         return false;
       } finally {
-        setIsLoadingChat(false);
+        if (loadingChatIdRef.current === idToLoad) {
+          setIsLoadingChat(false);
+        }
       }
     },
     [setChatId, setFirstChatTitle, setInteractionId, setMessages, setError]
@@ -196,11 +224,14 @@ export function useActionChat({
             content: conv.question,
             date: conv.created_at,
           });
+          const convMeta = conv.metadata as Record<string, unknown> | null;
           olderMessages.push({
             id: `a-${conv.id}`,
             role: "ai",
             content: conv.answer,
             date: conv.created_at,
+            statusSteps: (convMeta?.statusSteps as any) ?? undefined,
+            metadata: convMeta ?? null,
           });
         }
 
@@ -286,17 +317,40 @@ export function useActionChat({
   );
 
   // Automatically load chat detail on mount if chat_id or id is present in URL or initial options
+  const isInitialMountedRef = useRef<boolean>(false);
   useEffect(() => {
+    if (isInitialMountedRef.current) return;
+    isInitialMountedRef.current = true;
+
     let targetId = initialChatId ?? null;
     if (!targetId && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      targetId = params.get("chat_id");
+      targetId = params.get("chat_id") || params.get("id");
     }
 
-    if (targetId && messages.length === 0) {
-      handleLoadChatDetail(targetId);
+    if (targetId) {
+      void handleLoadChatDetail(targetId);
     }
-  }, [initialChatId, handleLoadChatDetail, messages.length]);
+  }, [initialChatId, handleLoadChatDetail]);
+
+  // Synchronize on browser history navigation (back/forward popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get("chat_id") || params.get("id");
+      if (targetId && targetId !== chatId) {
+        void handleLoadChatDetail(targetId);
+      } else if (!targetId && chatId) {
+        reset();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [chatId, handleLoadChatDetail, reset]);
 
   return {
     isLoadingChat,

@@ -42,9 +42,7 @@ export function TextEditorToolbar({ editor, className }: TextEditorToolbarProps)
                 <MarkButton editor={editor} type="bold"/>
                 <MarkButton editor={editor} type="italic" />
                 <MarkButton editor={editor} type="strike" />
-                <MarkButton editor={editor} type="underline" />
-                <MarkButton editor={editor} type="superscript" />
-                <MarkButton editor={editor} type="subscript" />
+                <MarkButton editor={editor} type="underline" /> 
             </div>
 
             <div className="flex gap-1"> 

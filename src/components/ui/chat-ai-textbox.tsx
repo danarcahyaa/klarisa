@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { SendHorizontal } from "lucide-react"
+import { Pause, SendHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SubmitButton } from "@/components/ui/button"
 import { Textarea } from "./textarea"
@@ -10,11 +10,15 @@ export interface ChatAiTextboxProps extends Omit<React.ComponentProps<"textarea"
   value: string
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onSubmit?: (e?: React.FormEvent) => void
+  onStop?: () => void
   isSending?: boolean
   maxHeight?: number
   containerClassName?: string
   submitButtonClassName?: string
   icon?: React.ReactNode
+  stopIcon?: React.ReactNode
+  sendAriaLabel?: string
+  stopAriaLabel?: string
 }
 
 export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextboxProps>(
@@ -23,6 +27,7 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
       value,
       onChange,
       onSubmit,
+      onStop,
       isSending = false,
       maxHeight = 140,
       containerClassName,
@@ -31,6 +36,9 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
       disabled,
       placeholder = "Tanyakan sesuatu...",
       icon,
+      stopIcon,
+      sendAriaLabel = "Kirim pertanyaan",
+      stopAriaLabel = "Hentikan respons",
       onKeyDown,
       rows = 1,
       ...props
@@ -57,6 +65,18 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
       }
     }
 
+    const handleClickButton = () => {
+      if (isSending) {
+        onStop?.()
+        return
+      }
+      onSubmit?.()
+    }
+
+    const isButtonDisabled = isSending
+      ? disabled || !onStop
+      : !value.trim() || disabled
+
     return (
       <div
         className={cn(
@@ -70,7 +90,7 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
           onChange={onChange}
           onKeyDown={handleKeyDown}
           rows={rows}
-          disabled={disabled || isSending}
+          disabled={disabled}
           placeholder={placeholder}
           className={cn(
             "min-h-6 max-h-[140px] w-full resize-none overflow-y-auto border-0 bg-transparent px-0 py-0.5 text-xs leading-relaxed shadow-none outline-none focus:ring-0 focus-visible:ring-0 focus-visible:border-transparent placeholder:text-slate-400 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
@@ -82,16 +102,22 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
           variant="ghost"
           size="icon-sm"
           type="button"
-          onClick={() => onSubmit?.()}
-          disabled={!value.trim() || disabled || isSending}
-          aria-label="Kirim pertanyaan"
+          onClick={handleClickButton}
+          disabled={isButtonDisabled}
+          aria-label={isSending ? stopAriaLabel : sendAriaLabel}
+          title={isSending ? stopAriaLabel : sendAriaLabel}
           className={cn(
             "absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0 text-slate-400 hover:text-slate-700 disabled:opacity-40",
             value.trim().length > 40 && "top-auto bottom-2.5 translate-y-0",
+            isSending && "text-slate-700 hover:text-slate-900",
             submitButtonClassName
           )}
         >
-          {icon || <SendHorizontal className="size-3.5" />}
+          {isSending ? (
+            stopIcon || <Pause className="size-3.5 fill-current" />
+          ) : (
+            icon || <SendHorizontal className="size-3.5" />
+          )}
         </SubmitButton>
       </div>
     )

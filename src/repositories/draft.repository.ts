@@ -275,6 +275,41 @@ export class DraftRepository {
       p_metadata: payload.metadata ?? null,
     });
   }
+
+  /**
+   * Creates a new contract and associated contract_draft record atomically using the create_draft_document RPC function.
+   *
+   * @param payload Contract and draft record details.
+   */
+  async createDraftDocument(payload: {
+    userId: string;
+    title: string;
+    encryptedContent: string;
+    metadata?: Json;
+  }) {
+    const { data, error } = await this.supabase.rpc("create_draft_document", {
+      p_user_id: payload.userId,
+      p_title: payload.title,
+      p_content: payload.encryptedContent,
+      p_metadata: payload.metadata ?? {},
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const res = data as unknown as {
+      contract_id: string;
+      draft_id: string;
+      title: string;
+      success: boolean;
+    };
+
+    return {
+      contractId: res.contract_id,
+      title: res.title,
+    };
+  }
 }
 
 export function createDraftRepository(client: SupabaseClient<Database>) {

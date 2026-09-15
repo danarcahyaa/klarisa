@@ -52,3 +52,31 @@ export async function saveDraftChatAction(
 
   return context.service.saveAiChat(context.user.id, input);
 }
+
+export interface GenerateContractDraftActionInput {
+  userPrompt: string;
+  contractType?: string;
+  matchedArticles?: Array<{
+    name?: string | null;
+    article_number?: string | null;
+    content?: string | null;
+  }>;
+}
+
+/**
+ * Server action to generate and persist a full contract draft based on matched legal regulations.
+ *
+ * @param input - Generation parameters including prompt, extracted clauses, and matched legal articles.
+ * @returns BaseResponse containing created contract ID and title.
+ */
+export async function generateContractDraftAction(
+  input: GenerateContractDraftActionInput
+): Promise<BaseResponse<{ contractId: string; title: string }>> {
+  const context = await getDraftServerContext();
+  if (!context) {
+    return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  return context.service.generateContractDraft(context.user.id, input);
+}
+

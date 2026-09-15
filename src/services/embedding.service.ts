@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createErrorResponse, createSuccessResponse } from "@/lib/response";
-import { chunkArray, sleep } from "@/lib/utils";
+import { chunkArray, formatLimitationErrorMessage, sleep } from "@/lib/utils";
 import { createLegalArticleRepository } from "@/repositories/legal-article.repository";
 import type { BaseResponse } from "@/types/response.type";
 import type { Database } from "@/types/database.type";
@@ -38,7 +38,7 @@ export class EmbeddingService {
 
       if (!chunks || chunks.length === 0) {
         return createErrorResponse<{ chunks: EmbeddedChunkResult<T>[] }>(
-          "Tidak ada bagian dokumen yang dapat diproses.",
+          "Tidak ada bagian yang bisa diproses.",
           { chunks: [] }
         );
       }
@@ -84,10 +84,9 @@ export class EmbeddingService {
       );
     } catch (error) {
       console.error("[EmbeddingService.generateChunkEmbeddings] error:", error);
+      const rawMsg = error instanceof Error ? error.message : "Gagal membuat embedding dokumen.";
       return createErrorResponse<{ chunks: EmbeddedChunkResult<T>[] }>(
-        error instanceof Error
-          ? error.message
-          : "Gagal membuat embedding dokumen.",
+        formatLimitationErrorMessage(rawMsg),
         { chunks: [] }
       );
     }

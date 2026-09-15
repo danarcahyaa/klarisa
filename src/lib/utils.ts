@@ -500,51 +500,80 @@ export function formatIndonesianDate(
 }
 
 /**
- * Check whether an error message corresponds to an API limitation or quota error.
+ * Formats limitation, quota, and high demand error messages into non-technical, polite Indonesian user messages.
+ * Returns null if the given message is not a limitation/quota error.
+ *
+ * - High Demand / 503 / Unavailable: "Permintaan terlalu banyak. Coba lagi nanti."
+ * - Daily Limit (RPD): "Anda sudah mencapai batas penggunaan harian. Layanan akan dapat digunakan kembali besok pukul 00.00."
+ * - General Rate Limit / Usage Limit / Quota: "Anda sudah mencapai batas penggunaan. Coba lagi nanti."
+ *
+ * @param errorMessage - The raw error message string from LLM, SDK, or server.
+ * @returns Formatted polite Indonesian error message, or null if not a limitation error.
  */
-export function isLimitationError(msg?: string | null): boolean {
-  if (!msg) return false;
-  const lower = msg.toLowerCase();
-  return (
+export function getLimitationErrorMessage(errorMessage?: string | null): string | null {
+  if (!errorMessage) return null;
+
+  const lower = errorMessage.toLowerCase();
+
+  // High demand or server overload (503 / unavailable / spikes in demand)
+  if (
+    lower.includes("503") ||
+    lower.includes("high demand") ||
+    lower.includes("unavailable") ||
+    lower.includes("overloaded") ||
+    lower.includes("server is busy")
+  ) {
+    return "Permintaan terlalu banyak. Coba lagi nanti.";
+  }
+
+  // Daily quota limitation (RPD - Requests Per Day, e.g. Gemini Free Tier 20 RPD limit)
+  if (
+    lower.includes("rpd") ||
+    lower.includes("limit: 20") ||
+    lower.includes("limit:20") ||
+    lower.includes("limit = 20") ||
+    lower.includes("free_tier_requests") ||
+    lower.includes("requests per day") ||
+    lower.includes("per day") ||
+    lower.includes("daily") ||
+    lower.includes("day limit")
+  ) {
+    return "Anda sudah mencapai batas penggunaan harian. Layanan akan dapat digunakan kembali besok pukul 00.00.";
+  }
+
+  // General rate limit, quota exhaustion, or request rate
+  if (
     lower.includes("limit") ||
     lower.includes("quota") ||
     lower.includes("429") ||
     lower.includes("resource_exhausted") ||
     lower.includes("too many requests") ||
     lower.includes("rate") ||
-    lower.includes("terhenti lebih awal") ||
-    lower.includes("rpm") ||
-    lower.includes("rpd")
-  );
+    lower.includes("rpm")
+  ) {
+    return "Anda sudah mencapai batas penggunaan. Coba lagi nanti.";
+  }
+
+  return null;
 }
 
 /**
- * Formats API limitation error messages into polite Indonesian user messages based on rate limit types:
- * - RPD (Requests Per Day): "Anda sudah mencapai batas harian. Coba lagi besok."
- * - RPM (Requests Per Minute) / Default Limitation: "Anda sudah mencapai batas. Coba lagi nanti."
+ * Check whether an error message corresponds to an API limitation, rate limit, or high demand error.
+ * Uses getLimitationErrorMessage internally as the single source of truth.
+ */
+export function isLimitationError(msg?: string | null): boolean {
+  return getLimitationErrorMessage(msg) !== null;
+}
+
+/**
+ * Formats limitation, quota, and high demand error messages into non-technical, polite Indonesian user messages.
+ * Uses getLimitationErrorMessage internally and provides a polite default fallback.
  *
- * @param errorMessage - The raw error message string from LLM or SDK.
- * @returns Formatted polite Indonesian error message string.
+ * @param errorMessage - The raw error message string from LLM, SDK, or server.
+ * @returns Formatted polite Indonesian error message string free of technical jargon.
  */
 export function formatLimitationErrorMessage(errorMessage?: string | null): string {
-  if (!errorMessage) {
-    return "Anda sudah mencapai batas. Coba lagi nanti.";
-  }
-
-  const lower = errorMessage.toLowerCase();
-
-  const isRpd =
-    lower.includes("rpd") ||
-    lower.includes("requests per day") ||
-    lower.includes("per day") ||
-    lower.includes("daily") ||
-    lower.includes("day limit") ||
-    lower.includes("harian");
-
-  if (isRpd) {
-    return "Anda sudah mencapai batas harian. Coba lagi besok.";
-  }
-
-  return "Anda sudah mencapai batas. Coba lagi nanti.";
+  return getLimitationErrorMessage(errorMessage) ?? "Anda sudah mencapai batas penggunaan. Coba lagi nanti.";
 }
+
 

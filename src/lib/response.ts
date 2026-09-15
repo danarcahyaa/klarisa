@@ -44,7 +44,7 @@ export function mapSupabaseError(errorMsg: string): string {
     return 'Email Anda belum dikonfirmasi. Harap periksa email Anda.'
   }
   if (lower.includes('rate limit') || lower.includes('too many requests')) {
-    return 'Terlalu banyak percobaan. Harap tunggu beberapa saat sebelum mencoba lagi.'
+    return 'Anda sudah mencapai batas penggunaan. Coba lagi nanti.'
   }
   if (lower.includes('password should be at least')) {
     return 'Password minimal harus 8 karakter.'

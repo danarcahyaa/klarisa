@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowDown } from "lucide-react";
 import AIChatBox from "@/components/ai-chat-box";
 import { ReusableAlert } from "@/components/ui/reusable-alert";
@@ -56,7 +57,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
   const [streamingAiId, setStreamingAiId] = useState<string | null>(null);
 
   // Initial chat creation hook (handles new thread generation and saving)
-  const { handleInitialChat } = useInitialChat({
+  const { handleInitialChat, handleStop: handleStopInitial } = useInitialChat({
     prompt,
     setPrompt,
     messages,
@@ -100,6 +101,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     chatBoxRef,
     messagesEndRef,
     handleSend,
+    handleStop,
     handleSelectTemplate,
   } = useInteractionChat({
     prompt,
@@ -118,6 +120,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     streamingAiId,
     setStreamingAiId,
     handleInitialChat,
+    handleStopInitialChat: handleStopInitial,
     onGenerated,
   });
 
@@ -172,6 +175,12 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     };
   }, [hasMessages, checkScroll, messages.length]);
 
+  useEffect(() => {
+    return () => {
+      handleStop();
+    };
+  }, [handleStop]);
+
   const handleScrollToBottom = () => {
     setShowScrollBottom(false);
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -186,8 +195,10 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
           chatId={chatId}
           onRename={setTitle}
           onDelete={reset}
+          onNewChat={reset}
           onSelectChat={handleLoadChatDetail}
           isLoading={isLoadingChat}
+          isActionDisabled={isLoading}
         />
       )}
 
@@ -248,13 +259,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
           />
         )}
 
-        {error && (
-          <div className="mb-3">
-            <ReusableAlert variant={"destructive"} title="Terjadi Kesalahan" description={error} />
-          </div>
-        )}
-        <div ref={bottomAnchorRef} className="relative w-full max-w-2xl mx-auto">
-          {/* Scroll to bottom button shown when user scrolls up */}
+           {/* Scroll to bottom button shown when user scrolls up */}
           {hasMessages && (
             <div className="pointer-events-none absolute -top-11 left-1/2 -translate-x-1/2 z-40">
               <button
@@ -273,11 +278,28 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
             </div>
           )}
 
+        {error && (
+          <div className="mb-3 w-full max-w-2xl mx-auto">
+            <ReusableAlert
+              variant="destructive"
+              description={error}
+              dismissible
+              onDismiss={() => setError(null)}
+            />
+          </div>
+        )} 
+        
+        <div ref={bottomAnchorRef} className="relative w-full max-w-2xl mx-auto">
+
           <AIChatBox
             ref={chatBoxRef}
             value={prompt}
-            onChange={setPrompt}
+            onChange={(val) => {
+              if (error) setError(null);
+              setPrompt(val);
+            }}
             onSend={handleSend}
+            onStop={handleStop}
             isLoading={isLoading}
             disabled={isLoadingChat}
             hasMassage={hasMessages || isLoadingChat}
