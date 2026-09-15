@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { streamDraftFromApiAction } from "@/app/actions/stream-draft-chat.action";
-import { saveDraftChatAction } from "@/app/actions/draft.action";
-import { extractAiResponseText } from "@/lib/gemini/chat-ai.utils";
-import { truncateWords } from "@/lib/utils";
+import {
+  generateContractDraftAction,
+  saveDraftChatAction,
+} from "@/app/actions/draft.action";
+import {
+  extractAiResponseText,
+  processExtractClauseAndMatchRegulations,
+  upsertAiChatMessage,
+} from "@/lib/gemini/chat-ai.utils";
+import { formatLimitationErrorMessage, isLimitationError, truncateWords } from "@/lib/utils";
 import type {
   ChatMessageItem,
+  ChatStatusStep,
   UseInitialChatOptions,
   UseInitialChatReturn,
 } from "@/types/draft.type";
@@ -31,6 +39,20 @@ export function useInitialChat({
   setStreamingAiId,
   onGenerated,
 }: UseInitialChatOptions): UseInitialChatReturn {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  /**
+   * Stops the ongoing initial AI response generation.
+   */
+  const handleStop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setStreamingAiId(null);
+  }, [setIsLoading, setStreamingAiId]);
+
   /**
    * Initial chat handler when starting a new draft chat thread.
    */
@@ -39,14 +61,16 @@ export function useInitialChat({
       const promptToSend = (text ?? prompt).trim();
       if (!promptToSend || isLoading) return;
 
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       const aiMessageId = crypto.randomUUID();
+      const initialTitle = truncateWords(promptToSend, 7);
 
       try {
         // Clear input text
         setPrompt("");
 
-        // Derive title from prompt (maximum 7 words)
-        const initialTitle = truncateWords(promptToSend, 7);
+        // Set derived title
         setFirstChatTitle(initialTitle);
 
         // Show user prompt immediately in the message list
@@ -62,25 +86,15 @@ export function useInitialChat({
         setError(null);
         const res = await streamDraftFromApiAction({
           prompt: promptToSend,
+          signal: controller.signal,
           onChunk: (_textDelta, fullText) => {
             setStreamingAiId(aiMessageId);
-            setMessages((prev) => {
-              const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-              if (existingIndex !== -1) {
-                const updated = [...prev];
-                updated[existingIndex] = { ...updated[existingIndex], content: fullText };
-                return updated;
-              }
-              return [
-                ...prev,
-                {
-                  id: aiMessageId,
-                  role: "ai",
-                  content: fullText,
-                  date: new Date().toISOString(),
-                },
-              ];
-            });
+            setMessages((prev) =>
+              upsertAiChatMessage(prev, aiMessageId, fullText, {
+                isShimmer: false,
+                date: "",
+              })
+            );
           },
           onInteractionId: (newId: string) => {
             setInteractionId(newId);
@@ -88,88 +102,180 @@ export function useInitialChat({
         });
 
         if (!res.success || !res.data) {
-          throw new Error(res.error ?? "Gagal memproses respons AI.");
+          if (controller.signal.aborted) {
+            return;
+          }
+          throw new Error(res.error ?? "Gagal memproses respons.");
         }
 
         if (res.data.interactionId) {
           setInteractionId(res.data.interactionId);
         }
 
-        const aiText = extractAiResponseText(res.data);
-        if (aiText) {
-          setMessages((prev) => {
-            const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-            if (existingIndex !== -1) {
-              const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], content: aiText };
-              return updated;
+        let aiText = extractAiResponseText(res.data);
+        let aiMetadata: Record<string, unknown> | null = null;
+
+        let settledSteps: ChatStatusStep[] | undefined;
+
+        // If extract_contract_clauses was invoked, first match regulations, then generate draft
+        if (!controller.signal.aborted) {
+          const matchResult = await processExtractClauseAndMatchRegulations(
+            res.data.toolCalls,
+            (status) => {
+              setStreamingAiId(aiMessageId);
+              setMessages((prev) =>
+                upsertAiChatMessage(prev, aiMessageId, status.message ?? "", {
+                  isShimmer: status.isShimmer,
+                  statusSteps: status.statusSteps,
+                  date: "",
+                })
+              );
+            },
+            controller.signal
+          );
+
+          if (matchResult && !controller.signal.aborted) {
+            settledSteps = matchResult.statusSteps;
+
+            // Display shimmer for contract drafting underneath settled regulations
+            setStreamingAiId(aiMessageId);
+            setMessages((prev) =>
+              upsertAiChatMessage(prev, aiMessageId, "", {
+                isShimmer: true,
+                statusSteps: [
+                  ...matchResult.statusSteps,
+                  { text: "Menyusun draf kontrak...", isShimmer: true },
+                ],
+                date: "",
+              })
+            );
+
+            const contractResult = await generateContractDraftAction({
+              userPrompt: promptToSend,
+              contractType: matchResult.contractType,
+              matchedArticles: matchResult.matchedArticles,
+            });
+
+            if (!controller.signal.aborted) {
+              if (contractResult.success && contractResult.data) {
+                const { contractId, title } = contractResult.data;
+                aiText = `Draf **${title}** telah berhasil disusun dan diselaraskan dengan regulasi hukum yang relevan. Anda dapat membuka, meninjau, dan menyunting draf lengkap pada editor melalui tautan di bawah ini.`;
+                aiMetadata = {
+                  draft_id: contractId,
+                  draft_title: title,
+                };
+              } else {
+                aiText =
+                  "Regulasi yang relevan telah ditemukan, namun terjadi kendala saat menyusun draf kontrak secara otomatis. Silakan coba kirimkan kembali instruksi Anda.";
+              }
             }
-            return [
-              ...prev,
-              {
-                id: aiMessageId,
-                role: "ai",
-                content: aiText,
-                date: new Date().toISOString(),
-              },
-            ];
-          });
+          }
         }
 
-        // Save new chat thread to database atomically
-        const saveRes = await saveDraftChatAction({
-          question: promptToSend,
-          answer: aiText || "Draf kontrak berhasil diproses.",
-          chatId: null, // Initial chat creation
-          title: initialTitle,
-          lastInteractionId: res.data.interactionId ?? null,
-          metadata: res.data.toolCalls ? { toolCalls: res.data.toolCalls } : null,
-        });
-
-        if (saveRes.success && saveRes.data?.chat_id) {
-          const newChatId = saveRes.data.chat_id;
-          setChatId(newChatId);
-
-          // Update URL query parameter to chat_id
-          if (typeof window !== "undefined") {
-            const url = new URL(window.location.href);
-            url.searchParams.set("chat_id", newChatId);
-            url.searchParams.delete("id");
-            window.history.replaceState(null, "", url.toString());
-          }
+        if (aiText) {
+          setMessages((prev) =>
+            upsertAiChatMessage(prev, aiMessageId, aiText, {
+              isShimmer: false,
+              statusSteps: settledSteps,
+              date: new Date().toISOString(),
+              metadata: aiMetadata,
+            })
+          );
+        }
+        if (controller.signal.aborted) {
+          setMessages((prev) =>
+            upsertAiChatMessage(prev, aiMessageId, "Respon dihentikan.", {
+              isShimmer: false,
+              date: new Date().toISOString(),
+            })
+          );
         }
 
         onGenerated?.(res.data);
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
-        setError(errorMsg);
-        setMessages((prev) => {
-          const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], content: errorMsg };
-            return updated;
-          }
-          return [
-            ...prev,
-            {
-              id: aiMessageId,
-              role: "ai",
-              content: errorMsg,
-              date: new Date().toISOString(),
-            },
-          ];
-        });
-      } finally {
+
+        // AI response generation completed: immediately release loading state
+        // so the button reverts to normal (disabled when input is empty, enabled when typing).
         setIsLoading(false);
         setStreamingAiId(null);
-      }
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+
+        const conversationMetadata = {
+          ...(res.data.toolCalls ? { toolCalls: res.data.toolCalls } : {}),
+          ...(aiMetadata ? aiMetadata : {}),
+          ...(settledSteps ? { statusSteps: settledSteps } : {}),
+        };
+
+        // Save new chat thread to Supabase asynchronously in background without blocking UI
+        void saveDraftChatAction({
+          question: promptToSend,
+          answer: aiText || "Respon dihentikan.",
+          chatId: null, // Initial chat creation
+          title: initialTitle,
+          lastInteractionId: res.data.interactionId ?? null,
+          metadata: Object.keys(conversationMetadata).length > 0 ? conversationMetadata : null,
+        }).then((saveRes) => {
+          if (saveRes.success && saveRes.data?.chat_id) {
+            const newChatId = saveRes.data.chat_id;
+            setChatId(newChatId);
+
+            // Update URL query parameter to chat_id
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.set("chat_id", newChatId);
+              window.history.replaceState(null, "", url.toString());
+            }
+          }
+        }).catch((saveErr) => {
+          console.error("[useInitialChat] Failed to save chat in background:", saveErr);
+        });
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const rawErrorMsg =
+          err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
+        const isLimit = isLimitationError(rawErrorMsg);
+        const errorMsg = isLimit
+          ? formatLimitationErrorMessage(rawErrorMsg)
+          : rawErrorMsg;
+
+        setError(errorMsg);
+
+        // When limitation error occurs on new chat without AI output:
+        // Keep view as new chat (empty messages, header visible) and show alert above prompt.
+        if (isLimit) {
+          setMessages([]);
+          setPrompt(promptToSend);
+
+          // Persist the conversation with limitation error to the database in background
+          void saveDraftChatAction({
+            question: promptToSend,
+            answer: errorMsg,
+            chatId: null,
+            title: initialTitle,
+            lastInteractionId: null,
+            metadata: { error: errorMsg, error_type: "limitation" },
+          }).catch((saveErr) => {
+            console.error("[useInitialChat] Failed to save limitation error chat in background:", saveErr);
+          });
+        } else {
+          setMessages((prev) => upsertAiChatMessage(prev, aiMessageId, errorMsg));
+        }
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+        setIsLoading(false);
+        setStreamingAiId(null);
+      } 
     },
     [prompt, isLoading, onGenerated, setPrompt, setFirstChatTitle, setMessages, setIsLoading, setError, setStreamingAiId, setInteractionId, setChatId]
   );
 
   return {
     handleInitialChat,
+    handleStop,
   };
 }

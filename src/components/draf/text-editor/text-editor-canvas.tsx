@@ -58,7 +58,18 @@ export function TextEditorCanvas({ initialContent = "" }: TextEditorCanvasProps)
 
   }, [editor, initialContent]);
 
-      const result = generateJSON(`<ul class="list-disc ml-2"><li><p>SURAT PERJANJIAN KERJA SAMA (SPK) RINGKAS</p></li><li><p>Nomor: [NOMOR_KONTRAK]/SPK/2026</p></li><li><p>Pada hari ini, [HARI], tanggal [TANGGAL], disepakati perjanjian kerja sama antara:</p></li><li><p>[NAMA PIHAK PERTAMA] (selanjutnya disebut “PIHAK PERTAMA”)</p></li><li><p>[NAMA PIHAK KEDUA] (selanjutnya disebut “PIHAK KEDUA”)</p></li></ul>`, [
+      const result = generateJSON(`
+        <h1>HEADING 1 </h1>
+        <ul><li><p>LIST BERBUTIR</p></li></ul>
+        <ol><li><p>LIST BERURUTAN</p></li></ol>
+        <p><strong>BOLD </strong><em>ITALIC </em></p>
+        <p><s>STIKE</s> <u>UNDERLINE</u></p>
+        <p style="text-align: left;">LEFT TEXT ALIGN</p>
+        <p style="text-align: center;">CENTER TEXT ALIGN</p>
+        <p style="text-align: right;">RIGHT TEXT ALIGN</p>
+        <p style="text-align: justify;">JUSTIFY TEXT ALIGN</p>
+
+        `, [
       Document,
       Text,
       Paragraph,      

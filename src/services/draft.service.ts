@@ -8,7 +8,15 @@ import {
   saveDraftChatSchema,
   type SaveDraftChatDTO,
 } from "@/app/validations/contract.validation";
-import { decryptContractContent } from "@/lib/contract-encryption";
+import {
+  decryptContractContent,
+  encryptContractContent,
+} from "@/lib/contract-encryption";
+import {
+  CONTRACT_DRAFTER_SYSTEM_PROMPT,
+  buildContractDraftingUserPrompt,
+  type MatchedArticleItem,
+} from "@/lib/gemini/prompts/contract-drafter.prompt";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -42,7 +50,7 @@ import type {
   GeminiInteractionResponse,
 } from "@/types/llm.type";
 import { GeminiService, geminiService as defaultGeminiService } from "./gemini.service";
-import { EXTRACT_CONTRACT_CLAUSE } from "@/lib/gemini/tools";
+import { EXTRACT_CONTRACT_CLAUSES } from "@/lib/gemini/tools";
 
 /**
  * Service orchestrating business logic for draft management,
@@ -140,9 +148,81 @@ export class DraftService {
     const systemPrompt = await this.buildSystemPrompt();
     yield* this.geminiService.streamInteractions(prompt, {
       ...options,
-      tools: [EXTRACT_CONTRACT_CLAUSE],
+      tools: [EXTRACT_CONTRACT_CLAUSES],
       systemInstruction: systemPrompt,
     });
+  }
+
+  /**
+   * Generates a complete formal contract draft based on user prompt and matched legal articles,
+   * encrypts the HTML content, and persists it as a new contract draft in the database.
+   *
+   * @param userId - ID of the authenticated user.
+   * @param input - Generation parameters including prompt and matched articles.
+   * @returns BaseResponse containing contractId and title.
+   */
+  async generateContractDraft(
+    userId: string,
+    input: {
+      userPrompt: string;
+      contractType?: string;
+      matchedArticles?: MatchedArticleItem[];
+    }
+  ): Promise<BaseResponse<{ contractId: string; title: string }>> {
+    try {
+      const { userPrompt, contractType, matchedArticles = [] } = input;
+      if (!userPrompt || userPrompt.trim().length === 0) {
+        return createErrorResponse("Instruksi draf kontrak tidak boleh kosong.");
+      }
+
+      const promptText = buildContractDraftingUserPrompt(
+        userPrompt,
+        matchedArticles
+      );
+
+      const llmResult = await this.geminiService.generateCompletion(promptText, {
+        systemInstruction: CONTRACT_DRAFTER_SYSTEM_PROMPT,
+        temperature: 0.2,
+      });
+
+      if (!llmResult.success || !llmResult.data?.text) {
+        return createErrorResponse(
+          llmResult.error || "Gagal menghasilkan draf kontrak dari AI."
+        );
+      }
+
+      let rawHtml = llmResult.data.text.trim();
+      // Strip markdown code block fences if present
+      rawHtml = rawHtml.replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+      if (!rawHtml) {
+        return createErrorResponse("Hasil draf kontrak kosong.");
+      }
+
+      const cleanTitle = contractType
+        ? `Draf Perjanjian ${contractType.trim()}`
+        : "Draf Surat Perjanjian";
+
+      const encryptedContent = encryptContractContent(rawHtml);
+
+      const created = await this.repository.createDraftDocument({
+        userId,
+        title: cleanTitle,
+        encryptedContent,
+        metadata: {
+          generation_status: "ai_generated",
+          draft_category: contractType || "Umum",
+        },
+      });
+
+      return createSuccessResponse(
+        created,
+        "Draf kontrak berhasil disusun dan disimpan."
+      );
+    } catch (error) {
+      console.error("[DraftService] Error in generateContractDraft:", error);
+      return createErrorResponse("Terjadi kesalahan saat menyusun draf kontrak.");
+    }
   }
 
   /**
@@ -339,7 +419,7 @@ ATURAN PERILAKU & FORMAT RESPONS:
       const systemPrompt = await this.buildSystemPrompt();
       const firstTurn = await this.geminiService.interactions(input, {
         ...options,
-        tools: [EXTRACT_CONTRACT_CLAUSE],
+        tools: [EXTRACT_CONTRACT_CLAUSES],
         systemInstruction: systemPrompt,
       });
 

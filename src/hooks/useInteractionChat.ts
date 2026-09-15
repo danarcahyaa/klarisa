@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { AIChatBoxRef } from "@/components/ai-chat-box";
 import { streamDraftFromApiAction } from "@/app/actions/stream-draft-chat.action";
-import { saveDraftChatAction } from "@/app/actions/draft.action";
-import { extractAiResponseText } from "@/lib/gemini/chat-ai.utils";
-import { truncateWords } from "@/lib/utils";
+import {
+  generateContractDraftAction,
+  saveDraftChatAction,
+} from "@/app/actions/draft.action";
+import {
+  extractAiResponseText,
+  processExtractClauseAndMatchRegulations,
+  upsertAiChatMessage,
+} from "@/lib/gemini/chat-ai.utils";
+import { formatLimitationErrorMessage, isLimitationError, truncateWords } from "@/lib/utils";
 import type {
   ChatMessageItem,
+  ChatStatusStep,
   UseInteractionChatOptions,
   UseInteractionChatReturn,
 } from "@/types/draft.type";
@@ -33,10 +41,26 @@ export function useInteractionChat({
   setError,
   setStreamingAiId,
   handleInitialChat,
+  handleStopInitialChat,
   onGenerated,
 }: UseInteractionChatOptions): UseInteractionChatReturn {
   const chatBoxRef = useRef<AIChatBoxRef>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeSavePromiseRef = useRef<Promise<unknown> | null>(null);
+
+  /**
+   * Stops the ongoing AI response generation, whether in initial chat or ongoing interaction.
+   */
+  const handleStop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    handleStopInitialChat?.();
+    setIsLoading(false);
+    setStreamingAiId(null);
+  }, [handleStopInitialChat, setIsLoading, setStreamingAiId]);
 
   const lastMessageRef = useRef<{ id: string; content: string } | null>(null);
   const prevChatIdRef = useRef<string | null>(chatId);
@@ -95,18 +119,24 @@ export function useInteractionChat({
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
 
+    if (activeSavePromiseRef.current) {
+      await activeSavePromiseRef.current;
+    }
+
     // If chat does not exist yet, trigger initial chat creation
     if (!chatId && messages.length === 0) {
       await handleInitialChat(trimmed);
       return;
     }
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     const aiMessageId = crypto.randomUUID();
+    const currentTitle = firstChatTitle || truncateWords(trimmed, 7);
 
     try {
       setPrompt("");
 
-      const currentTitle = firstChatTitle || truncateWords(trimmed, 7);
       if (!firstChatTitle) {
         setFirstChatTitle(currentTitle);
       }
@@ -124,25 +154,15 @@ export function useInteractionChat({
       const res = await streamDraftFromApiAction({
         prompt: trimmed,
         interactionId: interactionId ?? undefined,
+        signal: controller.signal,
         onChunk: (_textDelta, fullText) => {
           setStreamingAiId(aiMessageId);
-          setMessages((prev) => {
-            const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-            if (existingIndex !== -1) {
-              const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], content: fullText };
-              return updated;
-            }
-            return [
-              ...prev,
-              {
-                id: aiMessageId,
-                role: "ai",
-                content: fullText,
-                date: new Date().toISOString(),
-              },
-            ];
-          });
+          setMessages((prev) =>
+            upsertAiChatMessage(prev, aiMessageId, fullText, {
+              isShimmer: false,
+              date: "",
+            })
+          );
         },
         onInteractionId: (newId: string) => {
           setInteractionId(newId);
@@ -150,6 +170,9 @@ export function useInteractionChat({
       });
 
       if (!res.success || !res.data) {
+        if (controller.signal.aborted) {
+          return;
+        }
         throw new Error(res.error ?? "Gagal memproses respons AI.");
       }
 
@@ -157,72 +180,158 @@ export function useInteractionChat({
         setInteractionId(res.data.interactionId);
       }
 
-      const aiText = extractAiResponseText(res.data);
-      if (aiText) {
-        setMessages((prev) => {
-          const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], content: aiText };
-            return updated;
+      let aiText = extractAiResponseText(res.data);
+      let aiMetadata: Record<string, unknown> | null = null;
+
+      let settledSteps: ChatStatusStep[] | undefined;
+
+      // If extract_contract_clauses was invoked, first match regulations, then generate draft
+      if (!controller.signal.aborted) {
+        const matchResult = await processExtractClauseAndMatchRegulations(
+          res.data.toolCalls,
+          (status) => {
+            setStreamingAiId(aiMessageId);
+            setMessages((prev) =>
+              upsertAiChatMessage(prev, aiMessageId, status.message ?? "", {
+                isShimmer: status.isShimmer,
+                statusSteps: status.statusSteps,
+                date: "",
+              })
+            );
+          },
+          controller.signal
+        );
+
+        if (matchResult && !controller.signal.aborted) {
+          settledSteps = matchResult.statusSteps;
+
+          // Display shimmer for contract drafting underneath settled regulations
+          setStreamingAiId(aiMessageId);
+          setMessages((prev) =>
+            upsertAiChatMessage(prev, aiMessageId, "", {
+              isShimmer: true,
+              statusSteps: [
+                ...matchResult.statusSteps,
+                { text: "Menyusun draf kontrak...", isShimmer: true },
+              ],
+              date: "",
+            })
+          );
+
+          const contractResult = await generateContractDraftAction({
+            userPrompt: trimmed,
+            contractType: matchResult.contractType,
+            matchedArticles: matchResult.matchedArticles,
+          });
+
+          if (!controller.signal.aborted) {
+            if (contractResult.success && contractResult.data) {
+              const { contractId, title } = contractResult.data;
+              aiText = `Draf **${title}** telah berhasil disusun dan diselaraskan dengan regulasi hukum yang relevan. Anda dapat membuka, meninjau, dan menyunting draf lengkap pada editor melalui tautan di bawah ini.`;
+              aiMetadata = {
+                draft_id: contractId,
+                draft_title: title,
+              };
+            } else {
+              aiText =
+                "Regulasi yang relevan telah ditemukan, namun terjadi kendala saat menyusun draf kontrak secara otomatis. Silakan coba kirimkan kembali instruksi Anda.";
+            }
           }
-          return [
-            ...prev,
-            {
-              id: aiMessageId,
-              role: "ai",
-              content: aiText,
-              date: new Date().toISOString(),
-            },
-          ];
-        });
+        }
       }
 
-      // Save follow-up message to database atomically
-      const saveRes = await saveDraftChatAction({
-        question: trimmed,
-        answer: aiText || "Draf kontrak berhasil diproses.",
-        chatId,
-        title: currentTitle,
-        lastInteractionId: res.data.interactionId ?? null,
-        metadata: res.data.toolCalls ? { toolCalls: res.data.toolCalls } : null,
-      });
-
-      if (saveRes.success && saveRes.data?.chat_id && !chatId) {
-        const newChatId = saveRes.data.chat_id;
-        setChatId(newChatId);
-
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.set("chat_id", newChatId);
-          url.searchParams.delete("id");
-          window.history.replaceState(null, "", url.toString());
-        }
+      if (aiText) {
+        setMessages((prev) =>
+          upsertAiChatMessage(prev, aiMessageId, aiText, {
+            isShimmer: false,
+            statusSteps: settledSteps,
+            date: new Date().toISOString(),
+            metadata: aiMetadata,
+          })
+        );
+      } 
+      if (controller.signal.aborted) {
+        setMessages((prev) =>
+          upsertAiChatMessage(prev, aiMessageId, "Respons dihentikan.", {
+            isShimmer: false,
+            date: new Date().toISOString(),
+          })
+        );
       }
 
       onGenerated?.(res.data);
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
-      setError(errorMsg);
-      setMessages((prev) => {
-        const existingIndex = prev.findIndex((m) => m.id === aiMessageId);
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], content: errorMsg };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            id: aiMessageId,
-            role: "ai",
-            content: errorMsg,
-            date: new Date().toISOString(),
-          },
-        ];
+
+      // AI response generation completed: immediately release loading state
+      // so the button reverts to normal (disabled when input is empty, enabled when typing).
+      setIsLoading(false);
+      setStreamingAiId(null);
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+
+      const conversationMetadata = {
+        ...(res.data.toolCalls ? { toolCalls: res.data.toolCalls } : {}),
+        ...(aiMetadata ? aiMetadata : {}),
+        ...(settledSteps ? { statusSteps: settledSteps } : {}),
+      };
+
+      // Save follow-up message to database in background without blocking UI
+      const savePromise = saveDraftChatAction({
+        question: trimmed,
+        answer: aiText || "Respons dihentikan.",
+        chatId,
+        title: currentTitle,
+        lastInteractionId: res.data.interactionId ?? null,
+        metadata: Object.keys(conversationMetadata).length > 0 ? conversationMetadata : null,
       });
+      activeSavePromiseRef.current = savePromise;
+
+      void savePromise.then((saveRes) => {
+        if (saveRes.success && saveRes.data?.chat_id && !chatId) {
+          const newChatId = saveRes.data.chat_id;
+          setChatId(newChatId);
+
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.set("chat_id", newChatId);
+            window.history.replaceState(null, "", url.toString());
+          }
+        }
+      }).catch((saveErr) => {
+        console.error("[useInteractionChat] Failed to save chat in background:", saveErr);
+      }).finally(() => {
+        activeSavePromiseRef.current = null;
+      });
+    } catch (err) {
+      if (controller.signal.aborted) {
+        return;
+      }
+      const rawErrorMsg =
+        err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
+      const isLimit = isLimitationError(rawErrorMsg);
+      const errorMsg = isLimit
+        ? formatLimitationErrorMessage(rawErrorMsg)
+        : rawErrorMsg;
+      setError(errorMsg);
+      setMessages((prev) => upsertAiChatMessage(prev, aiMessageId, errorMsg));
+
+      // Persist follow-up conversation with limitation error to the database in background
+      if (isLimit) {
+        void saveDraftChatAction({
+          question: trimmed,
+          answer: errorMsg,
+          chatId,
+          title: currentTitle,
+          lastInteractionId: null,
+          metadata: { error: errorMsg, error_type: "limitation" },
+        }).catch((saveErr) => {
+          console.error("[useInteractionChat] Failed to save limitation error chat in background:", saveErr);
+        });
+      }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setIsLoading(false);
       setStreamingAiId(null);
     }
@@ -232,6 +341,7 @@ export function useInteractionChat({
     chatBoxRef,
     messagesEndRef,
     handleSend,
+    handleStop,
     handleSelectTemplate,
   };
 }

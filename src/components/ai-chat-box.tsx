@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Pause } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,8 @@ export interface AIChatBoxProps {
   onChange?: (value: string) => void;
   /** Callback fired when user submits the message via Enter or send button */
   onSend?: (message: string) => void;
+  /** Callback fired when user stops the active AI generation */
+  onStop?: () => void;
   /** Placeholder text for the textarea */
   placeholder?: string;
   /** Whether the chatbox is disabled */
@@ -41,6 +43,8 @@ export interface AIChatBoxProps {
   autoFocus?: boolean;
   /** Accessible label for the send button */
   sendAriaLabel?: string;
+  /** Accessible label for the stop button */
+  stopAriaLabel?: string;
   /** Optional ID for the textarea element */
   id?: string;
   /** Optional name for the textarea element */
@@ -81,6 +85,8 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
       maxHeightClass = "max-h-75",
       autoFocus = false,
       sendAriaLabel = "Kirim pesan",
+      stopAriaLabel = "Hentikan respons",
+      onStop,
       id,
       name,
       hasMassage = false,
@@ -92,7 +98,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const currentValue = isControlled ? controlledValue : internalValue;
-    const isSubmitDisabled = disabled || isLoading || !currentValue.trim();
+    const isSubmitDisabled = isLoading ? (disabled || !onStop) : (disabled || !currentValue.trim());
 
     // Adjust height dynamically based on scrollHeight
     const adjustHeight = useCallback(() => {
@@ -153,13 +159,23 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
       }
     };
 
+    const handleButtonClick = () => {
+      if (isLoading) {
+        onStop?.();
+        return;
+      }
+      handleSend();
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       // Ignore keydown during IME composition (for non-Latin keyboards)
       if (e.nativeEvent.isComposing) return;
 
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSend();
+        if (!isLoading) {
+          handleSend();
+        }
       }
     };
 
@@ -196,19 +212,20 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
 
         <button
           type="button"
-          onClick={handleSend}
+          onClick={handleButtonClick}
           disabled={isSubmitDisabled}
-          aria-label={sendAriaLabel}
+          aria-label={isLoading ? stopAriaLabel : sendAriaLabel}
+          title={isLoading ? stopAriaLabel : sendAriaLabel}
           className={cn(
-            "mb-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
+            "cursor-pointer mb-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
             isSubmitDisabled
               ? "cursor-not-allowed bg-slate-50 text-slate-400"
-              : "bg-klarisa-primary text-white shadow-xs hover:bg-slate-800 active:scale-95",
+              : "bg-klarisa-primary text-white shadow-xs active:scale-95",
             buttonClassName
           )}
         >
           {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
+            <Pause className="size-4 fill-current" />
           ) : (
             <ArrowRight className="size-4" />
           )}

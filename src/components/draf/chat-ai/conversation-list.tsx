@@ -162,6 +162,9 @@ export function ConversationList({
         role={msg.role}
         content={msg.content}
         date={msg.date}
+        isShimmer={msg.isShimmer}
+        statusSteps={msg.statusSteps}
+        metadata={msg.metadata}
         className="animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out fill-mode-backwards"
       />
     ));
