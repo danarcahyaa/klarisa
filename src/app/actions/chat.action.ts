@@ -32,8 +32,10 @@ export async function createChatAction(input: CreateChatDTO) {
   const result = await chatService.createChat(user.id, input);
 
   if (result.success) {
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/review");
+    revalidatePath("/dashboard/create");
   }
 
   return result;
@@ -58,8 +60,10 @@ export async function createChatWithQuestionAction(input: CreateChatWithQuestion
   const result = await chatService.createChatWithQuestion(user.id, input);
 
   if (result.success) {
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/review");
+    revalidatePath("/dashboard/create");
   }
 
   return result;
@@ -187,8 +191,10 @@ export async function updateChatTitleAction(chatId: string, title: string) {
   const result = await chatService.updateChatTitle(user.id, chatId, title);
 
   if (result.success) {
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/review");
+    revalidatePath("/dashboard/create");
   }
 
   return result;
@@ -212,8 +218,10 @@ export async function deleteChatAction(chatId: string) {
   const result = await chatService.deleteChat(user.id, chatId);
 
   if (result.success) {
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/review");
+    revalidatePath("/dashboard/create");
   }
 
   return result;
