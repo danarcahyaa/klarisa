@@ -255,6 +255,55 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Scrollbar shown only when container is hovered */
+.scrollbar-hover {
+  scrollbar-width: none; /* Firefox: completely hide by default */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.scrollbar-hover:hover {
+  scrollbar-width: thin; /* Firefox: thin on hover */
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Chrome, Safari, Edge, Opera, WebKit: 4px pill without arrow buttons */
+.scrollbar-hover::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-hover::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.scrollbar-hover::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.scrollbar-hover::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.scrollbar-hover:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+.scrollbar-hover:hover::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+.dark .scrollbar-hover:hover {
+  scrollbar-color: #475569 transparent;
+}
+
+.dark .scrollbar-hover:hover::-webkit-scrollbar-thumb {
+  background: #475569 !important;
+}
+
 .doc-paper {
   font-family: "Times New Roman", Times, serif;
   font-size: 1rem;

@@ -20,6 +20,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Button, SubmitButton } from "@/components/ui/button";
+import { SidebarRecentChats } from "@/components/sidebar-recent-chats";
+import type { ChatRow } from "@/types/chat.type";
 
 const navigation = [
   { label: "Ringkasan", href: "/dashboard", icon: LayoutGrid, exact: true },
@@ -31,7 +33,8 @@ const navigation = [
 
 type DashboardShellProps = {
   children: React.ReactNode;
-  recentDocuments: Array<{ id: string; title: string }>;
+  recentDocuments?: Array<{ id: string; title: string }>;
+  initialChats?: ChatRow[];
   user: {
     name: string;
     email: string;
@@ -39,7 +42,7 @@ type DashboardShellProps = {
   };
 };
 
-export function DashboardShell({ children, user, recentDocuments }: DashboardShellProps) {
+export function DashboardShell({ children, user, initialChats }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -63,8 +66,8 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
   }, [isOpen]);
 
   const sidebar = (
-    <div className={cn("flex h-full flex-col bg-white px-3 py-5 text-[#172031]", isSidebarCollapsed && "lg:px-1")}>
-      <div className={cn("flex items-center gap-2 border-b border-[#e7ebf1] px-2 pb-5", isSidebarCollapsed && "lg:gap-1 lg:px-0")}>
+    <div className={cn("flex h-full flex-col bg-white pl-3 pr-0 py-5 text-[#172031]", isSidebarCollapsed && "lg:px-1")}>
+      <div className={cn("flex items-center gap-2 border-b border-[#e7ebf1] px-2 pr-3 pb-5", isSidebarCollapsed && "lg:gap-1 lg:px-0")}>
         <Link href="/" className={cn("flex min-w-0 flex-1 items-center gap-2", isSidebarCollapsed && "lg:w-full lg:flex-none lg:justify-center")} onClick={() => setIsOpen(false)}>
           <Image src="/klarisa/logo.png" alt="Klarisa" width={25} height={25} className="size-6 object-contain" />
           <span className={cn("grid min-w-0 gap-0.5", isSidebarCollapsed && "lg:hidden")}>
@@ -96,7 +99,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
         </Button>
       </div>
 
-      <nav aria-label="Menu workspace" className="grid gap-1 pt-4">
+      <nav aria-label="Menu workspace" className="grid gap-1 pt-4 pr-3">
         {navigation.map(({ label, href, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
@@ -119,7 +122,7 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
         })}
       </nav>
       {isSidebarCollapsed && (
-        <div className="mt-3 hidden border-t border-[#e7ebf1] pt-3 lg:grid">
+        <div className="mt-3 hidden border-t border-[#e7ebf1] pt-3 pr-3 lg:grid">
           <Button
             type="button"
             variant="outline"
@@ -135,22 +138,13 @@ export function DashboardShell({ children, user, recentDocuments }: DashboardShe
       )}
 
 
-      <div className={cn("grid gap-2 px-2 pt-8 text-xs text-slate-500", isSidebarCollapsed && "lg:hidden")}>
-        <b className="text-xs font-bold tracking-wider text-slate-400 uppercase">TERKINI</b>
-        {recentDocuments.map((document) => (
-          <Link
-            key={document.id}
-            href={`/dashboard/create?chat_id=${document.id}`}
-            onClick={() => setIsOpen(false)}
-            className="truncate text-xs font-medium text-slate-600 transition-colors hover:text-klarisa-secondary"
-          >
-            {document.title}
-          </Link>
-        ))}
-        {recentDocuments.length === 0 && <span className="text-xs leading-5 text-slate-400">Belum ada draft terbaru.</span>}
-      </div>
+      <SidebarRecentChats
+        className={cn(isSidebarCollapsed && "lg:hidden")}
+        initialChats={initialChats}
+        onCloseSidebar={() => setIsOpen(false)}
+      />
 
-      <div className={cn("mt-auto flex items-center gap-2 border-t border-[#e7ebf1] px-2 pt-4", isSidebarCollapsed && "lg:justify-center")}>
+      <div className={cn("mt-auto flex items-center gap-2 border-t border-[#e7ebf1] px-2 pr-3 pt-4", isSidebarCollapsed && "lg:justify-center")}>
         <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
           {user.initials}
         </span>

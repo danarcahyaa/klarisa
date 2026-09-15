@@ -61,7 +61,7 @@ export function useChatSearch({
   const [chats, setChats] = useState<ChatRow[]>(initialChats);
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(initialChats.length);
-  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(initialChats.length >= limit);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
