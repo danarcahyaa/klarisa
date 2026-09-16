@@ -9,6 +9,11 @@ import {
   updateChatTitleAction,
 } from "@/app/actions/chat.action";
 import { useChatSearch, type UseChatSearchOptions } from "@/hooks/useChatSearch";
+import {
+  dispatchChatCreated,
+  dispatchChatUpdated,
+  dispatchChatDeleted,
+} from "@/lib/chat-events";
 import type { CreateChatDTO } from "@/types/chat.type";
 
 /**
@@ -36,6 +41,7 @@ export function useChat(searchOptions?: UseChatSearchOptions) {
         }
 
         toast.success("Percakapan berhasil dibuat.");
+        dispatchChatCreated(res.data);
         await search.refresh();
         if (redirectToChat) {
           router.push(`/dashboard/create?chat_id=${res.data.id}`);
@@ -69,6 +75,7 @@ export function useChat(searchOptions?: UseChatSearchOptions) {
         }
 
         toast.success("Judul percakapan berhasil diubah.");
+        dispatchChatUpdated(chatId, newTitle);
         await search.refresh();
         return true;
       } catch (err) {
@@ -99,10 +106,8 @@ export function useChat(searchOptions?: UseChatSearchOptions) {
         }
 
         toast.success("Percakapan berhasil dihapus.");
+        dispatchChatDeleted(chatId);
         await search.refresh();
-        if (currentChatId === chatId) {
-          router.push("/dashboard/create");
-        }
         return true;
       } catch (err) {
         const errMsg =

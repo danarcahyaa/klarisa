@@ -310,6 +310,19 @@ export class DraftRepository {
       title: res.title,
     };
   }
+
+  /**
+   * Find a chat row by ID.
+   *
+   * @param chatId Unique identifier of the chat thread.
+   */
+  async findChatById(chatId: string) {
+    return this.supabase
+      .from("chats")
+      .select("*")
+      .eq("id", chatId)
+      .maybeSingle();
+  }
 }
 
 export function createDraftRepository(client: SupabaseClient<Database>) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MoreVertical, Pencil, Search, Trash2 } from "lucide-react";
@@ -11,6 +11,7 @@ import { FormDialog } from "@/components/ui/form-dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { SearchChatDialog } from "@/components/draf/chat-ai/search-chat-dialog";
 import { cn } from "@/lib/utils";
+import { CHAT_EVENTS, dispatchChatSelect } from "@/lib/chat-events";
 import type { ChatRow } from "@/types/chat.type";
 
 export interface SidebarRecentChatsProps {
@@ -32,7 +33,28 @@ function RecentChatsList({
 }: SidebarRecentChatsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentChatId = searchParams?.get("chat_id");
+  const searchChatId = searchParams?.get("chat_id");
+  const [currentChatId, setCurrentChatId] = useState<string | null>(searchChatId);
+
+  useEffect(() => {
+    setCurrentChatId(searchChatId);
+  }, [searchChatId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCreated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ chat: ChatRow }>;
+      if (customEvent.detail?.chat?.id) {
+        setCurrentChatId(customEvent.detail.chat.id);
+      }
+    };
+
+    window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    };
+  }, []);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
@@ -129,15 +151,25 @@ function RecentChatsList({
                 <div
                   key={chat.id}
                   className={cn(
-                    "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-1",
+                    "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-2 cursor-pointer",
                     isCurrent && "bg-[#edf2ff] text-klarisa-secondary font-medium"
                   )}
                 >
-                  <Link
-                    href={`/dashboard/create?chat_id=${chat.id}`}
-                    onClick={onCloseSidebar}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Update URL query param without full navigation so ChatAI can intercept
+                      if (typeof window !== "undefined") {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set("chat_id", chat.id);
+                        window.history.pushState(null, "", url.toString());
+                      }
+                      dispatchChatSelect(chat.id);
+                      setCurrentChatId(chat.id);
+                      onCloseSidebar?.();
+                    }}
                     className={cn(
-                      "min-w-0 flex-1 truncate text-xs transition-colors",
+                      "min-w-0 flex-1 truncate text-xs transition-colors text-left",
                       isCurrent
                         ? "font-semibold text-klarisa-secondary"
                         : "font-medium text-slate-600 group-hover:text-klarisa-secondary"
@@ -145,7 +177,7 @@ function RecentChatsList({
                     title={displayTitle}
                   >
                     {displayTitle}
-                  </Link>
+                  </button>
 
                   <div
                     className={cn(
@@ -174,7 +206,7 @@ function RecentChatsList({
                       }
                       items={[
                         {
-                          text: "Ubah nama",
+                          text: "Ganti nama",
                           icon: <Pencil className="size-3.5 text-slate-500" />,
                           onClick: () => setRenameChat(chat),
                         },

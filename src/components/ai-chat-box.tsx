@@ -217,10 +217,10 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           aria-label={isLoading ? stopAriaLabel : sendAriaLabel}
           title={isLoading ? stopAriaLabel : sendAriaLabel}
           className={cn(
-            "cursor-pointer mb-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
+            "mb-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
             isSubmitDisabled
               ? "cursor-not-allowed bg-slate-50 text-slate-400"
-              : "bg-klarisa-primary text-white shadow-xs active:scale-95",
+              : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95",
             buttonClassName
           )}
         >

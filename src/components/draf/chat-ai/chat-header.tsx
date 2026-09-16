@@ -9,6 +9,7 @@ import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { SearchChatDialog } from "./search-chat-dialog";
 import { updateChatTitleAction, deleteChatAction } from "@/app/actions/chat.action";
+import { dispatchChatUpdated, dispatchChatDeleted } from "@/lib/chat-events";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,7 @@ export function ChatHeader({
           toast.error(res.error ?? "Gagal mengganti nama percakapan.");
           return false;
         }
+        dispatchChatUpdated(chatId, trimmed);
       }
 
       onRename?.(trimmed);
@@ -99,6 +101,7 @@ export function ChatHeader({
           toast.error(res.error ?? "Gagal menghapus percakapan.");
           return;
         }
+        dispatchChatDeleted(chatId);
       }
 
       onDelete?.();

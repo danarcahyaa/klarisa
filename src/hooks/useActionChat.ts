@@ -8,6 +8,12 @@ import {
   listConversationsAction,
   updateChatTitleAction,
 } from "@/app/actions/chat.action";
+import {
+  dispatchChatUpdated,
+  dispatchChatDeleted,
+  CHAT_EVENTS,
+  type ChatDeletedEventDetail,
+} from "@/lib/chat-events";
 import type {
   ChatMessageItem,
   UseActionChatOptions,
@@ -278,6 +284,7 @@ export function useActionChat({
         if (targetChatId === chatId) {
           setFirstChatTitle(trimmed);
         }
+        dispatchChatUpdated(targetChatId, trimmed);
         toast.success("Nama percakapan berhasil diperbarui.");
         return true;
       } catch (err) {
@@ -301,6 +308,7 @@ export function useActionChat({
           throw new Error(res.error ?? "Gagal menghapus percakapan.");
         }
 
+        dispatchChatDeleted(targetChatId);
         if (targetChatId === chatId) {
           reset();
         }
@@ -351,6 +359,22 @@ export function useActionChat({
       window.removeEventListener("popstate", handlePopState);
     };
   }, [chatId, handleLoadChatDetail, reset]);
+
+  // Listen for chat deletion events dispatched by the sidebar or other components.
+  // If the deleted chat is the currently active one, reset the ChatAI state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleChatDeleted = (event: Event) => {
+      const { chatId: deletedChatId } = (event as CustomEvent<ChatDeletedEventDetail>).detail;
+      if (deletedChatId && deletedChatId === chatId) {
+        reset();
+      }
+    };
+    window.addEventListener(CHAT_EVENTS.DELETED, handleChatDeleted);
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.DELETED, handleChatDeleted);
+    };
+  }, [chatId, reset]);
 
   return {
     isLoadingChat,

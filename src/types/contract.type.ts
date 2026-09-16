@@ -127,10 +127,13 @@ export interface UpdateDraftCommentDTO {
 
 export type ContractResponse<T> = BaseResponse<T>;
 
+import type { ChatRow } from "./chat.type";
+
 export interface SaveDraftChatResult {
   chat_id: string;
   conversation_id: string;
   success: boolean;
+  chat?: ChatRow | null;
 }
 
 export type {

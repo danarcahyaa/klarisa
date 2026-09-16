@@ -255,18 +255,19 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
-/* Scrollbar shown only when container is hovered */
+/* Scrollbar gutter always reserved to prevent layout shift; thumb transparent by default, visible on hover */
 .scrollbar-hover {
-  scrollbar-width: none; /* Firefox: completely hide by default */
-  -ms-overflow-style: none; /* IE/Edge */
+  /* Firefox: always reserve gutter with thin scrollbar, thumb hidden by default */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
 }
 
 .scrollbar-hover:hover {
-  scrollbar-width: thin; /* Firefox: thin on hover */
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #cbd5e1 transparent; /* Firefox: show thumb on hover */
 }
 
-/* Chrome, Safari, Edge, Opera, WebKit: 4px pill without arrow buttons */
+/* Chrome, Safari, Edge, Opera: 4px pill, always occupying gutter space */
 .scrollbar-hover::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -282,12 +283,14 @@
   background: transparent !important;
 }
 
+/* Thumb invisible by default */
 .scrollbar-hover::-webkit-scrollbar-thumb {
   background: transparent !important;
   border-radius: 9999px;
   transition: background-color 0.2s ease-in-out;
 }
 
+/* Thumb visible on hover */
 .scrollbar-hover:hover::-webkit-scrollbar-thumb {
   background: #cbd5e1 !important;
 }

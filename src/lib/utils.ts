@@ -504,7 +504,7 @@ export function formatIndonesianDate(
  * Returns null if the given message is not a limitation/quota error.
  *
  * - High Demand / 503 / Unavailable: "Permintaan terlalu banyak. Coba lagi nanti."
- * - Daily Limit (RPD): "Anda sudah mencapai batas penggunaan harian. Layanan akan dapat digunakan kembali besok pukul 00.00."
+ * - Daily Limit (RPD): "Anda sudah mencapai batas penggunaan harian. Coba lagi nanti."
  * - General Rate Limit / Usage Limit / Quota: "Anda sudah mencapai batas penggunaan. Coba lagi nanti."
  *
  * @param errorMessage - The raw error message string from LLM, SDK, or server.
@@ -538,7 +538,7 @@ export function getLimitationErrorMessage(errorMessage?: string | null): string 
     lower.includes("daily") ||
     lower.includes("day limit")
   ) {
-    return "Anda sudah mencapai batas penggunaan harian. Layanan akan dapat digunakan kembali besok pukul 00.00.";
+    return "Anda sudah mencapai batas penggunaan harian. Coba lagi nanti.";
   }
 
   // General rate limit, quota exhaustion, or request rate

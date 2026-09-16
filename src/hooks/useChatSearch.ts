@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchUserChatsAction } from "@/app/actions/chat.action";
+import {
+  CHAT_EVENTS,
+  type ChatCreatedEventDetail,
+  type ChatUpdatedEventDetail,
+  type ChatDeletedEventDetail,
+} from "@/lib/chat-events";
 import type { ChatRow } from "@/types/chat.type";
 
 export interface UseChatSearchOptions {
@@ -118,6 +124,73 @@ export function useChatSearch({
     },
     [limit]
   );
+
+  /**
+   * Sync initialChats if provided or updated from server.
+   */
+  useEffect(() => {
+    if (initialChats && initialChats.length > 0) {
+      setChats((prev) => {
+        if (prev.length === 0) return initialChats;
+        return prev;
+      });
+    }
+  }, [initialChats]);
+
+  /**
+   * Listen for cross-component chat lifecycle events (created, updated, deleted)
+   * to immediately synchronize the chat list in real time.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCreated = (event: Event) => {
+      const customEvent = event as CustomEvent<ChatCreatedEventDetail>;
+      const newChat = customEvent.detail?.chat;
+      if (!newChat) return;
+
+      setChats((prev) => {
+        if (prev.some((c) => c.id === newChat.id)) {
+          return prev;
+        }
+        return [newChat, ...prev];
+      });
+      setTotal((prev) => prev + 1);
+    };
+
+    const handleUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<ChatUpdatedEventDetail>;
+      const { chatId, title } = customEvent.detail || {};
+      if (!chatId || !title) return;
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === chatId
+            ? { ...c, title, updated_at: new Date().toISOString() }
+            : c
+        )
+      );
+    };
+
+    const handleDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<ChatDeletedEventDetail>;
+      const { chatId } = customEvent.detail || {};
+      if (!chatId) return;
+
+      setChats((prev) => prev.filter((c) => c.id !== chatId));
+      setTotal((prev) => Math.max(0, prev - 1));
+    };
+
+    window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    window.addEventListener(CHAT_EVENTS.UPDATED, handleUpdated);
+    window.addEventListener(CHAT_EVENTS.DELETED, handleDeleted);
+
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
+      window.removeEventListener(CHAT_EVENTS.UPDATED, handleUpdated);
+      window.removeEventListener(CHAT_EVENTS.DELETED, handleDeleted);
+    };
+  }, []);
 
   /**
    * Trigger reload for first page when debouncedQuery or enabled changes.
