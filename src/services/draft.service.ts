@@ -6,7 +6,13 @@ import {
   contractQuerySchema,
   draftEntityIdSchema,
   saveDraftChatSchema,
+  updateDraftTitleSchema,
+  saveDraftContentSchema,
+  deleteDraftSchema,
   type SaveDraftChatDTO,
+  type UpdateDraftTitleDTO,
+  type SaveDraftContentDTO,
+  type DeleteDraftDTO,
 } from "@/app/validations/contract.validation";
 import {
   decryptContractContent,
@@ -399,6 +405,171 @@ export class DraftService {
     };
 
     return createSuccessResponse(detail);
+  }
+
+  /**
+   * Updates the title of a contract draft.
+   *
+   * @param userId - ID of the authenticated user.
+   * @param input - Contract ID and new title payload.
+   * @returns BaseResponse with the updated contract data.
+   */
+  async updateDraftTitle(
+    userId: string,
+    input: UpdateDraftTitleDTO
+  ): Promise<BaseResponse<{ id: string; title: string; updatedAt: string }>> {
+    try {
+      const validation = updateDraftTitleSchema.safeParse(input);
+      if (!validation.success) {
+        return createErrorResponse(
+          validation.error.issues[0]?.message ?? "Data judul kontrak tidak valid."
+        );
+      }
+
+      const { contractId, title } = validation.data;
+      const cleanTitle = title.trim();
+
+      // Check ownership or collaborator permission
+      const current = await this.repository.findDraftById(contractId);
+      if (current.error) {
+        return createErrorResponse(mapSupabaseError(current.error.message));
+      }
+      if (!current.data) {
+        return createErrorResponse("Kontrak tidak ditemukan.");
+      }
+
+      const isOwner = current.data.user_id === userId;
+      if (!isOwner) {
+        const collab = await this.repository.findCollaborator(userId, contractId);
+        if (!collab.data || collab.data.role !== "editor") {
+          return createErrorResponse("Anda tidak memiliki izin untuk mengubah nama kontrak ini.");
+        }
+      }
+
+      const result = await this.repository.updateTitle(contractId, cleanTitle);
+      if (result.error) {
+        return createErrorResponse(mapSupabaseError(result.error.message));
+      }
+
+      return createSuccessResponse(
+        {
+          id: result.data.id,
+          title: result.data.title,
+          updatedAt: result.data.updated_at,
+        },
+        "Nama kontrak berhasil diperbarui."
+      );
+    } catch (error) {
+      console.error("[DraftService] Error in updateDraftTitle:", error);
+      return createErrorResponse("Terjadi kesalahan saat mengubah nama kontrak.");
+    }
+  }
+
+  /**
+   * Saves updated contract draft content securely using AES-256-GCM encryption.
+   *
+   * @param userId - ID of the authenticated user.
+   * @param input - Contract ID and raw HTML content.
+   * @returns BaseResponse with updated timestamp.
+   */
+  async saveDraftContent(
+    userId: string,
+    input: SaveDraftContentDTO
+  ): Promise<BaseResponse<{ id: string; updatedAt: string }>> {
+    try {
+      const validation = saveDraftContentSchema.safeParse(input);
+      if (!validation.success) {
+        return createErrorResponse(
+          validation.error.issues[0]?.message ?? "Data konten draft tidak valid."
+        );
+      }
+
+      const { contractId, content } = validation.data;
+
+      // Check access permission
+      const current = await this.repository.findDraftById(contractId);
+      if (current.error) {
+        return createErrorResponse(mapSupabaseError(current.error.message));
+      }
+      if (!current.data) {
+        return createErrorResponse("Kontrak tidak ditemukan.");
+      }
+
+      const isOwner = current.data.user_id === userId;
+      if (!isOwner) {
+        const collab = await this.repository.findCollaborator(userId, contractId);
+        if (!collab.data || collab.data.role !== "editor") {
+          return createErrorResponse("Anda tidak memiliki izin untuk mengedit isi kontrak ini.");
+        }
+      }
+
+      // Encrypt HTML content before storage
+      const encryptedContent = encryptContractContent(content || "<p></p>");
+
+      const result = await this.repository.updateDraftContent(contractId, encryptedContent);
+      if (result.error) {
+        return createErrorResponse(mapSupabaseError(result.error.message));
+      }
+
+      return createSuccessResponse(
+        {
+          id: contractId,
+          updatedAt: result.data.updated_at,
+        },
+        "Perubahan draft berhasil disimpan."
+      );
+    } catch (error) {
+      console.error("[DraftService] Error in saveDraftContent:", error);
+      return createErrorResponse("Terjadi kesalahan saat menyimpan perubahan draft.");
+    }
+  }
+
+  /**
+   * Deletes a contract draft and its associated records.
+   * Only the owner can delete the contract.
+   *
+   * @param userId - ID of the authenticated user (must be the owner).
+   * @param contractId - ID of the contract to delete.
+   * @returns BaseResponse with deleted contract ID.
+   */
+  async deleteDraft(
+    userId: string,
+    contractId: string
+  ): Promise<BaseResponse<{ id: string }>> {
+    try {
+      const idValidation = draftEntityIdSchema.safeParse(contractId);
+      if (!idValidation.success) {
+        return createErrorResponse(
+          idValidation.error.issues[0]?.message ?? "ID kontrak tidak valid."
+        );
+      }
+
+      const validId = idValidation.data;
+
+      // Check ownership - only owner can delete
+      const current = await this.repository.findById(userId, validId);
+      if (current.error) {
+        return createErrorResponse(mapSupabaseError(current.error.message));
+      }
+      if (!current.data) {
+        return createErrorResponse(
+          "Kontrak tidak ditemukan atau Anda tidak memiliki izin untuk menghapusnya."
+        );
+      }
+
+      const result = await this.repository.deleteContract(userId, validId);
+      if (result.error) {
+        return createErrorResponse(mapSupabaseError(result.error.message));
+      }
+
+      return createSuccessResponse(
+        { id: validId },
+        "Kontrak berhasil dihapus."
+      );
+    } catch (error) {
+      console.error("[DraftService] Error in deleteDraft:", error);
+      return createErrorResponse("Terjadi kesalahan saat menghapus kontrak.");
+    }
   }
 
   private async buildSystemPrompt() {

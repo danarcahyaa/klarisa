@@ -10,12 +10,19 @@ import { cn } from '@/lib/utils';
 interface TextEditorToolbarProps {
   editor: Editor | null;
   className?: string;
+  isAgentOpen?: boolean;
+  onToggleAgent?: () => void;
 }
 
-export function TextEditorToolbar({ editor, className }: TextEditorToolbarProps) {
+export function TextEditorToolbar({ 
+  editor, 
+  className,
+  isAgentOpen,
+  onToggleAgent,
+}: TextEditorToolbarProps) {
     return (
-        <div className={cn("sticky top-4 z-20 px-5 py-2 bg-white/80 backdrop-blur-lg border border-input rounded-full flex items-center justify-between gap-2 overflow-x-auto", className)}>
-            <div className="flex gap-1">
+        <div className={cn("shrink-0 px-4 py-2 bg-white border-r border-b border-input flex items-center justify-between gap-2 overflow-x-auto shadow-2xs", className)}>
+            <div className="flex gap-1 shrink-0">
                 <UndoRedoButton
                     editor={editor}
                     action="undo"
@@ -28,7 +35,7 @@ export function TextEditorToolbar({ editor, className }: TextEditorToolbarProps)
                 />
             </div>
             
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
                 <HeadingDropdownMenu editor={editor}
                     levels={[1,2,3,4,5,6]}
                     
@@ -38,25 +45,33 @@ export function TextEditorToolbar({ editor, className }: TextEditorToolbarProps)
                     types={['bulletList', 'orderedList']}
                 />
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
                 <MarkButton editor={editor} type="bold"/>
                 <MarkButton editor={editor} type="italic" />
                 <MarkButton editor={editor} type="strike" />
                 <MarkButton editor={editor} type="underline" /> 
             </div>
 
-            <div className="flex gap-1"> 
+            <div className="flex gap-1 shrink-0"> 
                 <TextAlignButton editor={editor} align="left"/>
                 <TextAlignButton editor={editor} align="center" />
                 <TextAlignButton editor={editor} align="right" />
                 <TextAlignButton editor={editor} align="justify" />
             </div>
 
-            <div className="flex items-center">
+            {onToggleAgent && (
+              <div className="flex items-center shrink-0">
                 <button
                     type="button"
+                    onClick={onToggleAgent}
                     aria-label="Klarisa AI"
-                    className="flex size-8 items-center justify-center rounded-md transition-all duration-200 cursor-pointer hover:bg-slate-100 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                    title={isAgentOpen ? "Tutup Asisten AI" : "Buka Asisten AI"}
+                    className={cn(
+                        "flex size-8 items-center justify-center rounded-md transition-all duration-200 cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0",
+                        isAgentOpen
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-100"
+                    )}
                 >
                         <Image
                             src="/klarisa/logo-ai.svg"
@@ -66,7 +81,8 @@ export function TextEditorToolbar({ editor, className }: TextEditorToolbarProps)
                             className="size-4.5 object-contain mb-0.5 mr-0.5"
                         />
                 </button>
-            </div>
+              </div>
+            )}
             
         </div>
     )

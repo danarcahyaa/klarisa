@@ -85,4 +85,3 @@ export async function generateContractDraftAction(
 
   return context.service.generateContractDraft(context.user.id, input);
 }
-

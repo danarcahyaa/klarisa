@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database, Json, TablesInsert } from "@/types/database.type";
+import type { Database, Json, TablesInsert, TablesUpdate } from "@/types/database.type";
 import type { ContractDraftRow, ContractRow } from "@/types/contract.type";
 
 export type ContractRecord = ContractRow & {
@@ -41,6 +41,12 @@ export class DraftRepository {
   }
 
   async deleteContract(userId: string, contractId: string) {
+    // Clean up associated draft records to prevent foreign key constraints
+    await this.supabase.from("contract_draft").delete().eq("contract_id", contractId);
+    await this.supabase.from("draft_collaborators").delete().eq("contract_id", contractId);
+    await this.supabase.from("draft_comments").delete().eq("contract_id", contractId);
+    await this.supabase.from("draft_settings").delete().eq("contract_id", contractId);
+    await this.supabase.from("document_drafts").delete().eq("document_id", contractId);
     return this.supabase.from("contracts").delete().eq("id", contractId).eq("user_id", userId);
   }
 
@@ -235,8 +241,87 @@ export class DraftRepository {
       .eq("document_id", contractId);
   }
 
+  /**
+   * Updates a contract row and updates the updated_at timestamp.
+   *
+   * @param contractId Unique identifier of the contract.
+   * @param payload Update fields for the contracts table.
+   */
+  async updateContract(contractId: string, payload: TablesUpdate<"contracts">) {
+    return this.supabase
+      .from("contracts")
+      .update({ ...payload, updated_at: new Date().toISOString() })
+      .eq("id", contractId)
+      .select()
+      .single();
+  }
+
+  /**
+   * Updates a contract_draft row and touches the parent contract updated_at timestamp.
+   *
+   * @param contractId Unique identifier of the contract.
+   * @param payload Update fields for the contract_draft table.
+   */
+  async updateDraft(contractId: string, payload: TablesUpdate<"contract_draft">) {
+    const now = new Date().toISOString();
+    const result = await this.supabase
+      .from("contract_draft")
+      .update({ ...payload, updated_at: now })
+      .eq("contract_id", contractId)
+      .select()
+      .single();
+
+    if (result.error) return result;
+
+    await this.supabase
+      .from("contracts")
+      .update({ updated_at: now })
+      .eq("id", contractId);
+
+    return result;
+  }
+
   async updateTitle(contractId: string, title: string) {
-    return this.supabase.from("contracts").update({ title }).eq("id", contractId).eq("type", "draft").select().single();
+    return this.supabase
+      .from("contracts")
+      .update({ title, updated_at: new Date().toISOString() })
+      .eq("id", contractId)
+      .select()
+      .single();
+  }
+
+  /**
+   * Updates or upserts encrypted draft content and touches the parent contract updated_at timestamp.
+   *
+   * @param contractId Unique identifier of the contract.
+   * @param encryptedContent AES-256-GCM encrypted HTML content.
+   */
+  async updateDraftContent(contractId: string, encryptedContent: string) {
+    const now = new Date().toISOString();
+    const draftResult = await this.supabase
+      .from("contract_draft")
+      .upsert(
+        {
+          contract_id: contractId,
+          content: encryptedContent,
+          updated_at: now,
+        },
+        { onConflict: "contract_id" }
+      )
+      .select()
+      .single();
+
+    if (draftResult.error) {
+      return draftResult;
+    }
+
+    // Touch parent contract updated_at timestamp
+    await this.supabase
+      .from("contracts")
+      .update({ updated_at: now })
+      .eq("id", contractId);
+
+    return draftResult;
   }
 
   async upsertDraft(payload: TablesInsert<"contract_draft">) {

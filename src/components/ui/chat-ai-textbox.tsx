@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/ui/button"
 import { Textarea } from "./textarea"
 
 export interface ChatAiTextboxProps extends Omit<React.ComponentProps<"textarea">, "onSubmit"> {
+  /** Visual/size variant of the chat textbox: 'default' for standard size, 'small' or 'sm' for compact display */
+  variant?: "default" | "small" | "sm"
   value: string
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onSubmit?: (e?: React.FormEvent) => void
@@ -24,6 +26,7 @@ export interface ChatAiTextboxProps extends Omit<React.ComponentProps<"textarea"
 export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextboxProps>(
   (
     {
+      variant = "default",
       value,
       onChange,
       onSubmit,
@@ -45,6 +48,7 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
     },
     ref
   ) => {
+    const isSmall = variant === "small" || variant === "sm"
     const internalRef = React.useRef<HTMLTextAreaElement>(null)
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement | null>) || internalRef
 
@@ -80,7 +84,8 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
     return (
       <div
         className={cn(
-          "relative flex min-h-12 items-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-11 transition-all focus-within:border-klarisa-secondary focus-within:ring-2 focus-within:ring-klarisa-secondary/20",
+          "relative flex items-center border border-slate-200 bg-white transition-all focus-within:border-klarisa-secondary focus-within:ring-2 focus-within:ring-klarisa-secondary/20",
+          isSmall ? "min-h-12 px-2.5 py-1.5 pr-8 rounded-md" : "rounded-lg min-h-12 px-3 py-2.5 pr-11",
           containerClassName
         )}
       >
@@ -93,30 +98,34 @@ export const ChatAiTextbox = React.forwardRef<HTMLTextAreaElement, ChatAiTextbox
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "min-h-6 max-h-[140px] w-full resize-none overflow-y-auto border-0 bg-transparent px-0 py-0.5 text-xs leading-relaxed shadow-none outline-none focus:ring-0 focus-visible:ring-0 focus-visible:border-transparent placeholder:text-slate-400 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+            isSmall
+              ? "min-h-5 max-h-[100px] text-[11px] py-0 leading-normal"
+              : "min-h-6 max-h-[140px] text-xs py-0.5 leading-relaxed",
+            "w-full resize-none overflow-y-auto border-0 bg-transparent px-0 shadow-none outline-none focus:ring-0 focus-visible:ring-0 focus-visible:border-transparent placeholder:text-slate-400 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
             className
           )}
           {...props}
         />
         <SubmitButton
           variant="ghost"
-          size="icon-sm"
+          size={isSmall ? "icon-xs" : "icon-sm"}
           type="button"
           onClick={handleClickButton}
           disabled={isButtonDisabled}
           aria-label={isSending ? stopAriaLabel : sendAriaLabel}
           title={isSending ? stopAriaLabel : sendAriaLabel}
           className={cn(
-            "absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0 text-slate-400 hover:text-slate-700 disabled:opacity-40",
-            value.trim().length > 40 && "top-auto bottom-2.5 translate-y-0",
+            "absolute top-1/2 -translate-y-1/2 shrink-0 text-slate-400 hover:text-slate-700 disabled:opacity-40",
+            isSmall ? "right-1.5" : "right-2.5",
+            value.trim().length > 40 && (isSmall ? "top-auto bottom-1.5 translate-y-0" : "top-auto bottom-2.5 translate-y-0"),
             isSending && "text-slate-700 hover:text-slate-900",
             submitButtonClassName
           )}
         >
           {isSending ? (
-            stopIcon || <Pause className="size-3.5 fill-current" />
+            stopIcon || <Pause className={cn(isSmall ? "size-3" : "size-3.5", "fill-current")} />
           ) : (
-            icon || <SendHorizontal className="size-3.5" />
+            icon || <SendHorizontal className={isSmall ? "size-3" : "size-3.5"} />
           )}
         </SubmitButton>
       </div>
