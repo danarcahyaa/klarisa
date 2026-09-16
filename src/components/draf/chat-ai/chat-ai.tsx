@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useInitialChat } from "@/hooks/useInitialChat";
 import { useActionChat } from "@/hooks/useActionChat";
 import { useInteractionChat } from "@/hooks/useInteractionChat";
+import { CHAT_EVENTS, type ChatSelectEventDetail } from "@/lib/chat-events";
 import type {ChatMessageItem } from "@/types/draft.type";
 import { EmptyStateHeader } from "./empty-state-header";
 import { TemplateOptions } from "./template-options";
@@ -174,6 +175,22 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       window.removeEventListener("resize", checkScroll);
     };
   }, [hasMessages, checkScroll, messages.length]);
+
+  // Listen for chat select events dispatched by the sidebar
+  // to load chat detail without a full page navigation.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleChatSelect = (event: Event) => {
+      const { chatId: selectedChatId } = (event as CustomEvent<ChatSelectEventDetail>).detail;
+      if (selectedChatId) {
+        void handleLoadChatDetail(selectedChatId);
+      }
+    };
+    window.addEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
+    };
+  }, [handleLoadChatDetail]);
 
   useEffect(() => {
     return () => {

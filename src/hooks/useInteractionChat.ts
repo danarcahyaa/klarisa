@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import type { AIChatBoxRef } from "@/components/ai-chat-box";
 import { streamDraftFromApiAction } from "@/app/actions/stream-draft-chat.action";
 import {
@@ -47,7 +48,6 @@ export function useInteractionChat({
   const chatBoxRef = useRef<AIChatBoxRef>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const activeSavePromiseRef = useRef<Promise<unknown> | null>(null);
 
   /**
    * Stops the ongoing AI response generation, whether in initial chat or ongoing interaction.
@@ -118,10 +118,6 @@ export function useInteractionChat({
   const handleSend = async (text: string): Promise<void> => {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
-
-    if (activeSavePromiseRef.current) {
-      await activeSavePromiseRef.current;
-    }
 
     // If chat does not exist yet, trigger initial chat creation
     if (!chatId && messages.length === 0) {
@@ -261,10 +257,14 @@ export function useInteractionChat({
 
       onGenerated?.(res.data);
 
-      // AI response generation completed: immediately release loading state
-      // so the button reverts to normal (disabled when input is empty, enabled when typing).
-      setIsLoading(false);
-      setStreamingAiId(null);
+      // AI response generation completed: flush loading state synchronously
+      // to the DOM BEFORE the Server Action is queued. Without flushSync,
+      // Next.js Server Action dispatch can batch/defer this update until the
+      // action resolves, causing the button to appear stuck in Pause state.
+      flushSync(() => {
+        setIsLoading(false);
+        setStreamingAiId(null);
+      });
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
       }
@@ -276,17 +276,14 @@ export function useInteractionChat({
       };
 
       // Save follow-up message to database in background without blocking UI
-      const savePromise = saveDraftChatAction({
+      void saveDraftChatAction({
         question: trimmed,
         answer: aiText || "Respons dihentikan.",
         chatId,
         title: currentTitle,
         lastInteractionId: res.data.interactionId ?? null,
         metadata: Object.keys(conversationMetadata).length > 0 ? conversationMetadata : null,
-      });
-      activeSavePromiseRef.current = savePromise;
-
-      void savePromise.then((saveRes) => {
+      }).then((saveRes) => {
         if (saveRes.success && saveRes.data?.chat_id && !chatId) {
           const newChatId = saveRes.data.chat_id;
           setChatId(newChatId);
@@ -299,8 +296,6 @@ export function useInteractionChat({
         }
       }).catch((saveErr) => {
         console.error("[useInteractionChat] Failed to save chat in background:", saveErr);
-      }).finally(() => {
-        activeSavePromiseRef.current = null;
       });
     } catch (err) {
       if (controller.signal.aborted) {

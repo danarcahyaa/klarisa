@@ -271,6 +271,17 @@ export class DraftService {
       }
 
       const responseData = result.data as unknown as SaveDraftChatResult;
+
+      // If a new chat session was created, fetch and attach the chat row
+      if (!chatId && responseData.chat_id) {
+        const { data: createdChat } = await this.repository.findChatById(
+          responseData.chat_id
+        );
+        if (createdChat) {
+          responseData.chat = createdChat;
+        }
+      }
+
       return createSuccessResponse<SaveDraftChatResult>(
         responseData,
         "Percakapan berhasil disimpan."

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { getDraftServerContext } from "@/lib/draft-context";
 import type { SaveDraftChatDTO } from "@/app/validations/contract.validation";
 import type { SaveDraftChatResult } from "@/types/contract.type";
@@ -50,7 +51,12 @@ export async function saveDraftChatAction(
     );
   }
 
-  return context.service.saveAiChat(context.user.id, input);
+  const result = await context.service.saveAiChat(context.user.id, input);
+  if (result.success) {
+    revalidatePath("/dashboard/create");
+    revalidatePath("/dashboard");
+  }
+  return result;
 }
 
 export interface GenerateContractDraftActionInput {

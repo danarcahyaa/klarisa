@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { streamDraftFromApiAction } from "@/app/actions/stream-draft-chat.action";
 import {
   generateContractDraftAction,
@@ -12,6 +13,8 @@ import {
   upsertAiChatMessage,
 } from "@/lib/gemini/chat-ai.utils";
 import { formatLimitationErrorMessage, isLimitationError, truncateWords } from "@/lib/utils";
+import { dispatchChatCreated } from "@/lib/chat-events";
+import type { ChatRow } from "@/types/chat.type";
 import type {
   ChatMessageItem,
   ChatStatusStep,
@@ -193,10 +196,14 @@ export function useInitialChat({
 
         onGenerated?.(res.data);
 
-        // AI response generation completed: immediately release loading state
-        // so the button reverts to normal (disabled when input is empty, enabled when typing).
-        setIsLoading(false);
-        setStreamingAiId(null);
+        // AI response generation completed: flush loading state synchronously
+        // to the DOM BEFORE the Server Action is queued. Without flushSync,
+        // Next.js Server Action dispatch can batch/defer this update until the
+        // action resolves, causing the button to appear stuck in Pause state.
+        flushSync(() => {
+          setIsLoading(false);
+          setStreamingAiId(null);
+        });
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
@@ -226,6 +233,17 @@ export function useInitialChat({
               url.searchParams.set("chat_id", newChatId);
               window.history.replaceState(null, "", url.toString());
             }
+
+            // Dispatch created chat event to update recent chats sidebar immediately after data insertion
+            const createdChat: ChatRow = saveRes.data.chat ?? {
+              id: newChatId,
+              title: initialTitle,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_interaction_id: res?.data?.interactionId ?? null,
+              user_id: "",
+            };
+            dispatchChatCreated(createdChat);
           }
         }).catch((saveErr) => {
           console.error("[useInitialChat] Failed to save chat in background:", saveErr);
@@ -244,22 +262,11 @@ export function useInitialChat({
         setError(errorMsg);
 
         // When limitation error occurs on new chat without AI output:
-        // Keep view as new chat (empty messages, header visible) and show alert above prompt.
+        // Keep view as new chat (empty messages) and show alert above prompt.
+        // Do NOT save to database since there is no meaningful AI response to persist.
         if (isLimit) {
           setMessages([]);
           setPrompt(promptToSend);
-
-          // Persist the conversation with limitation error to the database in background
-          void saveDraftChatAction({
-            question: promptToSend,
-            answer: errorMsg,
-            chatId: null,
-            title: initialTitle,
-            lastInteractionId: null,
-            metadata: { error: errorMsg, error_type: "limitation" },
-          }).catch((saveErr) => {
-            console.error("[useInitialChat] Failed to save limitation error chat in background:", saveErr);
-          });
         } else {
           setMessages((prev) => upsertAiChatMessage(prev, aiMessageId, errorMsg));
         }
