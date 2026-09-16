@@ -13,6 +13,8 @@ import { ArrowRight, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface AIChatBoxProps {
+  /** Size/layout variant of the chatbox: 'default' for standard size, 'small' or 'sm' for compact sidebars */
+  variant?: "default" | "small" | "sm";
   /** Whether the chat has active messages, increasing minimum height */
   hasMassage?: boolean;
   /** Controlled input value */
@@ -62,9 +64,10 @@ export interface AIChatBoxRef {
 
 /**
  * AIChatBox component:
- * - Single-line initial height (40px-44px) that auto-expands with content.
- * - Caps at maximum height (default `max-h-48`) with `overflow-y-auto`.
- * - Inner right-aligned send button with ArrowLeft icon.
+ * - Single-line initial height that auto-expands with content.
+ * - Caps at maximum height with `overflow-y-auto`.
+ * - Inner right-aligned send button with ArrowRight icon.
+ * - Supports 'default' and 'small' ('sm') size variants.
  * - Disabled when textarea has only whitespace.
  * - Enter sends message, Shift+Enter inserts newline.
  * - Clean focus outline handling with smooth container border transitions.
@@ -72,6 +75,7 @@ export interface AIChatBoxRef {
 export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
   (
     {
+      variant = "default",
       value: controlledValue,
       defaultValue = "",
       onChange,
@@ -93,9 +97,11 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     },
     ref
   ) => {
+    const isSmall = variant === "small" || variant === "sm";
     const isControlled = controlledValue !== undefined;
     const [internalValue, setInternalValue] = useState(defaultValue);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [isMultiLine, setIsMultiLine] = useState(hasMassage);
 
     const currentValue = isControlled ? controlledValue : internalValue;
     const isSubmitDisabled = isLoading ? (disabled || !onStop) : (disabled || !currentValue.trim());
@@ -108,9 +114,17 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
       // Reset height to auto first so shrinking text calculates scrollHeight correctly
       textarea.style.height = "auto";
 
+      const scrollHeight = textarea.scrollHeight;
       // Set to scrollHeight; CSS max-h-* handles the visual clamp and scrollbar
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }, []);
+      if (isSmall) {
+        textarea.style.height = `${Math.max(scrollHeight, 48)}px`;
+      } else {
+        textarea.style.height = `${scrollHeight}px`;
+      }
+
+      const threshold = isSmall ? 52 : 40;
+      setIsMultiLine(hasMassage || scrollHeight > threshold);
+    }, [hasMassage, isSmall]);
 
     // Adjust textarea height whenever the text content changes or hasMassage toggles
     useEffect(() => {
@@ -131,9 +145,10 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           if (textareaRef.current) {
             textareaRef.current.style.height = "auto";
           }
+          setIsMultiLine(hasMassage);
         },
       }),
-      [isControlled, onChange]
+      [isControlled, onChange, hasMassage]
     );
 
     const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -156,6 +171,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
         }
+        setIsMultiLine(hasMassage);
       }
     };
 
@@ -182,7 +198,10 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     return (
       <div
         className={cn(
-          "group relative flex w-full items-end gap-2 rounded-xl border border-slate-300 bg-white p-1.5 shadow-2xs transition-all duration-300 ease-in-out",
+          "group relative flex w-full gap-2 border bg-white transition-all duration-200 ease-in-out",
+          isSmall
+            ? "min-h-[76px] rounded-xl border-slate-200 p-2.5 items-center"
+            : (isMultiLine ? "min-h-[52px] rounded-lg border-slate-300 p-1.5 items-end" : "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-center"),
           disabled && "bg-slate-50/70 opacity-70",
           className
         )}
@@ -199,11 +218,14 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           disabled={disabled}
           autoFocus={autoFocus}
           className={cn(
-            hasMassage ? "min-h-[100px]" : "min-h-[40px]",
-            "w-full resize-none border-0 bg-transparent px-3 py-2 text-sm leading-6 text-slate-800 placeholder:text-slate-400",
+            isSmall
+              ? "self-stretch flex-1 min-h-[48px] pt-1 px-2 text-xs placeholder:text-xs leading-5"
+              : (isMultiLine ? "min-h-[100px] py-2" : "min-h-[26px] py-1 leading-6"),
+            !isSmall && "px-2.5 text-sm placeholder:text-sm",
+            "w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400",
             "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
             "overflow-y-auto no-scrollbar",
-            "transition-[min-height,height] duration-300 ease-in-out",
+            "transition-[min-height,height] duration-200 ease-in-out",
             maxHeightClass,
             disabled && "cursor-not-allowed",
             textareaClassName
@@ -217,7 +239,10 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           aria-label={isLoading ? stopAriaLabel : sendAriaLabel}
           title={isLoading ? stopAriaLabel : sendAriaLabel}
           className={cn(
-            "mb-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150",
+            "inline-flex shrink-0 items-center justify-center transition-all duration-150",
+            isSmall
+              ? (isMultiLine ? "mb-0.5 self-end size-7 rounded-md" : "self-center size-8 rounded-xl")
+              : (isMultiLine ? "mb-0.5 self-end size-7 rounded-md" : "self-center size-9 rounded-lg"),
             isSubmitDisabled
               ? "cursor-not-allowed bg-slate-50 text-slate-400"
               : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95",
@@ -225,9 +250,9 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           )}
         >
           {isLoading ? (
-            <Pause className="size-4 fill-current" />
+            <Pause className={cn(isSmall ? "size-3.5" : "size-4", "fill-current")} />
           ) : (
-            <ArrowRight className="size-4" />
+            <ArrowRight className={isSmall ? "size-3" : "size-4"} />
           )}
         </button>
       </div>

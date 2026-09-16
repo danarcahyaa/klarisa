@@ -114,3 +114,28 @@ export const saveDraftChatSchema = z.object({
 });
 
 export type SaveDraftChatDTO = z.infer<typeof saveDraftChatSchema>;
+
+export const updateDraftTitleSchema = z.object({
+  contractId: z.string().uuid("ID kontrak tidak valid"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Judul kontrak tidak boleh kosong")
+    .max(250, "Judul maksimal 250 karakter"),
+});
+
+export type UpdateDraftTitleDTO = z.infer<typeof updateDraftTitleSchema>;
+
+export const saveDraftContentSchema = z.object({
+  contractId: z.string().uuid("ID kontrak tidak valid"),
+  content: z.string().max(1_000_000, "Isi draft melebihi batas ukuran"),
+});
+
+export type SaveDraftContentDTO = z.infer<typeof saveDraftContentSchema>;
+
+export const deleteDraftSchema = z.object({
+  contractId: z.string().uuid("ID kontrak tidak valid"),
+});
+
+export type DeleteDraftDTO = z.infer<typeof deleteDraftSchema>;
+

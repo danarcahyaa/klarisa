@@ -140,5 +140,42 @@ export type {
   DocumentValidationResult,
   UploadContractDocumentDTO,
 } from "./contract-review.type";
-export type { SaveDraftChatDTO } from "@/app/validations/contract.validation";
+export type {
+  SaveDraftChatDTO,
+  UpdateDraftTitleDTO,
+  SaveDraftContentDTO,
+  DeleteDraftDTO,
+} from "@/app/validations/contract.validation";
+
+export interface UseDraftEditorOptions {
+  initialDraft: {
+    id?: string;
+    title: string;
+    content: string;
+    updatedAt?: string | null;
+    createdAt?: string | null;
+  } | ContractDetail;
+  backHref?: string;
+  debounceMs?: number;
+}
+
+export interface UseDraftEditorReturn {
+  id: string | undefined;
+  title: string;
+  content: string;
+  updatedAt: string | null;
+  isSaving: boolean;
+  isSaved: boolean;
+  isRenaming: boolean;
+  isDeleting: boolean;
+  isRenameDialogOpen: boolean;
+  isDeleteDialogOpen: boolean;
+  error: string | null;
+  setIsRenameDialogOpen: (open: boolean) => void;
+  setIsDeleteDialogOpen: (open: boolean) => void;
+  handleContentChange: (newContent: string) => void;
+  handleRename: (newTitle: string) => Promise<boolean>;
+  handleDelete: () => Promise<boolean>;
+}
+
 
