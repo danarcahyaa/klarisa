@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Pencil, Share2, Trash2, EllipsisVertical } from "lucide-react";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  ActionPopover,
+  type PopoverActionItem,
+} from "@/components/ui/action-popover";
 import { Button } from "@/components/ui/button";
 
 export interface EditorHeaderPopoverProps {
@@ -19,7 +18,8 @@ export interface EditorHeaderPopoverProps {
 }
 
 /**
- * Popover menu for EditorHeader containing document options: Ganti nama, Bagikan, Hapus.
+ * Popover action menu for EditorHeader containing document options: Ganti nama, Bagikan, Hapus.
+ * Built using the reusable ActionPopover component.
  */
 export function EditorHeaderPopover({
   isOpen,
@@ -29,50 +29,53 @@ export function EditorHeaderPopover({
   onDelete,
   trigger,
 }: EditorHeaderPopoverProps) {
+  const items = useMemo<PopoverActionItem[]>(
+    () => [
+      {
+        text: "Ganti nama",
+        icon: <Pencil className="size-3.5" />,
+        onClick: onRename,
+      },
+      {
+        text: "Bagikan",
+        icon: <Share2 className="size-3.5" />,
+        onClick: onShare,
+      },
+    ],
+    [onRename, onShare]
+  );
+
+  const footer = useMemo<PopoverActionItem | undefined>(
+    () =>
+      onDelete
+        ? {
+            text: "Hapus",
+            icon: <Trash2 className="size-3.5" />,
+            variant: "destructive",
+            onClick: onDelete,
+          }
+        : undefined,
+    [onDelete]
+  );
+
+  const defaultTrigger = (
+    <Button variant="ghost" size="xs" aria-label="Opsi dokumen">
+      <EllipsisVertical className="size-4" />
+    </Button>
+  );
+
   return (
-    <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="xs" aria-label="Opsi dokumen">
-            <EllipsisVertical className="size-4" />
-          </Button>
-        )}
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-40 p-1.5 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-      >
-        <div className="flex flex-col gap-0.5">
-          <button
-            type="button"
-            onClick={onRename}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 text-left cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-          >
-            <Pencil className="size-3.5 text-slate-500 shrink-0" />
-            <span>Ganti nama</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onShare}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 text-left cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-          >
-            <Share2 className="size-3.5 text-slate-500 shrink-0" />
-            <span>Bagikan</span>
-          </button>
-
-          <div className="my-0.5 h-px bg-slate-100" />
-
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 text-left cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-          >
-            <Trash2 className="size-3.5 text-red-500 shrink-0" />
-            <span>Hapus</span>
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ActionPopover
+      trigger={trigger || defaultTrigger}
+      items={items}
+      footer={footer}
+      open={isOpen}
+      onOpenChange={onOpenChange}
+      align="end"
+      className="w-40"
+    />
   );
 }
+
+export const EditorHeaderActionPopover = EditorHeaderPopover;
+
