@@ -32,20 +32,26 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          console.log("[/api/draft/stream] Stream started for prompt:", prompt.slice(0, 50));
           for await (const event of context.service.streamDraft(prompt, { interactionId })) {
             if (req.signal.aborted) {
+              console.log("[/api/draft/stream] Request aborted by client");
               break;
             }
+            console.log("[/api/draft/stream] Emitting SSE event:", event.type, (event as any).status ?? "");
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
           }
+          console.log("[/api/draft/stream] Stream loop ended normally");
         } catch (err) {
           if (!req.signal.aborted) {
             const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat streaming draf.";
+            console.error("[/api/draft/stream] Error during stream:", msg);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
           }
         } finally {
           try {
             controller.close();
+            console.log("[/api/draft/stream] Controller closed");
           } catch {
             // Stream controller already closed
           }

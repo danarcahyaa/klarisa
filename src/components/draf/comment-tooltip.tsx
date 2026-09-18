@@ -58,7 +58,7 @@ export function CommentTooltip({
           size="xs"
           type="button"
           onClick={() => setIsExpanded(true)}
-          className="flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-xl hover:bg-slate-800 hover:scale-105"
+          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-xl hover:bg-slate-800"
         >
           <MessageSquarePlus className="size-3.5 text-amber-400" />
           <span>Beri Komentar</span>

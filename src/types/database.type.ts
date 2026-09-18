@@ -623,6 +623,15 @@ export type Database = {
       }
       can_edit_draft: { Args: { target_contract_id: string }; Returns: boolean }
       can_view_draft: { Args: { target_contract_id: string }; Returns: boolean }
+      create_draft_document: {
+        Args: {
+          p_content?: string
+          p_metadata?: Json
+          p_title: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       is_draft_owner: { Args: { target_contract_id: string }; Returns: boolean }
       is_workspace_editor: {
         Args: { target_workspace_id: string }
@@ -651,23 +660,14 @@ export type Database = {
           similarity: number
         }[]
       }
-      create_draft_document: {
-        Args: {
-          p_content?: string
-          p_metadata?: Json | null
-          p_title: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
       save_chat_conversation: {
         Args: {
           p_answer: string
-          p_chat_id?: string | null
-          p_last_interaction_id?: string | null
-          p_metadata?: Json | null
+          p_chat_id?: string
+          p_last_interaction_id?: string
+          p_metadata?: Json
           p_question: string
-          p_title?: string | null
+          p_title?: string
           p_user_id: string
         }
         Returns: Json

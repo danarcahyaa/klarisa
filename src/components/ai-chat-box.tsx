@@ -106,6 +106,12 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     const currentValue = isControlled ? controlledValue : internalValue;
     const isSubmitDisabled = isLoading ? (disabled || !onStop) : (disabled || !currentValue.trim());
 
+    useEffect(() => {
+      console.log(
+        `[AIChatBox] State -> isLoading: ${isLoading}, isSubmitDisabled: ${isSubmitDisabled}, currentValue: "${currentValue}", disabled: ${disabled}`
+      );
+    }, [isLoading, isSubmitDisabled, currentValue, disabled]);
+
     // Adjust height dynamically based on scrollHeight
     const adjustHeight = useCallback(() => {
       const textarea = textareaRef.current;
@@ -176,6 +182,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     };
 
     const handleButtonClick = () => {
+      console.log(`[AIChatBox] Button clicked. isLoading: ${isLoading}, isSubmitDisabled: ${isSubmitDisabled}`);
       if (isLoading) {
         onStop?.();
         return;

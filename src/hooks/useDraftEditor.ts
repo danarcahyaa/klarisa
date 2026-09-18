@@ -1,210 +1,71 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  deleteDraftAction,
-  saveDraftContentAction,
-  updateDraftTitleAction,
-} from "@/app/actions/draft-editor.action";
-import type {
-  UseDraftEditorOptions,
-  UseDraftEditorReturn,
-} from "@/types/contract.type";
+import { useEffect } from "react";
+import { useEditor } from "@tiptap/react";
+import { StarterKit } from "@tiptap/starter-kit";
+import Heading from "@tiptap/extension-heading";
+import { BulletList, OrderedList, ListItem } from "@tiptap/extension-list";
+import { TaskItem } from "@tiptap/extension-task-item";
+import { TextAlign } from "@tiptap/extension-text-align";
+import { TextStyleKit } from "@tiptap/extension-text-style";
+import { TableKit } from "@tiptap/extension-table";
+import { StandardHighlight } from "@/lib/tiptap-highlight";
+
+export interface UseDraftEditorOptions {
+  initialContent?: string;
+  onContentChange?: (content: string) => void;
+}
 
 /**
- * Custom hook for managing Draft Editor interactions:
- * - Content autosave to Supabase with debounce.
- * - Contract renaming via modal dialog.
- * - Contract deletion with navigation redirect.
- * - Saving indicator state ("Menyimpan").
+ * Custom hook to initialize and configure the Tiptap editor for contract drafts:
+ * - Configures core extensions (StarterKit, Heading, Lists, Tables, Alignments, StandardHighlight).
+ * - Manages content synchronization and autosave event dispatching.
  */
 export function useDraftEditor({
-  initialDraft,
-  backHref = "/dashboard",
-  debounceMs = 1200,
-}: UseDraftEditorOptions): UseDraftEditorReturn {
-  const router = useRouter();
+  initialContent = "",
+  onContentChange,
+}: UseDraftEditorOptions = {}) {
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      StandardHighlight,
+      TableKit,
+      TextStyleKit,
+      Heading.configure({
+        levels: [1, 2, 3, 4, 5, 6],
+      }),
+      BulletList.configure({
+        HTMLAttributes: {
+          class: "list-disc ml-2",
+        },
+      }),
+      OrderedList.configure({
+        HTMLAttributes: {
+          class: "list-decimal ml-2",
+        },
+      }),
+      ListItem,
+      TaskItem.configure({ nested: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+    ],
+    content: initialContent,
+    onUpdate: ({ editor: currentEditor, transaction }) => {
+      // Prevent triggering autosave when selection marks are applied or removed
+      if (transaction.getMeta("preventAutosave")) {
+        return;
+      }
+      onContentChange?.(currentEditor.getHTML());
+    },
+  });
 
-  const id = initialDraft.id;
-  const [title, setTitle] = useState(initialDraft.title || "Dokumen Kontrak");
-  const [content, setContent] = useState(initialDraft.content || "");
-  const [updatedAt, setUpdatedAt] = useState<string | null>(
-    (initialDraft as any).updatedAt || (initialDraft as any).createdAt || null
-  );
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const latestContentRef = useRef<string>(content);
-  latestContentRef.current = content;
-
-  // Cleanup debounce and saved display timers on unmount
   useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+    if (editor && initialContent) {
+      if (editor.isEmpty) {
+        editor.commands.setContent(initialContent);
       }
-      if (savedTimeoutRef.current) {
-        clearTimeout(savedTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  /**
-   * Persists latest content to Supabase.
-   */
-  const performSave = useCallback(
-    async (contentToSave: string) => {
-      if (!id) return;
-
-      setIsSaving(true);
-      setIsSaved(false);
-      setError(null);
-
-      try {
-        const response = await saveDraftContentAction(id, contentToSave);
-        if (response.success && response.data) {
-          setUpdatedAt(response.data.updatedAt || new Date().toISOString());
-          setIsSaved(true);
-          if (savedTimeoutRef.current) {
-            clearTimeout(savedTimeoutRef.current);
-          }
-          savedTimeoutRef.current = setTimeout(() => {
-            setIsSaved(false);
-          }, 3000);
-        } else if (response.error) {
-          setError(response.error);
-        }
-      } catch (err) {
-        console.error("[useDraftEditor] Autosave error:", err);
-        setError("Gagal menyimpan perubahan ke server.");
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [id]
-  );
-
-  /**
-   * Triggered on every keystroke or update in the Tiptap editor canvas.
-   * Debounces the actual network call to save content.
-   */
-  const handleContentChange = useCallback(
-    (newContent: string) => {
-      setContent(newContent);
-      setIsSaved(false);
-      if (savedTimeoutRef.current) {
-        clearTimeout(savedTimeoutRef.current);
-      }
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      debounceTimerRef.current = setTimeout(() => {
-        performSave(newContent);
-      }, debounceMs);
-    },
-    [debounceMs, performSave]
-  );
-
-  /**
-   * Renames the contract draft and persists to Supabase.
-   */
-  const handleRename = useCallback(
-    async (newTitle: string): Promise<boolean> => {
-      const cleanTitle = newTitle.trim();
-      if (!cleanTitle) {
-        setError("Judul kontrak tidak boleh kosong.");
-        return false;
-      }
-
-      if (!id) {
-        setTitle(cleanTitle);
-        setIsRenameDialogOpen(false);
-        return true;
-      }
-
-      setIsRenaming(true);
-      setError(null);
-
-      try {
-        const response = await updateDraftTitleAction(id, cleanTitle);
-        if (response.success && response.data) {
-          setTitle(response.data.title);
-          setUpdatedAt(response.data.updatedAt);
-          setIsRenameDialogOpen(false);
-          return true;
-        } else {
-          setError(response.error || "Gagal mengubah nama kontrak.");
-          return false;
-        }
-      } catch (err) {
-        console.error("[useDraftEditor] Rename error:", err);
-        setError("Terjadi kesalahan saat mengubah nama kontrak.");
-        return false;
-      } finally {
-        setIsRenaming(false);
-      }
-    },
-    [id]
-  );
-
-  /**
-   * Deletes the contract draft and navigates back to dashboard.
-   */
-  const handleDelete = useCallback(async (): Promise<boolean> => {
-    if (!id) {
-      router.push(backHref);
-      return true;
     }
+  }, [editor, initialContent]);
 
-    setIsDeleting(true);
-    setError(null);
-
-    try {
-      const response = await deleteDraftAction(id);
-      if (response.success) {
-        setIsDeleteDialogOpen(false);
-        router.push(backHref);
-        return true;
-      } else {
-        setError(response.error || "Gagal menghapus kontrak.");
-        return false;
-      }
-    } catch (err) {
-      console.error("[useDraftEditor] Delete error:", err);
-      setError("Terjadi kesalahan saat menghapus kontrak.");
-      return false;
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [id, backHref, router]);
-
-  return {
-    id,
-    title,
-    content,
-    updatedAt,
-    isSaving,
-    isSaved,
-    isRenaming,
-    isDeleting,
-    isRenameDialogOpen,
-    isDeleteDialogOpen,
-    error,
-    setIsRenameDialogOpen,
-    setIsDeleteDialogOpen,
-    handleContentChange,
-    handleRename,
-    handleDelete,
-  };
+  return { editor };
 }

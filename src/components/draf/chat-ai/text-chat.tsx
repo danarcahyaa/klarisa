@@ -15,6 +15,8 @@ export interface TextChatProps {
   children?: React.ReactNode;
   date?: string;
   className?: string;
+  /** Size variant: 'default' for standard page layout, 'small' or 'sm' for compact sidebars */
+  variant?: "default" | "small" | "sm";
   isShimmer?: boolean;
   statusSteps?: ChatStatusStep[];
   metadata?: Record<string, unknown> | null;
@@ -33,12 +35,14 @@ export function TextChat({
   children,
   date,
   className,
+  variant = "default",
   isShimmer = false,
   statusSteps,
   metadata,
   collapsible,
 }: TextChatProps) {
   const isUser = role === "user";
+  const isSmall = variant === "small" || variant === "sm";
   const displayContent = content ?? children;
   const textToCopy = typeof displayContent === "string" ? displayContent : "";
   const displayDate = date ? formatIndonesianDate(date) : "";
@@ -85,12 +89,13 @@ export function TextChat({
       <div className={cn("flex flex-col", isUser ? "max-w-[85%] items-end" : "w-full items-start")}>
         {/* Render multi-phase status steps if present */}
         {!isUser && statusSteps && statusSteps.length > 0 && (
-          <div className="flex flex-col gap-2 mb-2 w-full">
+          <div className={cn("flex flex-col w-full", isSmall ? "gap-1.5 mb-1.5" : "gap-2 mb-2")}>
             {statusSteps.map((step, idx) => (
               <div
                 key={idx}
                 className={cn(
-                  "text-sm leading-relaxed",
+                  "leading-relaxed",
+                  isSmall ? "text-xs" : "text-sm",
                   step.isShimmer
                     ? "animate-pulse font-medium text-slate-500 dark:text-slate-400"
                     : "font-medium text-slate-700 dark:text-slate-200"
@@ -106,11 +111,18 @@ export function TextChat({
         {Boolean(displayContent) && (
           <div
             className={cn(
-              "text-sm leading-relaxed",
+              "leading-relaxed",
+              isSmall ? "text-xs" : "text-sm",
               isUser
-                ? "rounded-lg border border-input bg-white px-4 py-3 text-slate-900 whitespace-pre-wrap dark:bg-slate-900 dark:text-slate-100"
+                ? cn(
+                    "rounded-lg border border-input bg-white text-slate-900 whitespace-pre-wrap dark:bg-slate-900 dark:text-slate-100",
+                    isSmall ? "px-3 py-2" : "px-4 py-3"
+                  )
                 : cn(
-                    "w-full bg-transparent px-0 text-slate-800 prose prose-sm max-w-none dark:prose-invert dark:text-slate-100 [&_p]:leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_p]:whitespace-pre-line [&_ol]:list-decimal [&_ul]:list-disc",
+                    "w-full bg-transparent px-0 text-slate-800 prose prose-sm max-w-none dark:prose-invert dark:text-slate-100 [&_p]:leading-relaxed [&_p:last-child]:mb-0 [&_p]:whitespace-pre-line [&_ol]:list-decimal [&_ul]:list-disc",
+                    isSmall
+                      ? "text-xs [&_p]:text-xs [&_li]:text-xs [&_p]:mb-2"
+                      : "text-sm [&_p]:mb-3",
                     isShimmer && "animate-pulse font-medium text-slate-500 dark:text-slate-400"
                   )
             )}
@@ -155,14 +167,14 @@ export function TextChat({
         {!isUser && !isShimmer && draftId && (
           <Link
             href={`/dashboard/draft/${draftId}`}
-            className="group/card mt-3 flex items-center justify-between gap-4 rounded-lg border border-slate-200  bg-white/80 hover:bg-white p-3.5 transition-all duration-200 dark:border-slate-800 dark:bg-transparent dark:hover:border-slate-700 dark:hover:bg-slate-800/60 max-w-md w-full"
+            className={`group/card mt-3 flex items-center justify-between gap-4 rounded-lg border border-slate-200  bg-white/80 hover:bg-white ${isSmall ? "p-2" : "p-3.5"} transition-all duration-200 dark:border-slate-800 dark:bg-transparent dark:hover:border-slate-700 dark:hover:bg-slate-800/60 max-w-md w-full`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex size-10  shrink-0 items-center justify-center rounded-md bg-klarisa-primary/5 text-klarisa-navy border border-klarisa-primary/10 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40">
-                <FileText className="size-5"  />
+                <FileText className={isSmall ? "size-4" : "size-5"}  />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="truncate text-sm font-medium text-slate-800  dark:text-slate-200 dark:group-hover/card:text-blue-400 transition-colors">
+                <span className={`truncate ${isSmall ? "text-xs" : "text-sm"} font-medium text-slate-800  dark:text-slate-200 dark:group-hover/card:text-blue-400 transition-colors`}>
                   {draftTitle}
                 </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">

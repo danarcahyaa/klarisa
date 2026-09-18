@@ -261,6 +261,7 @@ export function useInteractionChat({
       // to the DOM BEFORE the Server Action is queued. Without flushSync,
       // Next.js Server Action dispatch can batch/defer this update until the
       // action resolves, causing the button to appear stuck in Pause state.
+      console.log("[useInteractionChat] All generation finished. Synchronously setting isLoading=false, streamingAiId=null");
       flushSync(() => {
         setIsLoading(false);
         setStreamingAiId(null);
@@ -303,6 +304,7 @@ export function useInteractionChat({
       }
       const rawErrorMsg =
         err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
+      console.error("[useInteractionChat] Error during chat processing:", rawErrorMsg);
       const isLimit = isLimitationError(rawErrorMsg);
       const errorMsg = isLimit
         ? formatLimitationErrorMessage(rawErrorMsg)
@@ -327,8 +329,11 @@ export function useInteractionChat({
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
       }
-      setIsLoading(false);
-      setStreamingAiId(null);
+      console.log("[useInteractionChat] finally block executed -> setting isLoading=false");
+      flushSync(() => {
+        setIsLoading(false);
+        setStreamingAiId(null);
+      });
     }
   };
 
