@@ -9,7 +9,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-klarisa-primary text-primary-foreground hover:bg-klarisa-primary/90",
         outline:
-          "border-border bg-background hover:bg-muted/25 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-transparent hover:bg-muted/25 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-slate-300 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -21,7 +21,7 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-11 px-4 py-2 text-xs gap-2",
-        xs: "h-8 px-1.5 -py-1 text-[10px] gap-1",
+        xs: "h-8 px-2.5 -py-1 text-[10px] gap-1",
         sm: "h-10 px-3 text-[11px] gap-1.5",
         lg: "h-12 px-6 text-md font-semibold gap-2",
         icon: "size-9 p-0",

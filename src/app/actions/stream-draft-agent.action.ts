@@ -1,18 +1,32 @@
-import type { StreamDraftClientOptions } from "@/types/draft.type";
-
-import { GeminiInteractionResponse, GeminiInteractionToolCall, GeminiInteraction } from "@/types/llm.type";
+import type {
+  GeminiInteraction,
+  GeminiInteractionResponse,
+  GeminiInteractionToolCall,
+} from "@/types/llm.type";
 import { createErrorResponse, createSuccessResponse } from "@/lib/response";
 
+import type { StreamDraftAgentOptions } from "@/types/agent-contract.type";
+export type { StreamDraftAgentOptions };
+
 /**
- * Client-side utility that streams draft generation from `/api/draft/stream` via SSE.
+ * Client-side utility that streams draft editor agent interactions from `/api/draft/agent/stream` via SSE.
  *
- * @param options - Prompt, optional interactionId, and streaming callbacks.
+ * @param options - Prompt, selection context, and streaming event callbacks.
  * @returns Resolves with GeminiInteractionResponse upon completion.
  */
-export async function streamDraftFromApiAction(
-  options: StreamDraftClientOptions
+export async function streamDraftAgentAction(
+  options: StreamDraftAgentOptions
 ): Promise<GeminiInteractionResponse> {
-  const { prompt, interactionId, signal, onChunk, onInteractionId } = options;
+  const {
+    prompt,
+    selectedText,
+    highlightId,
+    interactionId,
+    signal,
+    onChunk,
+    onToolCall,
+    onInteractionId,
+  } = options;
 
   if (signal?.aborted) {
     return createSuccessResponse(
@@ -22,7 +36,7 @@ export async function streamDraftFromApiAction(
         status: "stopped",
         steps: [],
       },
-      "Respons AI dihentikan."
+      "Respons dihentikan."
     );
   }
 
@@ -32,25 +46,31 @@ export async function streamDraftFromApiAction(
   const collectedToolCalls: GeminiInteractionToolCall[] = [];
 
   try {
-    const response = await fetch("/api/draft/stream", {
+    const response = await fetch("/api/draft/agent/stream", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt,
+        selectedText,
+        highlightId,
         interactionId,
       }),
       signal,
     });
 
     if (!response.ok) {
-      let errorMsg = "Gagal membuat draf kontrak.";
+      let errorMsg = "Terjadi kesalahan. Coba lagi nanti";
       const errText = await response.text();
       if (errText.trim().startsWith("{")) {
-        const errJson = JSON.parse(errText);
-        if (errJson?.error) {
-          errorMsg = errJson.error;
+        try {
+          const errJson = JSON.parse(errText);
+          if (errJson?.error) {
+            errorMsg = errJson.error;
+          }
+        } catch {
+          // Ignore JSON parse error
         }
       }
       return createErrorResponse(errorMsg);
@@ -74,41 +94,28 @@ export async function streamDraftFromApiAction(
     const processEvent = (event: any) => {
       if (!event || typeof event !== "object") return;
 
-      console.log(`[StreamClient:Event] type: "${event.type}"`, event.status ? `status: "${event.status}"` : "");
-
       if (event.type === "interaction_created" && event.interactionId) {
         currentInteractionId = event.interactionId;
-        console.log(`[StreamClient:interaction_created] ID: ${event.interactionId}`);
         onInteractionId?.(event.interactionId);
-      } else if (event.type === "status_update") {
-        console.log(`[StreamClient:status_update] Status: ${event.status}`);
       } else if (event.type === "text_delta" && typeof event.text === "string") {
         fullText += event.text;
         onChunk?.(event.text, fullText);
       } else if (event.type === "tool_call" && event.toolCall) {
-        console.log(`[StreamClient:tool_call] Tool: ${event.toolCall.name}`, event.toolCall.args);
         collectedToolCalls.push(event.toolCall);
+        onToolCall?.(event.toolCall);
       } else if (event.type === "interaction_completed" && event.data) {
-        console.log(`[StreamClient:interaction_completed] Status: ${event.data.status}, Text length: ${event.data.text?.length}`);
         completedData = event.data;
       } else if (event.type === "error" && event.error) {
-        console.error(`[StreamClient:error] Error:`, event.error);
-        streamError = event.error;
+        streamError = String(event.error);
       }
     };
 
     try {
       while (true) {
-        if (signal?.aborted) {
-          console.log("[StreamClient] Stream aborted by signal");
-          break;
-        }
+        if (signal?.aborted) break;
 
         const { done, value } = await reader.read();
-        if (done || signal?.aborted) {
-          console.log("[StreamClient] Reader read done:", done);
-          break;
-        }
+        if (done || signal?.aborted) break;
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -120,27 +127,30 @@ export async function streamDraftFromApiAction(
 
           const jsonPayload = trimmedLine.replace(/^data:\s*/, "");
           if (jsonPayload.startsWith("{")) {
-            const parsed = JSON.parse(jsonPayload);
-            processEvent(parsed);
-            if (completedData || streamError) {
-              break;
+            try {
+              const parsed = JSON.parse(jsonPayload);
+              processEvent(parsed);
+              if (completedData || streamError) {
+                break;
+              }
+            } catch {
+              // Ignore partial JSON line
             }
           }
         }
 
         if (completedData || streamError) {
-          console.log("[StreamClient] Exiting read loop due to completedData or streamError");
           try {
             void reader.cancel();
           } catch {
-            // Ignore cancel error if already closed
+            // Ignore cancel error
           }
           break;
         }
       }
     } catch (readError) {
       if (signal?.aborted || (readError instanceof Error && readError.name === "AbortError")) {
-        // Stream reading cancelled by user abort, proceed to return partial result
+        // Stream aborted gracefully
       } else {
         throw readError;
       }
@@ -151,8 +161,12 @@ export async function streamDraftFromApiAction(
     if (!signal?.aborted && buffer.trim().startsWith("data:")) {
       const jsonPayload = buffer.trim().replace(/^data:\s*/, "");
       if (jsonPayload.startsWith("{")) {
-        const parsed = JSON.parse(jsonPayload);
-        processEvent(parsed);
+        try {
+          const parsed = JSON.parse(jsonPayload);
+          processEvent(parsed);
+        } catch {
+          // Ignore
+        }
       }
     }
 
@@ -164,7 +178,7 @@ export async function streamDraftFromApiAction(
         status: "stopped",
         steps: [],
       };
-      return createSuccessResponse(stoppedInteraction, "Respons AI dihentikan.");
+      return createSuccessResponse(stoppedInteraction, "Respons dihentikan.");
     }
 
     if (streamError) {
@@ -179,7 +193,7 @@ export async function streamDraftFromApiAction(
       steps: [],
     };
 
-    return createSuccessResponse(finalInteraction, "Draf kontrak berhasil diproses.");
+    return createSuccessResponse(finalInteraction, "Interaksi agent berhasil diproses.");
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       const stoppedInteraction: GeminiInteraction = {
@@ -189,7 +203,7 @@ export async function streamDraftFromApiAction(
         status: "stopped",
         steps: [],
       };
-      return createSuccessResponse(stoppedInteraction, "Respons AI dihentikan.");
+      return createSuccessResponse(stoppedInteraction, "Respons dihentikan.");
     }
 
     const errorMsg =

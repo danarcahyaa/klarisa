@@ -118,12 +118,28 @@ export class GeminiService {
       const lowerError = rawErrorMsg.toLowerCase();
       let userFriendlyMessage = "Gagal memproses permintaan.";
 
-      if (isLimitationError(rawErrorMsg)) {
+      if (
+        lowerError.includes("high demand") ||
+        lowerError.includes("spikes in demand")
+      ) {
+        userFriendlyMessage = "Terlalu banyak permintaan. Coba lagi nanti.";
+      } else if (
+        lowerError.includes("500") ||
+        lowerError.includes("502") ||
+        lowerError.includes("503") ||
+        lowerError.includes("504") ||
+        lowerError.includes("unavailable") ||
+        lowerError.includes("no capacity available") ||
+        lowerError.includes("internal server error") ||
+        lowerError.includes("overloaded")
+      ) {
+        userFriendlyMessage = "Terjadi kesalahan. Coba lagi nanti";
+      } else if (isLimitationError(rawErrorMsg)) {
         userFriendlyMessage = formatLimitationErrorMessage(rawErrorMsg);
       } else if (lowerError.includes("api key") || lowerError.includes("gemini_api_key")) {
         userFriendlyMessage = "Layanan sedang tidak dapat diakses saat ini.";
       } else {
-        userFriendlyMessage = "Terjadi kendala saat memproses permintaan. Coba lagi nanti.";
+        userFriendlyMessage = "Terjadi kesalahan. Coba lagi nanti";
       }
 
       console.error("[GeminiService] Generation failed for provider gemini:", error);
@@ -266,13 +282,36 @@ export class GeminiService {
     const rawErrorMsg = error instanceof Error ? error.message : String(error);
     const lowerError = rawErrorMsg.toLowerCase();
 
+    // High demand error (e.g. gemini is currently experiencing high demand, spikes in demand, etc.)
+    if (
+      lowerError.includes("high demand") ||
+      lowerError.includes("spikes in demand") ||
+      lowerError.includes("experiencing high demand")
+    ) {
+      return "Terlalu banyak permintaan. Coba lagi nanti.";
+    }
+
+    // 500++ server error (500, 502, 503, 504, UNAVAILABLE, no capacity, internal server error)
+    if (
+      lowerError.includes("500") ||
+      lowerError.includes("502") ||
+      lowerError.includes("503") ||
+      lowerError.includes("504") ||
+      lowerError.includes("unavailable") ||
+      lowerError.includes("no capacity available") ||
+      lowerError.includes("internal server error") ||
+      lowerError.includes("overloaded")
+    ) {
+      return "Terjadi kesalahan. Coba lagi nanti";
+    }
+
     if (isLimitationError(rawErrorMsg)) {
       return formatLimitationErrorMessage(rawErrorMsg);
     }
     if (lowerError.includes("api key") || lowerError.includes("gemini_api_key")) {
       return "Layanan sedang tidak dapat diakses saat ini.";
     }
-    return "Terjadi kendala saat memproses permintaan. Coba lagi nanti.";
+    return "Terjadi kesalahan. Coba lagi nanti";
   }
 
   /**
@@ -316,25 +355,59 @@ export class GeminiService {
         payload.tools = tools;
       }
 
-      let stream;
+      let stream: any;
       let finalInteractionId = interactionId;
+      const maxRetries = 2;
 
-      try {
-        stream = await ai.interactions.create(payload as any);
-      } catch (err: unknown) {
-        const errStr = String(err);
-        // If previous_interaction_id is expired or not found on Google's backend (404), retry stream as a fresh interaction
-        if (
-          payload.previous_interaction_id &&
-          (errStr.includes("404") || errStr.includes("not_found") || errStr.includes("Requested entity was not found"))
-        ) {
-          console.warn(
-            `[GeminiService] previous_interaction_id "${payload.previous_interaction_id}" not found on Google servers (expired). Retrying stream as fresh interaction...`
-          );
-          delete payload.previous_interaction_id;
-          finalInteractionId = undefined;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
           stream = await ai.interactions.create(payload as any);
-        } else {
+          break;
+        } catch (err: unknown) {
+          const errStr = String(err);
+          // If previous_interaction_id is expired or not found on Google's backend (404), retry stream as a fresh interaction
+          if (
+            payload.previous_interaction_id &&
+            (errStr.includes("404") || errStr.includes("not_found") || errStr.includes("Requested entity was not found"))
+          ) {
+            console.warn(
+              `[GeminiService] previous_interaction_id "${payload.previous_interaction_id}" not found on Google servers (expired). Retrying stream as fresh interaction...`
+            );
+            delete payload.previous_interaction_id;
+            finalInteractionId = undefined;
+            continue;
+          }
+
+          const isHighDemand =
+            errStr.toLowerCase().includes("high demand") ||
+            errStr.toLowerCase().includes("spikes in demand") ||
+            errStr.toLowerCase().includes("experiencing high demand");
+
+          if (isHighDemand) {
+            throw new Error("Terlalu banyak permintaan. Coba lagi nanti.");
+          }
+
+          // If 500++ error (500, 502, 503, 504, UNAVAILABLE, etc.) from Google servers, retry after backoff
+          const isServer500 =
+            errStr.includes("500") ||
+            errStr.includes("502") ||
+            errStr.includes("503") ||
+            errStr.includes("504") ||
+            errStr.includes("UNAVAILABLE") ||
+            errStr.includes("No capacity available");
+
+          if (isServer500 && attempt < maxRetries) {
+            console.warn(
+              `[GeminiService] Server error (500++). Retrying attempt ${attempt + 1}/${maxRetries}...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+            continue;
+          }
+
+          if (isServer500) {
+            throw new Error("Terjadi kesalahan. Coba lagi nanti");
+          }
+
           throw err;
         }
       }
@@ -345,11 +418,17 @@ export class GeminiService {
       const rawArgs: Record<number, string> = {};
       const toolCalls: GeminiInteractionToolCall[] = [];
 
+      console.log(`[GeminiService:streamInteractions] Starting stream for input: "${inputParam.slice(0, 60)}..."`);
+
       for await (const event of stream as any) {
         this.safelyInvokeEventHandler(onEvent, event);
+        console.log(`[GeminiService:Event] type: "${event.event_type}", status: "${event.status ?? event.interaction?.status ?? status}"`);
 
         if (event.event_type === "error") {
-          const errMsg = event.error?.message || "Terjadi kesalahan pada stream interaksi Gemini.";
+          const rawMsg = event.error?.message || "";
+          const errMsg = this.mapGeminiInteractionError(rawMsg);
+          console.error(`[GeminiService:Error] ${errMsg}`, event.error);
+
           yield { type: "error", error: errMsg };
           throw new Error(errMsg);
         }
@@ -357,6 +436,7 @@ export class GeminiService {
         if (event.event_type === "interaction.created" && event.interaction) {
           finalInteractionId = event.interaction.id ?? finalInteractionId;
           status = event.interaction.status ?? status;
+          console.log(`[GeminiService:interaction.created] ID: ${finalInteractionId}, Status: ${status}`);
           yield {
             type: "interaction_created",
             interactionId: finalInteractionId ?? "",
@@ -364,10 +444,12 @@ export class GeminiService {
         } else if (event.event_type === "interaction.status_update") {
           finalInteractionId = event.interaction_id ?? finalInteractionId;
           status = event.status ?? status;
+          console.log(`[GeminiService:interaction.status_update] Status: ${status}`);
           yield { type: "status_update", status };
         } else if (event.event_type === "step.start") {
           const idx = event.index ?? 0;
           steps[idx] = { ...event.step };
+          console.log(`[GeminiService:step.start] Index: ${idx}, Type: ${event.step?.type}`);
           if (event.step?.type === "function_call") {
             rawArgs[idx] = "";
           }
@@ -388,6 +470,7 @@ export class GeminiService {
         } else if (event.event_type === "step.stop") {
           const idx = event.index ?? 0;
           const step = steps[idx];
+          console.log(`[GeminiService:step.stop] Index: ${idx}, Type: ${step?.type}`);
           if (step && step.type === "function_call") {
             const parsedArgs = this.parseFunctionCallArguments(rawArgs[idx], step.arguments);
             step.arguments = parsedArgs;
@@ -406,6 +489,7 @@ export class GeminiService {
               )
             ) {
               toolCalls.push(tc);
+              console.log(`[GeminiService:ToolCall] Dispatched tool: ${tc.name}`);
               if (onToolCall) onToolCall(tc);
               yield { type: "tool_call", toolCall: tc, index: idx };
             }
@@ -415,6 +499,7 @@ export class GeminiService {
             finalInteractionId = event.interaction.id ?? finalInteractionId;
             status = event.interaction.status ?? status;
           }
+          console.log(`[GeminiService:interaction.completed] Status: ${status}`);
         }
       }
 
@@ -430,6 +515,7 @@ export class GeminiService {
         outputs: outputs.length > 0 ? outputs : undefined,
       };
 
+      console.log(`[GeminiService:StreamComplete] Final status: "${status}", total text chars: ${fullText.length}, total toolCalls: ${toolCalls.length}`);
       yield { type: "interaction_completed", data: finalData };
 
       return createSuccessResponse(finalData, "Interaksi dengan Gemini berhasil diproses.");

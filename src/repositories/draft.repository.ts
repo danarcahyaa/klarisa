@@ -354,10 +354,10 @@ export class DraftRepository {
       p_user_id: payload.userId,
       p_question: payload.question,
       p_answer: payload.answer,
-      p_chat_id: payload.chatId ?? null,
-      p_title: payload.title ?? null,
-      p_last_interaction_id: payload.lastInteractionId ?? null,
-      p_metadata: payload.metadata ?? null,
+      p_chat_id: payload.chatId ?? undefined,
+      p_title: payload.title ?? undefined,
+      p_last_interaction_id: payload.lastInteractionId ?? undefined,
+      p_metadata: payload.metadata ?? undefined,
     });
   }
 

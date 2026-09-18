@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import type { ChatMessageItem } from "@/types/draft.type";
 import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 import TextChat from "./text-chat";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -12,6 +13,8 @@ export interface ConversationListProps {
   isLoading: boolean;
   streamingAiId: string | null;
   messagesEndRef: RefObject<HTMLDivElement | null>;
+  /** Size variant: 'default' for standard page layout, 'small' or 'sm' for compact sidebars */
+  variant?: "default" | "small" | "sm";
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
@@ -40,6 +43,7 @@ export function ConversationList({
   isLoading,
   streamingAiId,
   messagesEndRef,
+  variant = "default",
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
@@ -48,6 +52,7 @@ export function ConversationList({
   const prevScrollHeightRef = useRef<number>(0);
   const prevScrollTopRef = useRef<number>(0);
   const isPrependingRef = useRef<boolean>(false);
+  const isSmall = variant === "small" || variant === "sm";
 
   /**
    * Save scroll snapshot and invoke load more handler for earlier messages.
@@ -162,16 +167,17 @@ export function ConversationList({
         role={msg.role}
         content={msg.content}
         date={msg.date}
+        variant={variant}
         isShimmer={msg.isShimmer}
         statusSteps={msg.statusSteps}
         metadata={msg.metadata}
         className="animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out fill-mode-backwards"
       />
     ));
-  }, [messages]);
+  }, [messages, variant]);
 
   return (
-    <div className="flex-1 space-y-6 mb-6 pr-1 animate-in fade-in duration-500">
+    <div className={cn("flex-1 mb-6 pr-1 animate-in fade-in duration-500", isSmall ? "space-y-4" : "space-y-6")}>
       {/* Invisible sentinel for scroll-to-top lazy pagination */}
       {hasMore && !isLoadingMore && (
         <div ref={topSentinelRef} className="h-6 w-full pointer-events-none" aria-hidden="true" />
@@ -188,7 +194,7 @@ export function ConversationList({
 
       {/* Spinner while AI is connecting or thinking before first chunk */}
       {isLoading && !streamingAiId && (
-        <TextChat role="ai" className="animate-in fade-in duration-200">
+        <TextChat role="ai" variant={variant} className="animate-in fade-in duration-200">
           <Spinner size="sm" className="size-4 animate-spin text-klarisa-primary" />
         </TextChat>
       )}

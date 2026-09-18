@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createDraftService } from "@/services/draft.service";
 import { createDraftEditorService } from "@/services/draft-editor.service";
 import { createErrorResponse } from "@/lib/response";
 import type { BaseResponse } from "@/types/response.type";
@@ -22,7 +23,7 @@ async function getDraftEditorServerContext() {
 }
 
 /**
- * Server action to rename a contract draft.
+ * Server action to rename a contract draft using DraftService.
  *
  * @param contractId - ID of the contract to rename.
  * @param title - New title.
@@ -32,12 +33,18 @@ export async function updateDraftTitleAction(
   contractId: string,
   title: string
 ): Promise<BaseResponse<{ id: string; title: string; updatedAt: string }>> {
-  const context = await getDraftEditorServerContext();
-  if (!context) {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
     return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
   }
 
-  const result = await context.service.updateDraftTitle(context.user.id, {
+  const service = createDraftService(createAdminClient());
+  const result = await service.updateDraftTitle(user.id, {
     contractId,
     title,
   });
@@ -81,12 +88,18 @@ export async function saveDraftContentAction(
 export async function deleteDraftAction(
   contractId: string
 ): Promise<BaseResponse<{ id: string }>> {
-  const context = await getDraftEditorServerContext();
-  if (!context) {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
     return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
   }
 
-  const result = await context.service.deleteDraft(context.user.id, contractId);
+  const service = createDraftService(createAdminClient());
+  const result = await service.deleteDraft(user.id, contractId);
   if (result.success) {
     revalidatePath("/dashboard");
   }

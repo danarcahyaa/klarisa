@@ -155,15 +155,9 @@ function RecentChatsList({
                     isCurrent && "bg-[#edf2ff] text-klarisa-secondary font-medium"
                   )}
                 >
-                  <button
-                    type="button"
+                  <Link
+                    href={`/dashboard/create?chat_id=${chat.id}`}
                     onClick={() => {
-                      // Update URL query param without full navigation so ChatAI can intercept
-                      if (typeof window !== "undefined") {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set("chat_id", chat.id);
-                        window.history.pushState(null, "", url.toString());
-                      }
                       dispatchChatSelect(chat.id);
                       setCurrentChatId(chat.id);
                       onCloseSidebar?.();
@@ -177,7 +171,7 @@ function RecentChatsList({
                     title={displayTitle}
                   >
                     {displayTitle}
-                  </button>
+                  </Link>
 
                   <div
                     className={cn(

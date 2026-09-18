@@ -200,6 +200,7 @@ export function useInitialChat({
         // to the DOM BEFORE the Server Action is queued. Without flushSync,
         // Next.js Server Action dispatch can batch/defer this update until the
         // action resolves, causing the button to appear stuck in Pause state.
+        console.log("[useInitialChat] All generation finished. Synchronously setting isLoading=false, streamingAiId=null");
         flushSync(() => {
           setIsLoading(false);
           setStreamingAiId(null);
@@ -254,6 +255,7 @@ export function useInitialChat({
         }
         const rawErrorMsg =
           err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga saat memproses pesan.";
+        console.error("[useInitialChat] Error during chat processing:", rawErrorMsg);
         const isLimit = isLimitationError(rawErrorMsg);
         const errorMsg = isLimit
           ? formatLimitationErrorMessage(rawErrorMsg)
@@ -274,8 +276,11 @@ export function useInitialChat({
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
-        setIsLoading(false);
-        setStreamingAiId(null);
+        console.log("[useInitialChat] finally block executed -> setting isLoading=false");
+        flushSync(() => {
+          setIsLoading(false);
+          setStreamingAiId(null);
+        });
       } 
     },
     [prompt, isLoading, onGenerated, setPrompt, setFirstChatTitle, setMessages, setIsLoading, setError, setStreamingAiId, setInteractionId, setChatId]

@@ -3,7 +3,7 @@
 import { EditorHeader } from "./header/editor-header";
 import type { ContractDetail } from "@/types/contract.type";
 import { TextEditorCanvas } from "./text-editor/text-editor-canvas";
-import { useDraftEditor } from "@/hooks/useDraftEditor";
+import { useDraftEditorAction } from "@/hooks/useDraftEditorAction";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 
@@ -36,7 +36,7 @@ export function DraftEditor({ initialDraft, backHref }: DraftEditorProps) {
     handleContentChange,
     handleRename,
     handleDelete,
-  } = useDraftEditor({ initialDraft, backHref });
+  } = useDraftEditorAction({ initialDraft, backHref });
 
   return (
     <div className="flex flex-col h-svh max-h-svh overflow-hidden">

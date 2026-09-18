@@ -19,27 +19,89 @@ export type {
 };
 
 /**
+ * Extracts readable display text from an individual Gemini tool call.
+ */
+export function extractToolCallText(toolCall: GeminiInteractionToolCall): string | null {
+  if (!toolCall) return null;
+
+  // 1. agent_text_output
+  if (toolCall.name === "agent_text_output") {
+    return (
+      (toolCall.args?.content as string) ||
+      (toolCall.args?.message as string) ||
+      (toolCall.args?.summary as string) ||
+      null
+    );
+  }
+
+  // 2. agent_clarification
+  if (toolCall.name === "agent_clarification") {
+    const question = (toolCall.args?.question as string) || "";
+    const options = (toolCall.args?.suggested_options as string[]) || [];
+    if (options.length > 0) {
+      return `${question}\n\n${options.map((opt) => `- ${opt}`).join("\n")}`;
+    }
+    return question || null;
+  }
+
+  // 3. agent_reject_out_of_scope
+  if (toolCall.name === "agent_reject_out_of_scope") {
+    return (toolCall.args?.reason as string) || null;
+  }
+
+  // 4. agent_diff_replace
+  if (toolCall.name === "agent_diff_replace") {
+    const summary = (toolCall.args?.summary as string) || "";
+    const changes =
+      (toolCall.args?.changes as Array<{
+        target?: string;
+        action?: string;
+        explanation?: string;
+      }>) || [];
+
+    if (changes.length > 0) {
+      const changeList = changes
+        .map(
+          (c, idx) =>
+            `${idx + 1}. **${c.target || "Teks"}** (${c.action || "revisi"}): ${c.explanation || ""}`
+        )
+        .join("\n");
+      return `${summary ? `${summary}\n\n` : ""}Usulan perubahan draf:\n${changeList}`;
+    }
+    return summary || null;
+  }
+
+  // Legacy tools
+  if (toolCall.name === "ask_clarification" && typeof toolCall.args?.message_to_user === "string") {
+    return toolCall.args.message_to_user;
+  }
+  if (toolCall.name === "reject_out_of_scope" && typeof toolCall.args?.reason === "string") {
+    return toolCall.args.reason;
+  }
+  if (toolCall.name === "extract_contract_clauses") {
+    const contractType = (toolCall.args?.contract_type as string) || "Kontrak";
+    const clauses = (toolCall.args?.clauses as Array<{ clause_name?: string }>) || [];
+    if (clauses.length > 0) {
+      const clausesList = clauses
+        .map((c, idx) => `${idx + 1}. **${c.clause_name || "Pasal"}**`)
+        .join("\n");
+      return `Saya telah menganalisis kebutuhan Anda dan menyusun struktur awal draf **${contractType}** dengan pasal-pasal berikut:\n\n${clausesList}\n\nApakah Anda ingin melanjutkan ke pembuatan draf atau menambahkan klausul khusus lainnya?`;
+    }
+    return `Saya telah mengidentifikasi jenis draf untuk **${contractType}**. Sedang menyiapkan struktur draf kontrak untuk Anda.`;
+  }
+
+  return null;
+}
+
+/**
  * Extracts a readable message string from Gemini Interaction response or tool calls.
  */
 export function extractAiResponseText(data: GeminiInteraction): string {
   if (data.toolCalls && data.toolCalls.length > 0) {
     for (const tc of data.toolCalls) {
-      if (tc.name === "ask_clarification" && typeof tc.args?.message_to_user === "string") {
-        return tc.args.message_to_user;
-      }
-      if (tc.name === "reject_out_of_scope" && typeof tc.args?.reason === "string") {
-        return tc.args.reason;
-      }
-      if (tc.name === "extract_contract_clauses") {
-        const contractType = (tc.args?.contract_type as string) || "Kontrak";
-        const clauses = (tc.args?.clauses as Array<{ clause_name?: string }>) || [];
-        if (clauses.length > 0) {
-          const clausesList = clauses
-            .map((c, idx) => `${idx + 1}. **${c.clause_name || "Pasal"}**`)
-            .join("\n");
-          return `Saya telah menganalisis kebutuhan Anda dan menyusun struktur awal draf **${contractType}** dengan pasal-pasal berikut:\n\n${clausesList}\n\nApakah Anda ingin melanjutkan ke pembuatan draf atau menambahkan klausul khusus lainnya?`;
-        }
-        return `Saya telah mengidentifikasi jenis draf untuk **${contractType}**. Sedang menyiapkan struktur draf kontrak untuk Anda.`;
+      const extracted = extractToolCallText(tc);
+      if (extracted) {
+        return extracted;
       }
     }
   }
@@ -53,15 +115,15 @@ export function extractAiResponseText(data: GeminiInteraction): string {
  * @param messages - Current chat messages array.
  * @param aiMessageId - Unique identifier of the AI message item.
  * @param content - Updated text content for the AI message.
- * @param options - Optional configuration for date, shimmer animation, and metadata.
+ * @param options - Optional configuration for date, shimmer animation, status steps, and metadata.
  * @returns A new array of chat messages with the updated or appended AI message.
  */
-export function upsertAiChatMessage(
-  messages: ChatMessageItem[],
+export function upsertAiChatMessage<T extends { id: string } = ChatMessageItem>(
+  messages: T[],
   aiMessageId: string,
   content: string,
-  options?: UpsertAiChatMessageOptions
-): ChatMessageItem[] {
+  options?: UpsertAiChatMessageOptions & Partial<T>
+): T[] {
   const existingIndex = messages.findIndex((m) => m.id === aiMessageId);
   const date = options?.date !== undefined ? options.date : "";
   const isShimmer = options?.isShimmer !== undefined ? options.isShimmer : false;
@@ -72,10 +134,11 @@ export function upsertAiChatMessage(
     updated[existingIndex] = {
       ...prev,
       content,
-      date: options?.date !== undefined ? options.date : prev.date,
-      isShimmer: options?.isShimmer !== undefined ? options.isShimmer : prev.isShimmer,
-      statusSteps: options?.statusSteps !== undefined ? options.statusSteps : prev.statusSteps,
-      metadata: options?.metadata !== undefined ? options.metadata : prev.metadata,
+      ...(options?.date !== undefined ? { date: options.date } : {}),
+      isShimmer: options?.isShimmer !== undefined ? options.isShimmer : (prev as any).isShimmer,
+      statusSteps: options && "statusSteps" in options ? options.statusSteps : (prev as any).statusSteps,
+      metadata: options && "metadata" in options ? options.metadata : (prev as any).metadata,
+      ...options,
     };
     return updated;
   }
@@ -89,7 +152,8 @@ export function upsertAiChatMessage(
       isShimmer,
       statusSteps: options?.statusSteps,
       metadata: options?.metadata ?? null,
-    },
+      ...options,
+    } as unknown as T,
   ];
 }
 

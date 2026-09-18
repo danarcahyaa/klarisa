@@ -519,6 +519,7 @@ export function getLimitationErrorMessage(errorMessage?: string | null): string 
   if (
     lower.includes("503") ||
     lower.includes("high demand") ||
+    lower.includes("spikes in demand") ||
     lower.includes("unavailable") ||
     lower.includes("overloaded") ||
     lower.includes("server is busy")
