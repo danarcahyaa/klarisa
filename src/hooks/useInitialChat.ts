@@ -168,11 +168,16 @@ export function useInitialChat({
                   draft_title: title,
                 };
               } else {
-                aiText =
-                  "Regulasi yang relevan telah ditemukan, namun terjadi kendala saat menyusun draf kontrak secara otomatis. Silakan coba kirimkan kembali instruksi Anda.";
+                throw new Error(
+                  contractResult.error ?? "Gagal menyusun draf kontrak secara otomatis."
+                );
               }
             }
           }
+        }
+
+        if (!aiText && !controller.signal.aborted) {
+          throw new Error("Gagal mendapatkan respons dari AI. Silakan coba lagi.");
         }
 
         if (aiText) {
@@ -263,15 +268,14 @@ export function useInitialChat({
 
         setError(errorMsg);
 
-        // When limitation error occurs on new chat without AI output:
-        // Keep view as new chat (empty messages) and show alert above prompt.
+        // Keep view as initial chat (empty messages) and display alert above prompt.
+        // Restore user prompt so their input is preserved.
+        // Reset derived title and session ID so subsequent sends act as initial chat.
         // Do NOT save to database since there is no meaningful AI response to persist.
-        if (isLimit) {
-          setMessages([]);
-          setPrompt(promptToSend);
-        } else {
-          setMessages((prev) => upsertAiChatMessage(prev, aiMessageId, errorMsg));
-        }
+        setMessages([]);
+        setPrompt(promptToSend);
+        setFirstChatTitle(null);
+        setInteractionId(null);
       } finally {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;

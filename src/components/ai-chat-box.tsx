@@ -249,7 +249,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
             "inline-flex shrink-0 items-center justify-center transition-all duration-150",
             isSmall
               ? (isMultiLine ? "mb-0.5 self-end size-7 rounded-md" : "self-center size-8 rounded-xl")
-              : (isMultiLine ? "mb-0.5 self-end size-7 rounded-md" : "self-center size-9 rounded-lg"),
+              : (isMultiLine ? "mb-0.5 self-end size-9 rounded-md" : "self-center size-9 rounded-lg"),
             isSubmitDisabled
               ? "cursor-not-allowed bg-slate-50 text-slate-400"
               : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95",
