@@ -159,7 +159,8 @@ export type GeminiInteractionStreamEvent =
   | { type: "text_delta"; text: string; index: number }
   | { type: "thought_delta"; signature?: string; index: number }
   | { type: "tool_call"; toolCall: GeminiInteractionToolCall; index: number }
-  | { type: "interaction_created"; interactionId: string;}
+  | { type: "step_stop"; index: number; stepType?: string }
+  | { type: "interaction_created"; interactionId: string }
   | { type: "status_update"; status: string }
   | { type: "interaction_completed"; data: GeminiInteraction }
   | { type: "error"; error: string };

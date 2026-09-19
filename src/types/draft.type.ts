@@ -65,6 +65,7 @@ export interface StreamDraftClientOptions {
   signal?: AbortSignal;
   onChunk?: (textDelta: string, fullText: string) => void;
   onInteractionId?: (interactionId: string) => void;
+  onStepStop?: (stepType?: string, hasToolCall?: boolean) => void;
 }
 
 /**
