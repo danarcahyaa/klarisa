@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -31,11 +32,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .toUpperCase();
 
   return (
-    <DashboardShell
-      user={{ name, email: user.email ?? "", initials: initials || "K" }}
-      initialChats={initialChats}
-    >
-      {children}
-    </DashboardShell>
+    <Suspense fallback={null}>
+      <DashboardShell
+        user={{ name, email: user.email ?? "", initials: initials || "K" }}
+        initialChats={initialChats}
+      >
+        {children}
+      </DashboardShell>
+    </Suspense>
   );
 }

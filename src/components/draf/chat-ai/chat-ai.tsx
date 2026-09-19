@@ -121,8 +121,8 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     messagesEndRef,
   });
 
-  // Listen for chat select events dispatched by the sidebar
-  // to load chat detail without a full page navigation.
+  // Listen for chat select and reset events dispatched by the sidebar
+  // to load chat detail or start a fresh contract drafting session without a full page reload.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleChatSelect = (event: Event) => {
@@ -131,11 +131,16 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
         void handleLoadChatDetail(selectedChatId);
       }
     };
+    const handleChatReset = () => {
+      reset();
+    };
     window.addEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
+    window.addEventListener(CHAT_EVENTS.RESET, handleChatReset);
     return () => {
       window.removeEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
+      window.removeEventListener(CHAT_EVENTS.RESET, handleChatReset);
     };
-  }, [handleLoadChatDetail]);
+  }, [handleLoadChatDetail, reset]);
 
   useEffect(() => {
     return () => {

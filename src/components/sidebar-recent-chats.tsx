@@ -50,9 +50,15 @@ function RecentChatsList({
       }
     };
 
+    const handleReset = () => {
+      setCurrentChatId(null);
+    };
+
     window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    window.addEventListener(CHAT_EVENTS.RESET, handleReset);
     return () => {
       window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
+      window.removeEventListener(CHAT_EVENTS.RESET, handleReset);
     };
   }, []);
 
@@ -148,20 +154,20 @@ function RecentChatsList({
               const displayTitle = chat.title?.trim() || "Percakapan baru";
 
               return (
-                <div
+                <Link
                   key={chat.id}
+                  href={`/dashboard/create?chat_id=${chat.id}`}
+                  onClick={() => {
+                    dispatchChatSelect(chat.id);
+                    setCurrentChatId(chat.id);
+                    onCloseSidebar?.();
+                  }}
                   className={cn(
                     "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-2 cursor-pointer",
                     isCurrent && "bg-[#edf2ff] text-klarisa-secondary font-medium"
                   )}
                 >
-                  <Link
-                    href={`/dashboard/create?chat_id=${chat.id}`}
-                    onClick={() => {
-                      dispatchChatSelect(chat.id);
-                      setCurrentChatId(chat.id);
-                      onCloseSidebar?.();
-                    }}
+                  <span
                     className={cn(
                       "min-w-0 flex-1 truncate text-xs transition-colors text-left",
                       isCurrent
@@ -171,9 +177,13 @@ function RecentChatsList({
                     title={displayTitle}
                   >
                     {displayTitle}
-                  </Link>
+                  </span>
 
                   <div
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                     className={cn(
                       "shrink-0 transition-opacity",
                       activePopoverId === chat.id
@@ -213,7 +223,7 @@ function RecentChatsList({
                       ]}
                     />
                   </div>
-                </div>
+                </Link>
               );
             })}
 

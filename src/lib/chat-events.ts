@@ -9,6 +9,8 @@ export const CHAT_EVENTS = {
   DELETED: "klarisa:chat-deleted",
   /** Fired when the user selects a chat from the sidebar to open its detail. */
   SELECT: "klarisa:chat-select",
+  /** Fired when user navigates to create a new chat or resets chat session. */
+  RESET: "klarisa:chat-reset",
 } as const;
 
 export interface ChatCreatedEventDetail {
@@ -85,3 +87,12 @@ export function dispatchChatSelect(chatId: string): void {
     })
   );
 }
+
+/**
+ * Dispatch a custom event when the user resets or starts a new contract drafting chat.
+ */
+export function dispatchChatReset(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(CHAT_EVENTS.RESET));
+}
+

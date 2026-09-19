@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   FilePlus2,
@@ -21,6 +21,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { SidebarRecentChats } from "@/components/sidebar-recent-chats";
+import {
+  CHAT_EVENTS,
+  type ChatSelectEventDetail,
+  dispatchChatReset,
+} from "@/lib/chat-events";
 import type { ChatRow } from "@/types/chat.type";
 
 const navigation = [
@@ -44,9 +49,47 @@ type DashboardShellProps = {
 
 export function DashboardShell({ children, user, initialChats }: DashboardShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchChatId = searchParams?.get("chat_id") || searchParams?.get("id") || null;
+  const [activeChatId, setActiveChatId] = useState<string | null>(searchChatId);
   const [isOpen, setIsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { handleLogout, isLoading } = useAuth();
+
+  useEffect(() => {
+    setActiveChatId(searchChatId);
+  }, [searchChatId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleSelect = (event: Event) => {
+      const { chatId } = (event as CustomEvent<ChatSelectEventDetail>).detail;
+      if (chatId) {
+        setActiveChatId(chatId);
+      }
+    };
+
+    const handleCreated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ chat: ChatRow }>;
+      if (customEvent.detail?.chat?.id) {
+        setActiveChatId(customEvent.detail.chat.id);
+      }
+    };
+
+    const handleReset = () => {
+      setActiveChatId(null);
+    };
+
+    window.addEventListener(CHAT_EVENTS.SELECT, handleSelect);
+    window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    window.addEventListener(CHAT_EVENTS.RESET, handleReset);
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.SELECT, handleSelect);
+      window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
+      window.removeEventListener(CHAT_EVENTS.RESET, handleReset);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -101,12 +144,24 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
 
       <nav aria-label="Menu workspace" className="grid gap-1 pt-4 pr-3">
         {navigation.map(({ label, href, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname.startsWith(href);
+          const isCreateContract = href === "/dashboard/create";
+          const isRecentChatActive = Boolean(activeChatId);
+          // If on /dashboard/create viewing a recent chat from TERKINI, "Buat kontrak" should NOT be active
+          const active = isCreateContract
+            ? pathname === href && !isRecentChatActive
+            : (exact ? pathname === href : pathname.startsWith(href));
+
           return (
             <Link
               key={href}
               href={href}
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                if (isCreateContract) {
+                  dispatchChatReset();
+                  setActiveChatId(null);
+                }
+              }}
               aria-current={active ? "page" : undefined}
               title={isSidebarCollapsed ? label : undefined}
               className={cn(

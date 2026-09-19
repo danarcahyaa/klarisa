@@ -47,14 +47,14 @@ export function AgentEmptyState({
 
       {/* Dedicated search conversation button */}
       <Button
-      className="mt-1"
+      className="mt-1.5"
         type="button"
-        variant={"ghost"}
+        variant={"outline"}
         size="xs"
         onClick={onSearchClick}
 
       >
-        <Search className="size-3" />
+        <Search className="size-2.5" />
         <span className="text-slate-500">Cari percakapan</span>
       </Button>
     </div>
