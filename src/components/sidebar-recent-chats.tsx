@@ -54,11 +54,20 @@ function RecentChatsList({
       setCurrentChatId(null);
     };
 
+    const handleDeleted = (event: Event) => {
+      const { chatId: deletedId } = (
+        event as CustomEvent<{ chatId: string }>
+      ).detail;
+      setCurrentChatId((prev) => (prev === deletedId ? null : prev));
+    };
+
     window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
     window.addEventListener(CHAT_EVENTS.RESET, handleReset);
+    window.addEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     return () => {
       window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
       window.removeEventListener(CHAT_EVENTS.RESET, handleReset);
+      window.removeEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     };
   }, []);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useDraftEditorAgent } from "@/hooks/useDraftEditorAgent";
 import { AgentHeader } from "./agent-header";
 import { AgentEmptyState } from "./agent-empty-state";

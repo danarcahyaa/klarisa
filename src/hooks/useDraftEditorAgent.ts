@@ -5,6 +5,11 @@ import { toast } from "sonner";
 import { useChatResponse } from "@/hooks/useChatResponse";
 import { truncateWords } from "@/lib/utils";
 import { getChatDetailAction } from "@/app/actions/chat.action";
+import {
+  CHAT_EVENTS,
+  type ChatDeletedEventDetail,
+  type ChatUpdatedEventDetail,
+} from "@/lib/chat-events";
 import type {
   AgentChatMessage,
   UseDraftEditorAgentOptions,
@@ -19,6 +24,7 @@ export type { UseDraftEditorAgentOptions, UseDraftEditorAgentReturn };
  * - Manages message list state (`messages`, `input`) and session title.
  * - Supports starting a new conversation thread (`handleNewChat`).
  * - Supports loading selected chat thread (`handleSelectChat`).
+ * - Listens for chat deletion events to reset to empty state if the active chat was deleted.
  * - Delegates AI response streaming lifecycle to `useChatResponse`.
  */
 export function useDraftEditorAgent({
@@ -41,17 +47,56 @@ export function useDraftEditorAgent({
     streamResponse,
   } = useChatResponse({ setMessages, initialChatId });
 
+  const chatIdRef = useRef<string | null>(chatId);
+  useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
+
   // Auto-scroll to bottom of conversation on messages or status update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
   const handleNewChat = useCallback(() => {
+    handleStop();
+    setIsLoadingChat(false);
     setMessages([]);
     setInput("");
     setChatTitle("Draf Kontrak");
     setChatId(null);
-  }, [setChatId]);
+  }, [handleStop, setChatId]);
+
+  // Listen for chat deletion events (e.g. from sidebar recent chats).
+  // If the currently loaded chat is deleted, reset the agent to a clean new chat (empty state).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleChatDeleted = (event: Event) => {
+      const { chatId: deletedChatId } = (
+        event as CustomEvent<ChatDeletedEventDetail>
+      ).detail;
+      if (deletedChatId && deletedChatId === chatIdRef.current) {
+        handleNewChat();
+      }
+    };
+
+    const handleChatUpdated = (event: Event) => {
+      const { chatId: updatedChatId, title } = (
+        event as CustomEvent<ChatUpdatedEventDetail>
+      ).detail;
+      if (updatedChatId && updatedChatId === chatIdRef.current) {
+        setChatTitle(title);
+      }
+    };
+
+    window.addEventListener(CHAT_EVENTS.DELETED, handleChatDeleted);
+    window.addEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
+
+    return () => {
+      window.removeEventListener(CHAT_EVENTS.DELETED, handleChatDeleted);
+      window.removeEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
+    };
+  }, [handleNewChat]);
 
   const handleSelectChat = useCallback(
     async (selectedChatId: string) => {

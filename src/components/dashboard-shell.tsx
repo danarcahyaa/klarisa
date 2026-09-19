@@ -81,13 +81,22 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       setActiveChatId(null);
     };
 
+    const handleDeleted = (event: Event) => {
+      const { chatId: deletedId } = (
+        event as CustomEvent<{ chatId: string }>
+      ).detail;
+      setActiveChatId((prev) => (prev === deletedId ? null : prev));
+    };
+
     window.addEventListener(CHAT_EVENTS.SELECT, handleSelect);
     window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
     window.addEventListener(CHAT_EVENTS.RESET, handleReset);
+    window.addEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     return () => {
       window.removeEventListener(CHAT_EVENTS.SELECT, handleSelect);
       window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
       window.removeEventListener(CHAT_EVENTS.RESET, handleReset);
+      window.removeEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     };
   }, []);
 

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
-import { toast } from "sonner";
 import { streamDraftAgentAction } from "@/app/actions/stream-draft-agent.action";
 import { saveDraftChatAction } from "@/app/actions/draft.action";
 import {
@@ -59,7 +58,6 @@ export function useChatResponse({
       setIsSending(false);
       setStreamingAiId(null);
     });
-    toast.info("Respons dihentikan.");
   }, []);
 
   /**
