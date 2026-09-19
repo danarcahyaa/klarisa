@@ -103,6 +103,17 @@ export async function streamDraftAgentAction(
       } else if (event.type === "tool_call" && event.toolCall) {
         collectedToolCalls.push(event.toolCall);
         onToolCall?.(event.toolCall);
+      } else if (event.type === "step_stop") {
+        const hasToolCall = collectedToolCalls.length > 0 || event.stepType === "function_call";
+        console.log(`[StreamDraftAgent:step_stop] Index: ${event.index}, StepType: ${event.stepType}, hasToolCall: ${hasToolCall}`);
+        if (!hasToolCall && fullText.length > 0) {
+          completedData = {
+            text: fullText,
+            interactionId: currentInteractionId ?? undefined,
+            status: "completed",
+            steps: [],
+          };
+        }
       } else if (event.type === "interaction_completed" && event.data) {
         completedData = event.data;
       } else if (event.type === "error" && event.error) {

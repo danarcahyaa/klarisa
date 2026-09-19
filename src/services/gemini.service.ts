@@ -470,7 +470,8 @@ export class GeminiService {
         } else if (event.event_type === "step.stop") {
           const idx = event.index ?? 0;
           const step = steps[idx];
-          console.log(`[GeminiService:step.stop] Index: ${idx}, Type: ${step?.type}`);
+          const stepType = step?.type ?? event.step?.type ?? "model_output";
+          console.log(`[GeminiService:step.stop] Index: ${idx}, Type: ${stepType}`);
           if (step && step.type === "function_call") {
             const parsedArgs = this.parseFunctionCallArguments(rawArgs[idx], step.arguments);
             step.arguments = parsedArgs;
@@ -493,6 +494,9 @@ export class GeminiService {
               if (onToolCall) onToolCall(tc);
               yield { type: "tool_call", toolCall: tc, index: idx };
             }
+            yield { type: "step_stop", index: idx, stepType: "function_call" };
+          } else {
+            yield { type: "step_stop", index: idx, stepType };
           }
         } else if (event.event_type === "interaction.completed") {
           if (event.interaction) {

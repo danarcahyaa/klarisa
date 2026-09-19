@@ -87,10 +87,13 @@ export function useInitialChat({
 
         setIsLoading(true);
         setError(null);
+        let lastFullText = "";
+
         const res = await streamDraftFromApiAction({
           prompt: promptToSend,
           signal: controller.signal,
           onChunk: (_textDelta, fullText) => {
+            lastFullText = fullText;
             setStreamingAiId(aiMessageId);
             setMessages((prev) =>
               upsertAiChatMessage(prev, aiMessageId, fullText, {
@@ -101,6 +104,21 @@ export function useInitialChat({
           },
           onInteractionId: (newId: string) => {
             setInteractionId(newId);
+          },
+          onStepStop: (_stepType, hasToolCall) => {
+            if (!hasToolCall) {
+              console.log("[useInitialChat:onStepStop] Pure text generation finished at step.stop. Stamping date and disabling button immediately.");
+              setMessages((prev) =>
+                upsertAiChatMessage(prev, aiMessageId, lastFullText, {
+                  isShimmer: false,
+                  date: new Date().toISOString(),
+                })
+              );
+              flushSync(() => {
+                setIsLoading(false);
+                setStreamingAiId(null);
+              });
+            }
           },
         });
 

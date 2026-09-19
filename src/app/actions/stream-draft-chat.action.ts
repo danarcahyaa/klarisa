@@ -12,7 +12,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/response";
 export async function streamDraftFromApiAction(
   options: StreamDraftClientOptions
 ): Promise<GeminiInteractionResponse> {
-  const { prompt, interactionId, signal, onChunk, onInteractionId } = options;
+  const { prompt, interactionId, signal, onChunk, onInteractionId, onStepStop } = options;
 
   if (signal?.aborted) {
     return createSuccessResponse(
@@ -88,6 +88,23 @@ export async function streamDraftFromApiAction(
       } else if (event.type === "tool_call" && event.toolCall) {
         console.log(`[StreamClient:tool_call] Tool: ${event.toolCall.name}`, event.toolCall.args);
         collectedToolCalls.push(event.toolCall);
+      } else if (event.type === "step_stop") {
+        const hasToolCall = collectedToolCalls.length > 0 || event.stepType === "function_call";
+        console.log(`[StreamClient:step_stop] Index: ${event.index}, StepType: ${event.stepType}, hasToolCall: ${hasToolCall}`);
+        onStepStop?.(event.stepType, hasToolCall);
+
+        // Condition 1: If there are NO tool calls (plain text generation), the model has finished emitting tokens.
+        // We can immediately settle completedData and complete the stream without waiting for trailing interaction.completed.
+        // Condition 2: If there ARE tool calls (any tool calls), do NOT finish early; wait for full lifecycle.
+        if (!hasToolCall && fullText.length > 0) {
+          console.log("[StreamClient:step_stop] No tool calls detected. Completing stream immediately at step.stop.");
+          completedData = {
+            text: fullText,
+            interactionId: currentInteractionId ?? undefined,
+            status: "completed",
+            steps: [],
+          };
+        }
       } else if (event.type === "interaction_completed" && event.data) {
         console.log(`[StreamClient:interaction_completed] Status: ${event.data.status}, Text length: ${event.data.text?.length}`);
         completedData = event.data;
