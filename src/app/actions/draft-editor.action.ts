@@ -106,3 +106,27 @@ export async function deleteDraftAction(
 
   return result;
 }
+
+/**
+ * Server action to fetch contract draft details including review_metadata.
+ *
+ * @param contractId - ID of the contract to retrieve.
+ * @returns BaseResponse with ContractDetail model.
+ */
+export async function getDraftDetailAction(
+  contractId: string
+): Promise<BaseResponse<import("@/types/contract.type").ContractDetail>> {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
+    return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  const service = createDraftService(createAdminClient());
+  return service.getDraftDetail(user.id, contractId);
+}
+

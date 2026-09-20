@@ -1,27 +1,61 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { EditorHeader } from "./header/editor-header";
 import type { ContractDetail } from "@/types/contract.type";
 import { TextEditorCanvas } from "./text-editor/text-editor-canvas";
 import { useDraftEditorAction } from "@/hooks/useDraftEditorAction";
+import { useDraftEditor } from "@/hooks/useDraftEditor";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 
 interface DraftEditorProps {
-  initialDraft: {
+  contractId?: string;
+  initialDraft?: {
     id?: string;
     title: string;
     content: string;
     updatedAt?: string | null;
     createdAt?: string | null;
-  } | ContractDetail;
+  } | ContractDetail | null;
   backHref?: string;
 }
 
 /**
  * Main Draft Editor page component orchestrating header, toolbar, canvas, autosave, and dialogs.
  */
-export function DraftEditor({ initialDraft, backHref }: DraftEditorProps) {
+export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" }: DraftEditorProps) {
+  const { loadDraftDetail } = useDraftEditor();
+  const [draft, setDraft] = useState<ContractDetail | null>(
+    (initialDraft as ContractDetail) || null
+  );
+  const [isLoading, setIsLoading] = useState(!initialDraft && Boolean(contractId));
+
+  const targetId = contractId || initialDraft?.id;
+
+  useEffect(() => {
+    if (!draft && targetId) {
+      setIsLoading(true);
+      loadDraftDetail(targetId)
+        .then((data) => {
+          if (data) {
+            setDraft(data);
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [targetId, draft, loadDraftDetail]);
+
+  const activeDraft = draft || initialDraft || {
+    id: targetId,
+    title: "",
+    content: "",
+    updatedAt: null,
+    createdAt: null,
+  };
+
   const {
     title,
     updatedAt,
@@ -36,13 +70,14 @@ export function DraftEditor({ initialDraft, backHref }: DraftEditorProps) {
     handleContentChange,
     handleRename,
     handleDelete,
-  } = useDraftEditorAction({ initialDraft, backHref });
+  } = useDraftEditorAction({ initialDraft: activeDraft, backHref });
 
   return (
     <div className="flex flex-col h-svh max-h-svh overflow-hidden">
       <EditorHeader
         title={title}
         updatedAt={updatedAt}
+        isLoading={isLoading}
         isSaving={isSaving}
         isSaved={isSaved}
         onRename={() => setIsRenameDialogOpen(true)}
@@ -52,7 +87,10 @@ export function DraftEditor({ initialDraft, backHref }: DraftEditorProps) {
 
       <div className="flex-1 min-h-0 w-full overflow-hidden transition-all duration-300">
         <TextEditorCanvas
-          initialContent={initialDraft.content || ""}
+          contractId={activeDraft.id}
+          initialContent={activeDraft.content || ""}
+          initialReviews={(activeDraft as any).reviewMetadata || null}
+          isLoading={isLoading}
           onContentChange={handleContentChange}
         />
       </div>

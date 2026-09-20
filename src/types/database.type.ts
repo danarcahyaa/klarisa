@@ -84,30 +84,27 @@ export type Database = {
           content: string | null
           contract_id: string
           created_at: string
-          fairness_score: number | null
           id: string
           metadata: Json
-          total_clausul_risk: number | null
+          review_metadata: Json | null
           updated_at: string
         }
         Insert: {
           content?: string | null
           contract_id: string
           created_at?: string
-          fairness_score?: number | null
           id?: string
           metadata?: Json
-          total_clausul_risk?: number | null
+          review_metadata?: Json | null
           updated_at?: string
         }
         Update: {
           content?: string | null
           contract_id?: string
           created_at?: string
-          fairness_score?: number | null
           id?: string
           metadata?: Json
-          total_clausul_risk?: number | null
+          review_metadata?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -190,47 +187,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      document_drafts: {
-        Row: {
-          body: string
-          created_at: string
-          created_by: string
-          document_id: string
-          id: string
-          title: string
-          updated_at: string
-          version: number
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          created_by: string
-          document_id: string
-          id?: string
-          title: string
-          updated_at?: string
-          version?: number
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          created_by?: string
-          document_id?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "document_drafts_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       draft_collaborators: {
         Row: {
@@ -651,6 +607,7 @@ export type Database = {
           article_number: string
           book_title: string
           chapter_title: string
+          code: string
           content: string
           explanation: string
           id: string

@@ -308,37 +308,19 @@ export class DraftService {
       );
     }
 
-    const current = await this.repository.findDraftById(idValidation.data);
-    if (current.error) {
+    const draftResult = await this.repository.findDraftById(idValidation.data);
+    if (draftResult.error) {
       return createErrorResponse<ContractDetail>(
-        mapSupabaseError(current.error.message),
+        mapSupabaseError(draftResult.error.message),
       );
     }
-    if (!current.data) {
+    if (!draftResult.data) {
       return createErrorResponse<ContractDetail>("Draft tidak ditemukan.");
     }
 
-    const draftRecord = current.data as ContractRecord;
-    const isOwner = draftRecord.user_id === userId;
-    const collaboratorResult = isOwner
-      ? null
-      : await this.repository.findCollaborator(userId, idValidation.data);
-
-    if (collaboratorResult?.error) {
-      return createErrorResponse<ContractDetail>(
-        mapSupabaseError(collaboratorResult.error.message),
-      );
-    }
-    if (!isOwner && !collaboratorResult?.data) {
-      return createErrorResponse<ContractDetail>(
-        "Anda tidak memiliki akses ke draft ini.",
-      );
-    }
-
-    const permission = isOwner
-      ? "owner"
-      : (collaboratorResult?.data?.role ?? "viewer");
-    const meta = metadataOf(draftRecord.contract_draft?.metadata);
+    const draftRecord = draftResult.data;
+    const permission = "owner";
+    const meta = metadataOf(draftRecord.metadata);
 
     const [versionsResult, collaboratorsResult, commentsResult] =
       await Promise.all([
@@ -357,10 +339,10 @@ export class DraftService {
 
     const activeVersionId = meta.active_version_id;
 
-    let encryptedContent = draftRecord.contract_draft?.content || "";
+    let encryptedContent = draftRecord.content || "";
     if (activeVersionId) {
       const activeVersion = (versionsResult.data ?? []).find(
-        (v) => v.id === activeVersionId,
+        (v: any) => v.id === activeVersionId,
       );
       if (activeVersion?.body) {
         encryptedContent = activeVersion.body;
@@ -379,14 +361,15 @@ export class DraftService {
     }
 
     const detail: ContractDetail = {
-      id: draftRecord.id,
-      title: draftRecord.title,
-      type: draftRecord.type === "draft" ? "draft" : "review",
-      isPinned: draftRecord.is_pinned,
+      id: draftRecord.contract_id,
+      title: (draftRecord.metadata as any)?.title || "Draf Kontrak",
+      type: "draft",
+      isPinned: false,
       updatedAt: draftRecord.updated_at,
-      score: draftRecord.contract_draft?.fairness_score ?? null,
-      riskCount: draftRecord.contract_draft?.total_clausul_risk ?? 0,
+      score: (draftRecord.metadata as any)?.fairness_score ?? null,
+      riskCount: (draftRecord.metadata as any)?.total_clausul_risk ?? 0,
       metadata: meta,
+      reviewMetadata: (draftRecord.review_metadata as any) ?? [],
       content,
       permission,
       versions: (versionsResult.data ?? []).map(mapDraftVersion),
@@ -438,14 +421,6 @@ export class DraftService {
         return createErrorResponse("Kontrak tidak ditemukan.");
       }
 
-      const isOwner = current.data.user_id === userId;
-      if (!isOwner) {
-        const collab = await this.repository.findCollaborator(userId, contractId);
-        if (!collab.data || collab.data.role !== "editor") {
-          return createErrorResponse("Anda tidak memiliki izin untuk mengubah nama kontrak ini.");
-        }
-      }
-
       const result = await this.repository.updateTitle(contractId, cleanTitle);
       if (result.error) {
         return createErrorResponse(mapSupabaseError(result.error.message));
@@ -493,14 +468,6 @@ export class DraftService {
       }
       if (!current.data) {
         return createErrorResponse("Kontrak tidak ditemukan.");
-      }
-
-      const isOwner = current.data.user_id === userId;
-      if (!isOwner) {
-        const collab = await this.repository.findCollaborator(userId, contractId);
-        if (!collab.data || collab.data.role !== "editor") {
-          return createErrorResponse("Anda tidak memiliki izin untuk mengedit isi kontrak ini.");
-        }
       }
 
       // Encrypt HTML content before storage

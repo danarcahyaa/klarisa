@@ -1,9 +1,19 @@
 import type { BaseResponse } from "@/types/response.type";
 import type { Json, Tables } from "@/types/database.type";
+import type { ClauseReviewItem } from "@/types/clause.type";
 
 export type ContractRow = Tables<"contracts">;
 export type ContractDraftRow = Tables<"contract_draft">;
-export type DocumentDraftRow = Tables<"document_drafts">;
+export interface DocumentDraftRow {
+  id: string;
+  title: string;
+  version: number;
+  created_at: string;
+  created_by: string;
+  body?: string;
+  document_id?: string;
+  updated_at?: string;
+}
 export type DraftSettingsRow = Tables<"draft_settings">;
 export type DraftCollaboratorRow = Tables<"draft_collaborators">;
 export type DraftCommentRow = Tables<"draft_comments">;
@@ -42,6 +52,7 @@ export interface ContractDetail extends ContractListItem {
   collaborators: DraftCollaborator[];
   comments: DraftComment[];
   permission: "owner" | "editor" | "commenter" | "viewer";
+  reviewMetadata?: ClauseReviewItem[] | null;
 }
 
 export interface DraftVersion {

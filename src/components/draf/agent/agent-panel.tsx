@@ -116,7 +116,7 @@ export function AgentPanel({
           {!isLoadingChat && (
             <div
               className={cn(
-                "transition-all duration-500 ease-in-out w-full flex justify-center",
+                "transition-all duration-500 ease-in-out w-full flex justify-center mb-3",
                 hasMessages
                   ? "max-h-0 opacity-0 -translate-y-4 pointer-events-none mb-0 overflow-hidden"
                   : "max-h-[300px] opacity-100 translate-y-0 mb-4"

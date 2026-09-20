@@ -169,7 +169,7 @@ export function ReasoningMarker({
                 className="w-full border-none"
               >
                 <AccordionItem value={`reasoning-batch-${batch.id}`} className="border-none">
-                  <AccordionTrigger className="group justify-start gap-1.5 p-0 text-lg text-slate-900 hover:no-underline hover:bg-transparent [&[data-state=open]>svg]:rotate-90">
+                  <AccordionTrigger className="group justify-start gap-1.5 p-0 text-base text-slate-900 hover:no-underline hover:bg-transparent [&[data-state=open]>svg]:rotate-90">
                     <div className={`flex items-center ${isBatchProcessing ? "shimmer" : ""}`}>
                       <span>{triggerTitle}</span>
                     </div>

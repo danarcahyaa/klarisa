@@ -608,3 +608,18 @@ mark.active-highlight {
   font-family: 'Times New Roman', Times, serif;
   font-size: 14px;
 }
+
+/* Styling for reviewed clause highlights in contract draft editor */
+mark.review-clause-mark {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-bottom: 2px solid #3b82f6 !important;
+  color: inherit !important;
+  border-radius: 2px;
+  cursor: text !important;
+  transition: background-color 0.15s ease-in-out;
+}
+
+mark.review-clause-mark:hover {
+  background-color: rgba(59, 130, 246, 0.25) !important;
+  cursor: text !important;
+}

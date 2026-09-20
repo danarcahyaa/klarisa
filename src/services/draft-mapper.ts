@@ -43,8 +43,8 @@ export function mapListItem(record: ContractRecord): ContractListItem {
     type: record.type === "draft" ? "draft" : "review",
     isPinned: record.is_pinned,
     updatedAt: record.updated_at,
-    score: draft?.fairness_score ?? null,
-    riskCount: draft?.total_clausul_risk ?? 0,
+    score: (draft as any)?.fairness_score ?? null,
+    riskCount: (draft as any)?.total_clausul_risk ?? 0,
     metadata: metadataOf(draft?.metadata),
   };
 }
