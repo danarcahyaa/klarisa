@@ -115,7 +115,7 @@ export function ReviewResultStep({
             <h4 className="text-xs font-medium text-klarisa-navy">
               Rujukan Undang-Undang
             </h4>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {result.references.map((ref, idx) => {
                 const regCode = ref.code || ref.name || ref.title || "";
                 const artNum = ref.article_number
