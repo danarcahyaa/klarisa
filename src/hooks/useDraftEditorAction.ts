@@ -46,6 +46,27 @@ export function useDraftEditorAction({
   const latestContentRef = useRef<string>(content);
   latestContentRef.current = content;
 
+  // Sync state when initialDraft updates asynchronously
+  useEffect(() => {
+    if (initialDraft.title) {
+      setTitle(initialDraft.title);
+    }
+    if (initialDraft.content) {
+      setContent(initialDraft.content);
+      latestContentRef.current = initialDraft.content;
+    }
+    const nextUpdatedAt =
+      (initialDraft as any).updatedAt || (initialDraft as any).createdAt || null;
+    if (nextUpdatedAt) {
+      setUpdatedAt(nextUpdatedAt);
+    }
+  }, [
+    initialDraft.title,
+    initialDraft.content,
+    (initialDraft as any).updatedAt,
+    (initialDraft as any).createdAt,
+  ]);
+
   // Cleanup debounce and saved display timers on unmount
   useEffect(() => {
     return () => {
@@ -59,11 +80,19 @@ export function useDraftEditorAction({
   }, []);
 
   /**
-   * Strips temporary selection highlight marks before persisting to database.
+   * Strips temporary selection highlight marks before persisting to database,
+   * while preserving persistent review clause marks containing an id attribute.
    */
   const cleanDraftContentForSave = (html: string): string => {
     if (!html) return "";
-    return html.replace(/<mark\b[^>]*>([\s\S]*?)<\/mark>/gi, "$1");
+    return html.replace(/<mark(\b[^>]*)>([\s\S]*?)<\/mark>/gi, (match, attrs, innerText) => {
+      // If the mark has an id attribute (e.g. clause review marker), preserve it
+      if (/\bid=["'][^"']+["']/i.test(attrs)) {
+        return match;
+      }
+      // Otherwise, strip temporary highlight tag
+      return innerText;
+    });
   };
 
   /**

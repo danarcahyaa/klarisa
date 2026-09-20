@@ -21,7 +21,7 @@ export function TextEditorToolbar({
   onToggleAgent,
 }: TextEditorToolbarProps) {
     return (
-        <div className={cn("shrink-0 px-4 py-2 bg-white border-r border-b border-input flex items-center justify-between gap-2 overflow-x-auto shadow-2xs", className)}>
+        <div className={cn("relative z-[70] shrink-0 px-4 py-2 bg-white border-r border-b border-input flex items-center justify-between gap-2 overflow-x-auto shadow-2xs", className)}>
             <div className="flex gap-1 shrink-0">
                 <UndoRedoButton
                     editor={editor}

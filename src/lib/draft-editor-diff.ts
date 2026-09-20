@@ -19,7 +19,7 @@ function findTargetRange(
         if (foundRange) return false;
         if (node.isText && node.marks) {
           const matched = node.marks.find(
-            (mark) => mark.type === markType && mark.attrs?.id === targetId
+            (mark) => mark.attrs?.id === targetId
           );
           if (matched) {
             foundRange = { from: pos, to: pos + node.nodeSize };

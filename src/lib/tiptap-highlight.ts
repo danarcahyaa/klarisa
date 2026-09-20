@@ -5,9 +5,11 @@ declare module "@tiptap/core" {
     standardHighlight: {
       /**
        * Remove the highlight mark from the document (optionally filtered by mark ID),
-       * collapses the selection to dismiss floating tooltips, and flags preventAutosave.
+       * collapses the selection to dismiss floating tooltips.
+       * @param id Highlight mark ID to remove. If omitted, removes all highlight marks.
+       * @param preventAutosave Whether to prevent triggering draft autosave. Default is false.
        */
-      unsetHighlightMark: (id?: string) => ReturnType;
+      unsetHighlightMark: (id?: string, preventAutosave?: boolean) => ReturnType;
     };
   }
 }
@@ -22,7 +24,10 @@ export const StandardHighlight = Highlight.extend({
       id: {
         default: null,
         parseHTML: (element) => element.getAttribute("id"),
-        renderHTML: (attributes) => (attributes.id ? { id: attributes.id } : {}),
+        renderHTML: (attributes) =>
+          attributes.id
+            ? { id: attributes.id, class: "review-clause-mark" }
+            : {},
       },
     };
   },
@@ -30,15 +35,14 @@ export const StandardHighlight = Highlight.extend({
     return {
       ...this.parent?.(),
       unsetHighlightMark:
-        (id?: string) =>
+        (id?: string, preventAutosave = false) =>
         ({ tr, dispatch, editor }: any) => {
           if (dispatch) {
-            const markType = this.type || editor?.schema?.marks?.highlight;
-            if (markType && tr?.doc) {
+            if (tr?.doc) {
               tr.doc.descendants((node: any, pos: number) => {
                 if (node.marks) {
                   node.marks.forEach((mark: any) => {
-                    if (mark.type === markType && (!id || mark.attrs.id === id)) {
+                    if (mark.attrs?.id && (!id || mark.attrs.id === id)) {
                       tr.removeMark(pos, pos + node.nodeSize, mark);
                     }
                   });
@@ -53,7 +57,9 @@ export const StandardHighlight = Highlight.extend({
               } catch {
                 // Fallback ignored
               }
-              tr.setMeta("preventAutosave", true);
+              if (preventAutosave) {
+                tr.setMeta("preventAutosave", true);
+              }
             }
           }
           return true;

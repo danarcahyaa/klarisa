@@ -66,7 +66,7 @@ export function useSelectionTextDraft({
   const handleDismissSelectedText = useCallback(() => {
     if (editor && !editor.isDestroyed) {
       if ((editor.commands as any).unsetHighlightMark) {
-        (editor.commands as any).unsetHighlightMark(selectedHighlightId || undefined);
+        (editor.commands as any).unsetHighlightMark(selectedHighlightId || undefined, true);
       } else {
         const markType = editor.schema?.marks?.highlight;
         if (markType) {

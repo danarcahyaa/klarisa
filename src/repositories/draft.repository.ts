@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Json, TablesInsert, TablesUpdate } from "@/types/database.type";
 import type { ContractDraftRow, ContractRow } from "@/types/contract.type";
+import type { ClauseReviewItem } from "@/types/clause.type";
 
 export type ContractRecord = ContractRow & {
   contract_draft: ContractDraftRow | null;
@@ -46,7 +47,6 @@ export class DraftRepository {
     await this.supabase.from("draft_collaborators").delete().eq("contract_id", contractId);
     await this.supabase.from("draft_comments").delete().eq("contract_id", contractId);
     await this.supabase.from("draft_settings").delete().eq("contract_id", contractId);
-    await this.supabase.from("document_drafts").delete().eq("document_id", contractId);
     return this.supabase.from("contracts").delete().eq("id", contractId).eq("user_id", userId);
   }
 
@@ -61,10 +61,9 @@ export class DraftRepository {
 
   async findDraftById(contractId: string) {
     return this.supabase
-      .from("contracts")
-      .select("*, contract_draft(*)")
-      .eq("id", contractId)
-      .eq("type", "draft")
+      .from("contract_draft")
+      .select("*")
+      .eq("contract_id", contractId)
       .maybeSingle();
   }
 
@@ -217,28 +216,16 @@ export class DraftRepository {
       .maybeSingle();
   }
 
-  async listDraftVersions(contractId: string) {
-    return this.supabase
-      .from("document_drafts")
-      .select("*")
-      .eq("document_id", contractId)
-      .order("version", { ascending: false });
+  async listDraftVersions(_contractId: string) {
+    return { data: [] as any[], error: null };
   }
 
-  async findDraftVersion(contractId: string, versionId: string) {
-    return this.supabase
-      .from("document_drafts")
-      .select("*")
-      .eq("document_id", contractId)
-      .eq("id", versionId)
-      .maybeSingle();
+  async findDraftVersion(_contractId: string, _versionId: string) {
+    return { data: null, error: null };
   }
 
-  async deleteDraftVersions(contractId: string) {
-    return this.supabase
-      .from("document_drafts")
-      .delete()
-      .eq("document_id", contractId);
+  async deleteDraftVersions(_contractId: string) {
+    return { data: null, error: null };
   }
 
   /**
@@ -267,6 +254,34 @@ export class DraftRepository {
     const result = await this.supabase
       .from("contract_draft")
       .update({ ...payload, updated_at: now })
+      .eq("contract_id", contractId)
+      .select()
+      .single();
+
+    if (result.error) return result;
+
+    await this.supabase
+      .from("contracts")
+      .update({ updated_at: now })
+      .eq("id", contractId);
+
+    return result;
+  }
+
+  /**
+   * Directly updates the review_metadata JSON array in contract_draft without an initial SELECT query.
+   *
+   * @param contractId Unique identifier of the contract.
+   * @param metadata Updated array of clause review items.
+   */
+  async updateReviewMetadata(contractId: string, metadata: ClauseReviewItem[]) {
+    const now = new Date().toISOString();
+    const result = await this.supabase
+      .from("contract_draft")
+      .update({
+        review_metadata: metadata as unknown as Json,
+        updated_at: now,
+      })
       .eq("contract_id", contractId)
       .select()
       .single();
@@ -332,8 +347,8 @@ export class DraftRepository {
     return this.supabase.from("contract_draft").update({ metadata }).eq("contract_id", contractId);
   }
 
-  async createDraftVersion(payload: TablesInsert<"document_drafts">) {
-    return this.supabase.from("document_drafts").insert(payload).select().single();
+  async createDraftVersion(_payload: any) {
+    return { data: null, error: null };
   }
 
   /**

@@ -2,21 +2,42 @@ import { TextEditorToolbar } from "./text-editor-toolbar";
 import { EditorContent, EditorContext } from "@tiptap/react";
 import { AgentPanel } from "../agent/agent-panel";
 import { useDraftEditor } from "@/hooks/useDraftEditor";
+import { useClause } from "@/hooks/useClause";
 import { useSelectionTextDraft } from "@/hooks/useSelectionTextDraft";
-import { AskSelectionTooltip } from "./ask-selection-tooltip";
+import { SelectionTooltip } from "./selection-tooltip";
+import type { ClauseReviewItem } from "@/types/clause.type";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TextEditorCanvasProps {
+  contractId?: string;
   initialContent?: string;
+  initialReviews?: ClauseReviewItem[] | null;
+  isLoading?: boolean;
   onContentChange?: (content: string) => void;
-} 
+}
 
 export function TextEditorCanvas({
+  contractId,
   initialContent = "",
+  initialReviews = null,
+  isLoading = false,
   onContentChange,
 }: TextEditorCanvasProps) {
   const { editor } = useDraftEditor({
     initialContent,
     onContentChange,
+  });
+
+  const {
+    reviews,
+    isReviewing,
+    handleReviewClause,
+    handleDeleteReview,
+    getReviewById,
+  } = useClause({
+    contractId,
+    initialReviews,
+    editor,
   });
 
   const {
@@ -41,30 +62,55 @@ export function TextEditorCanvas({
 
             {/* ONLY SCROLLABLE AREA: Document Canvas */}
             <div
-              className="flex-1 min-h-0 overflow-y-auto border-r border-input cursor-text bg-white p-6 sm:p-8 lg:p-10 relative"
+              data-editor-canvas
+              className="flex-1 min-h-0 overflow-y-auto border-r border-input cursor-text bg-white p-6 sm:p-8 lg:p-15 relative"
               onClick={() => editor?.chain().focus().run()}
             >
-              <AskSelectionTooltip
-                editor={editor}
-                onAsk={handleSelectTextForAsk}
-              />
-              <EditorContent
-                editor={editor}
-                role="presentation"
-                className="h-full mx-auto w-full prose max-w-none text-sm leading-6 text-slate-800 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none"
-              />
+              {isLoading ? (
+                <div className="mx-auto w-full max-w-none space-y-4 animate-pulse pt-2">
+                  <Skeleton className="h-8 w-3/5 rounded bg-slate-100" />
+                  <div className="space-y-2.5 pt-3">
+                    <Skeleton className="h-4 w-full rounded bg-slate-2" />
+                    <Skeleton className="h-4 w-11/12 rounded bg-slate-100" />
+                    <Skeleton className="h-4 w-4/5 rounded bg-slate-100" />
+                  </div>
+                  <div className="space-y-2.5 pt-4">
+                    <Skeleton className="h-5 w-2/5 rounded bg-slate-100" />
+                    <Skeleton className="h-4 w-full rounded bg-slate-100" />
+                    <Skeleton className="h-4 w-5/6 rounded bg-slate-100" />
+                    <Skeleton className="h-4 w-3/4 rounded bg-slate-100" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <SelectionTooltip
+                    editor={editor}
+                    onAsk={handleSelectTextForAsk}
+                    reviews={reviews}
+                    isReviewing={isReviewing}
+                    onReviewClause={handleReviewClause}
+                    onDeleteReview={handleDeleteReview}
+                    getReviewById={getReviewById}
+                  />
+                  <EditorContent
+                    editor={editor}
+                    role="presentation"
+                    className="h-full mx-auto w-full prose max-w-none text-sm leading-6 text-slate-800 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none"
+                  />
+                </>
+              )}
             </div>
           </div>
 
           {/* AI Agent Sidebar on the right */}
           <AgentPanel
-              selectedText={selectedTextForAsk}
-              highlightId={selectedHighlightId}
-              isMultiLine={isMultiLine}
-              setSelectedTextRef={setSelectedTextRef}
-              onDismissSelectedText={handleDismissSelectedText}
-              className="w-full h-full"
-            />
+            selectedText={selectedTextForAsk}
+            highlightId={selectedHighlightId}
+            isMultiLine={isMultiLine}
+            setSelectedTextRef={setSelectedTextRef}
+            onDismissSelectedText={handleDismissSelectedText}
+            className="w-full h-full"
+          />
         </div>
       </EditorContext.Provider>
     </section>

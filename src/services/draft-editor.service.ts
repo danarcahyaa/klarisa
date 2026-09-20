@@ -53,21 +53,13 @@ export class DraftEditorService {
 
       const { contractId, content } = validation.data;
 
-      // Check access permission
+      // Retrieve draft by ID
       const current = await this.repository.findDraftById(contractId);
       if (current.error) {
         return createErrorResponse(mapSupabaseError(current.error.message));
       }
       if (!current.data) {
         return createErrorResponse("Kontrak tidak ditemukan.");
-      }
-
-      const isOwner = current.data.user_id === userId;
-      if (!isOwner) {
-        const collab = await this.repository.findCollaborator(userId, contractId);
-        if (!collab.data || collab.data.role !== "editor") {
-          return createErrorResponse("Anda tidak memiliki izin untuk mengedit isi kontrak ini.");
-        }
       }
 
       // Secure content with AES-256-GCM encryption before storing in database

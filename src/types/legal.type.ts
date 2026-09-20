@@ -11,6 +11,7 @@ export interface MatchLegalArticlesParams {
 export interface MatchLegalArticleResult {
   id: string;
   regulation_id: string;
+  code?: string | null;
   name?: string | null;
   book_title: string | null;
   chapter_title: string | null;
@@ -22,6 +23,7 @@ export interface MatchLegalArticleResult {
 }
 
 export interface LegalArticle {
+  code?: string | null;
   name?: string | null;
   book_title?: string | null;
   chapter_title?: string | null;
