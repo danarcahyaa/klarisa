@@ -17,6 +17,7 @@ import {
   syncHighlightsAndItems,
   findMarkIdsInDoc,
   removeHighlightMark,
+  updateHighlightMarkAttrs,
 } from "@/lib/tip-tap.utils";
 
 export type { UseClauseOptions, UseClauseReturn };
@@ -68,6 +69,24 @@ export function useClause({
         targetReviews,
         "data-review-id"
       );
+
+      // Ensure remaining review marks have proper risk attributes and CSS classes
+      remainingItems.forEach((review) => {
+        if (review.hasRisk !== undefined) {
+          updateHighlightMarkAttrs(
+            editor,
+            review.id,
+            {
+              "data-has-risk": String(review.hasRisk),
+              ...(review.status ? { "data-status": review.status } : {}),
+              class: review.hasRisk
+                ? "review-clause-mark review-clause-risk"
+                : "review-clause-mark review-clause-safe",
+            },
+            true
+          );
+        }
+      });
 
       if (remainingItems.length !== targetReviews.length) {
         setReviews(remainingItems);
@@ -169,7 +188,8 @@ export function useClause({
   const handleReviewClause = useCallback(
     async (
       clauseText: string,
-      highlightId: string
+      highlightId: string,
+      saveToDatabase = true
     ): Promise<ClauseReviewItem | null> => {
       if (!contractId) {
         setReviewError("ID kontrak tidak valid.");
@@ -185,14 +205,17 @@ export function useClause({
           clauseText,
           highlightId,
           currentReviews: reviewsRef.current,
+          saveToDatabase,
         });
 
         if (response.success && response.data) {
           const newReview = response.data.review;
-          const updatedReviews = response.data.reviews;
-          setReviews(updatedReviews);
-          reviewsRef.current = updatedReviews;
-          lastSavedReviewsRef.current = updatedReviews;
+          if (saveToDatabase) {
+            const updatedReviews = response.data.reviews;
+            setReviews(updatedReviews);
+            reviewsRef.current = updatedReviews;
+            lastSavedReviewsRef.current = updatedReviews;
+          }
           return newReview;
         } else {
           const errorMsg = response.error || "Gagal mereview klausul.";

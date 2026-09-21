@@ -23,9 +23,9 @@ export function useReviewMarker({
   result: customResult,
   onDismiss,
   collisionBoundary: customBoundary,
-  onReReview,
   onDeleteReview,
   onStartReview,
+  showFooter = true,
 }: UseReviewMarkerOptions = {}): UseReviewMarkerReturn {
   // Controlled vs uncontrolled open state
   const isControlled = controlledOpen !== undefined;
@@ -154,17 +154,6 @@ export function useReviewMarker({
   );
 
   /**
-   * Handles re-review action from result footer.
-   */
-  const handleReReview = useCallback(() => {
-    if (onReReview) {
-      onReReview();
-    } else {
-      runReviewWorkflow();
-    }
-  }, [onReReview, runReviewWorkflow]);
-
-  /**
    * Handles deleting review from result footer.
    */
   const handleDeleteReview = useCallback(() => {
@@ -179,9 +168,9 @@ export function useReviewMarker({
     activeBoundary,
     currentResult,
     activeText,
+    showFooter,
     handleClose,
     handleOpenChange,
-    handleReReview,
     handleDeleteReview,
   };
 }

@@ -10,7 +10,10 @@ import type {
 import {
   markClauseSelection,
   getSelectedHighlightId as getHighlightIdFromSelection,
+  getTextForHighlightMark,
   removeHighlightMark,
+  updateHighlightMarkAttrs,
+  generateHighlightId,
 } from "@/lib/tip-tap.utils";
 
 export type { UseSelectionTooltipOptions, UseSelectionTooltipReturn };
@@ -31,12 +34,41 @@ export function useSelectionTooltip({
   getReviewById,
 }: UseSelectionTooltipOptions): UseSelectionTooltipReturn {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isForceHidden, setIsForceHidden] = useState(false);
+  const isDeletingReviewRef = useRef(false);
   const [frozenReviewText, setFrozenReviewText] = useState("");
+  const frozenReviewTextRef = useRef("");
   const [canvasBoundary, setCanvasBoundary] = useState<Element | null>(null);
 
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
   const [activeReviewResult, setActiveReviewResult] = useState<ClauseReviewItem | null>(null);
   const [reviewStep, setReviewStep] = useState<ReviewProcessStep | undefined>(undefined);
+
+  // Persistence toggle state for clause review (stored in localStorage, default false)
+  const [saveReviewEnabled, setSaveReviewEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("klarisa_save_clause_review");
+        return stored === "true";
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const saveReviewEnabledRef = useRef(saveReviewEnabled);
+  saveReviewEnabledRef.current = saveReviewEnabled;
+
+  const handleToggleSaveReview = useCallback((enabled: boolean) => {
+    setSaveReviewEnabled(enabled);
+    saveReviewEnabledRef.current = enabled;
+    try {
+      localStorage.setItem("klarisa_save_clause_review", String(enabled));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   // References to keep callbacks stable
   const activeHighlightIdRef = useRef(activeHighlightId);
@@ -58,6 +90,15 @@ export function useSelectionTooltip({
         editor.view.dom.parentElement;
       if (canvas) {
         setCanvasBoundary(canvas);
+        return;
+      }
+    }
+    if (typeof document !== "undefined") {
+      const canvas =
+        document.querySelector("[data-editor-canvas]") ||
+        document.querySelector(".ProseMirror")?.parentElement;
+      if (canvas) {
+        setCanvasBoundary(canvas);
       }
     }
   }, [editor]);
@@ -67,14 +108,22 @@ export function useSelectionTooltip({
     if (!editor || editor.isDestroyed) return;
 
     const handleSelectionUpdate = () => {
+      // Do not re-enable tooltip while deletion is actively in progress
+      if (isDeletingReviewRef.current) return;
+
       const { from, to } = editor.state.selection;
+      if (from !== to) {
+        setIsForceHidden(false);
+      }
       setSelectionRange((prev) => {
         if (prev.from === from && prev.to === to) return prev;
         return { from, to };
       });
 
       // If user selected a different range while a review popover was open, dismiss the popover
-      if (activeHighlightIdRef.current) {
+      // NOTE: Only perform mark-containment check if saveReviewEnabled is true and mark exists.
+      // If saveReviewEnabled is false, no mark is in the document, so do not dismiss on selection changes!
+      if (activeHighlightIdRef.current && saveReviewEnabledRef.current) {
         let selectionContainsActiveHighlight = false;
         if (from !== to) {
           editor.state.doc.nodesBetween(from, to, (node) => {
@@ -96,6 +145,7 @@ export function useSelectionTooltip({
           }
           setIsReviewOpen(false);
           setFrozenReviewText("");
+          frozenReviewTextRef.current = "";
           setActiveHighlightId(null);
           setActiveReviewResult(null);
           setReviewStep(undefined);
@@ -143,6 +193,8 @@ export function useSelectionTooltip({
           .trim();
         if (text) {
           setFrozenReviewText(text);
+          frozenReviewTextRef.current = text;
+          selectedTextStringRef.current = text;
         }
 
         // Check if current selection has an existing review
@@ -152,14 +204,21 @@ export function useSelectionTooltip({
           if (saved) {
             setActiveHighlightId(existingId);
             setActiveReviewResult(saved);
-            setFrozenReviewText(saved.clauseText);
+            // Prioritize the actual highlighted text currently in the document over saved result
+            const highlightedTextInDoc = getTextForHighlightMark(editor, existingId, "data-review-id");
+            const actualText = highlightedTextInDoc || saved.clauseText;
+            setFrozenReviewText(actualText);
+            frozenReviewTextRef.current = actualText;
+            selectedTextStringRef.current = actualText;
             setReviewStep("completed");
             return;
           }
         }
 
-        // If new clause review, generate ID and apply mark
-        const newId = markClauseSelection(editor, "data-review-id");
+        // If new clause review:
+        // Generate a new highlight ID. Note: markClauseSelection is deferred to handleStartReview
+        // so that TipTap document transactions don't disrupt Popover anchor measurement!
+        const newId = generateHighlightId();
         if (newId) {
           setActiveHighlightId(newId);
           setActiveReviewResult(null);
@@ -167,6 +226,7 @@ export function useSelectionTooltip({
         }
       } else {
         setFrozenReviewText("");
+        frozenReviewTextRef.current = "";
         setReviewStep(undefined);
         // If temporary mark was created but no review was saved, clean up mark
         if (
@@ -185,18 +245,27 @@ export function useSelectionTooltip({
 
   /**
    * Handles "Review" / "Lihat review" button click.
+   * If viewing an existing review, opens the popover.
+   * New reviews must be triggered exclusively from the "Mulai" button in the HoverCard.
    */
   const handleReviewClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
 
-      if (!isReviewOpen) {
+      if (isExistingReview && !isReviewOpen) {
         handleReviewOpenChange(true);
       }
     },
-    [isReviewOpen, handleReviewOpenChange]
+    [isExistingReview, isReviewOpen, handleReviewOpenChange]
   );
+
+  /**
+   * Explicitly starts a new clause review workflow from the "Mulai" button.
+   */
+  const handleStartNewReview = useCallback(() => {
+    handleReviewOpenChange(true);
+  }, [handleReviewOpenChange]);
 
   /**
    * Handles "Revise Clause" action on the selected text.
@@ -251,15 +320,44 @@ export function useSelectionTooltip({
   const handleStartReview = useCallback(async (): Promise<ClauseReviewItem | null> => {
     const fn = onReviewClauseRef.current;
     const highlightId = activeHighlightIdRef.current;
-    const text = selectedTextStringRef.current;
+    const text = frozenReviewTextRef.current || selectedTextStringRef.current;
+    const shouldSave = saveReviewEnabledRef.current;
 
     if (fn && highlightId && text) {
-      const res = await fn(text, highlightId);
+      // If saving is enabled and mark not yet in document, attach mark now that popover is mounted
+      if (shouldSave && editor) {
+        const existingMarkId = getSelectedHighlightId();
+        if (!existingMarkId) {
+          markClauseSelection(editor, "data-review-id", { id: highlightId, preventAutosave: true });
+        }
+      }
+
+      // Read text directly from the highlight mark in the editor document if available
+      const markText = getTextForHighlightMark(editor, highlightId, "data-review-id");
+      const text = markText || frozenReviewTextRef.current || selectedTextStringRef.current;
+
+      const res = await fn(text, highlightId, shouldSave);
       if (res) {
         setActiveReviewResult(res);
+        // If saved, update highlight mark in editor with data-has-risk, data-status, and class
+        if (shouldSave && editor) {
+          const hasRisk = Boolean(res.hasRisk);
+          updateHighlightMarkAttrs(
+            editor,
+            highlightId,
+            {
+              "data-has-risk": String(hasRisk),
+              ...(res.status ? { "data-status": res.status } : {}),
+              class: hasRisk
+                ? "review-clause-mark review-clause-risk"
+                : "review-clause-mark review-clause-safe",
+            },
+            false
+          );
+        }
       } else {
         // If review failed, clean up temporary mark from editor immediately
-        if (editor) {
+        if (editor && shouldSave) {
           editor.commands.unsetHighlightMark(highlightId, true);
         }
         setActiveHighlightId(null);
@@ -269,57 +367,68 @@ export function useSelectionTooltip({
       return res;
     }
     return null;
-  }, [editor]);
+  }, [editor, getSelectedHighlightId]);
 
   /**
-   * Re-executes AI review on user demand from result footer.
-   */
-  const handleReReview = useCallback(() => {
-    const fn = onReviewClauseRef.current;
-    const highlightId = activeHighlightIdRef.current;
-    const text = selectedTextStringRef.current;
-
-    if (fn && highlightId && text) {
-      setReviewStep("preparing");
-      fn(text, highlightId).then((res) => {
-        if (res) {
-          setActiveReviewResult(res);
-          setReviewStep("completed");
-        } else {
-          // Revert to completed step to maintain view of existing review
-          setReviewStep("completed");
-        }
-      });
-    }
-  }, []);
-
-  /**
-   * Deletes the currently active review.
+   * Deletes the currently active review and dismisses floating tooltips.
    */
   const handleDeleteReview = useCallback(() => {
+    isDeletingReviewRef.current = true;
+    setIsForceHidden(true);
+    setFrozenReviewText("");
+    frozenReviewTextRef.current = "";
+    setReviewStep(undefined);
+    setIsReviewOpen(false);
+
+    // 1. Immediately collapse editor selection to current end position and blur
+    if (editor && !editor.isDestroyed) {
+      try {
+        const currentPos = editor.state.selection.to;
+        editor.commands.setTextSelection(currentPos);
+        editor.view.dom.blur();
+      } catch {
+        // Fallback ignored
+      }
+    }
+    if (typeof window !== "undefined") {
+      try {
+        window.getSelection()?.removeAllRanges();
+      } catch {
+        // Fallback ignored
+      }
+    }
+
+    // 2. Delete the active review and remove its mark from the document
     const highlightId = activeHighlightIdRef.current;
     if (highlightId) {
       onDeleteReviewRef.current?.(highlightId);
       setActiveHighlightId(null);
       setActiveReviewResult(null);
     }
-    setIsReviewOpen(false);
-  }, []);
+
+    // 3. Reset deletion flag after next tick so subsequent user selections can show tooltip again
+    setTimeout(() => {
+      isDeletingReviewRef.current = false;
+    }, 150);
+  }, [editor]);
 
   return {
     isReviewOpen,
+    isForceHidden,
     canvasBoundary,
     activeHighlightId,
     activeReviewResult,
     reviewStep,
     selectedTextString,
     isExistingReview,
+    saveReviewEnabled,
+    handleToggleSaveReview,
+    handleStartNewReview,
     handleReviewOpenChange,
     handleReviewClick,
     handleReviseClauseClick,
     handleAskClick,
     handleStartReview,
-    handleReReview,
     handleDeleteReview,
   };
 }

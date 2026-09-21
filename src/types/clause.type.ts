@@ -8,6 +8,20 @@ export type LegalArticlesRow = Tables<"legal_articles">;
 export type ClauseReferenceItem = MatchLegalArticleResult | LegalArticlesRow;
 
 /**
+ * Categorized status for single clause review:
+ * - "AMBIGUOUS": Clause is unclear, fragmented words/letters, or incomplete expression.
+ * - "VIOLATES_LAW": Clause is clear and violates Indonesian regulations/laws.
+ * - "UNFAIR_ONE_SIDED": Clause does not violate law, but is one-sided and harms one party.
+ * - "INCOMPLETE": Clause contains unfilled placeholders like [...] or blank fields.
+ */
+export type ClauseReviewStatus =
+  | "AMBIGUOUS"
+  | "VIOLATES_LAW"
+  | "UNFAIR_ONE_SIDED"
+  | "INCOMPLETE"
+  | "SAFE";
+
+/**
  * Single clause review entity stored in contract_draft.review_metadata array.
  */
 export interface ClauseReviewItem {
@@ -19,6 +33,10 @@ export interface ClauseReviewItem {
   result: string;
   /** Relevant statutory articles from legal_articles or vector match results */
   references: ClauseReferenceItem[];
+  /** Categorized status of the review (AMBIGUOUS, VIOLATES_LAW, UNFAIR_ONE_SIDED, INCOMPLETE) */
+  status?: ClauseReviewStatus;
+  /** Whether the clause has legal or compliance risk */
+  hasRisk?: boolean;
   /** ISO timestamp of review creation */
   createdAt: string;
   /** ISO timestamp of last update */
@@ -42,6 +60,8 @@ export interface ReviewClauseInputDTO {
   highlightId?: string;
   /** Active reviews list from hook memory (avoids extra SELECT) */
   currentReviews?: ClauseReviewItem[];
+  /** Whether to persist the review to the database (default true) */
+  saveToDatabase?: boolean;
 }
 
 /**
@@ -81,7 +101,7 @@ export type SaveClauseReviewsResponse = BaseResponse<{
 
 /**
  * Strict JSON Schema for Groq structured output on single clause review.
- * Captures concise layperson explanation and descriptive anomaly/completeness analysis without recommendations.
+ * Classifies the clause into 4 distinct statuses: AMBIGUOUS, VIOLATES_LAW, UNFAIR_ONE_SIDED, INCOMPLETE.
  */
 export const GROQ_CLAUSE_REVIEW_SCHEMA = {
   name: "single_clause_review",
@@ -89,15 +109,26 @@ export const GROQ_CLAUSE_REVIEW_SCHEMA = {
   schema: {
     type: "object",
     properties: {
+      status: {
+        type: "string",
+        enum: ["AMBIGUOUS", "VIOLATES_LAW", "UNFAIR_ONE_SIDED", "INCOMPLETE", "SAFE"],
+        description:
+          "Status hasil review klausul: 'AMBIGUOUS' jika teks tidak jelas/serpihan kata/huruf; 'VIOLATES_LAW' jika melanggar ketentuan hukum/UU; 'UNFAIR_ONE_SIDED' jika berat sebelah/merugikan salah satu pihak; 'INCOMPLETE' jika klausul mengandung placeholder belum diisi seperti [...] atau garis bawah; 'SAFE' jika klausul wajar, adil, seimbang, dan aman.",
+      },
       explanation: {
         type: "string",
         description:
-          "Penjelasan singkat, padat, dan jelas mengenai isi dan maksud klausul dalam bahasa sehari-hari yang mudah dimengerti orang awam tanpa istilah teknis hukum (maksimal 2 kalimat).",
+          "Penjelasan singkat mengenai maksud klausul dengan bahasa sehari-hari yang mudah dimengerti orang awam tanpa istilah teknis hukum (maksimal 2 kalimat). WAJIB dikosongkan (string kosong '') jika status adalah 'AMBIGUOUS'.",
       },
-      anomaly_analysis: {
+      analysis: {
         type: "string",
         description:
-          "Penjelasan deskriptif mengalir (tanpa label atau kata 'Status Anomali') mengenai kondisi klausul: apakah aman/sah, berat sebelah/timpang, melanggar aturan, atau jika ada placeholder/bagian yang masih kosong belum diisi (maksimal 2 kalimat).",
+          "Uraian hasil review tanpa istilah teknis yang sulit (maksimal 2-3 kalimat): Untuk 'AMBIGUOUS', jelaskan singkat bahwa klausul masih ambigu/tidak lengkap. Untuk 'VIOLATES_LAW', sebutkan pasal dan UU yang dilanggar secara sederhana. Untuk 'UNFAIR_ONE_SIDED', jelaskan potensi berat sebelah dan pihak yang dirugikan. Untuk 'INCOMPLETE', sebutkan placeholder yang belum terisi. Untuk 'SAFE', cukup jelaskan secara singkat mengenai klausul tersebut.",
+      },
+      has_risk: {
+        type: "boolean",
+        description:
+          "false jika status 'AMBIGUOUS' atau 'SAFE'. true jika status 'VIOLATES_LAW', 'UNFAIR_ONE_SIDED', atau 'INCOMPLETE'.",
       },
       cited_article_ids: {
         type: "array",
@@ -106,7 +137,7 @@ export const GROQ_CLAUSE_REVIEW_SCHEMA = {
           "Daftar ID pasal regulasi yang relevan dari database jika ada.",
       },
     },
-    required: ["explanation", "anomaly_analysis", "cited_article_ids"],
+    required: ["status", "explanation", "analysis", "has_risk", "cited_article_ids"],
     additionalProperties: false,
   },
 } as const;
@@ -115,8 +146,10 @@ export const GROQ_CLAUSE_REVIEW_SCHEMA = {
  * Parsed structure of LLM JSON response adhering to GROQ_CLAUSE_REVIEW_SCHEMA.
  */
 export interface StructuredClauseReviewOutput {
+  status: ClauseReviewStatus;
   explanation: string;
-  anomaly_analysis: string;
+  analysis: string;
+  has_risk: boolean;
   cited_article_ids: string[];
 }
 
@@ -150,10 +183,11 @@ export interface UseClauseReturn {
   activeReviewId: string | null;
   /** Set active review mark ID */
   setActiveReviewId: (id: string | null) => void;
-  /** Executes AI review for selected clause text and persists to database */
+  /** Executes AI review for selected clause text and optionally persists to database */
   handleReviewClause: (
     clauseText: string,
-    highlightId: string
+    highlightId: string,
+    saveToDatabase?: boolean
   ) => Promise<ClauseReviewItem | null>;
   /** Deletes a review from database and removes highlight mark from editor */
   handleDeleteReview: (highlightId: string) => Promise<boolean>;
@@ -187,7 +221,8 @@ export interface UseSelectionTooltipOptions {
   /** Callback to trigger AI review for a clause */
   onReviewClause?: (
     clauseText: string,
-    highlightId: string
+    highlightId: string,
+    saveToDatabase?: boolean
   ) => Promise<ClauseReviewItem | null>;
   /** Callback to delete a review */
   onDeleteReview?: (highlightId: string) => Promise<boolean>;
@@ -200,18 +235,21 @@ export interface UseSelectionTooltipOptions {
  */
 export interface UseSelectionTooltipReturn {
   isReviewOpen: boolean;
+  isForceHidden: boolean;
   canvasBoundary: Element | null;
   activeHighlightId: string | null;
   activeReviewResult: ClauseReviewItem | null;
   reviewStep: ReviewProcessStep | undefined;
   selectedTextString: string;
   isExistingReview: boolean;
+  saveReviewEnabled: boolean;
+  handleToggleSaveReview: (enabled: boolean) => void;
+  handleStartNewReview: () => void;
   handleReviewOpenChange: (open: boolean) => void;
   handleReviewClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   handleReviseClauseClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   handleAskClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   handleStartReview: () => Promise<ClauseReviewItem | null>;
-  handleReReview: () => void;
   handleDeleteReview: () => void;
 }
 
@@ -227,10 +265,12 @@ export type ReviewProcessingPhase =
  * Result data contract for an analyzed clause displayed in review popover.
  */
 export interface ClauseReviewResult {
+  status?: ClauseReviewStatus;
   summary?: string;
   reasoning?: string;
   result?: string;
   recommendation?: string;
+  hasRisk?: boolean;
   references?: Array<{
     code?: string | null;
     name?: string | null;
@@ -259,12 +299,16 @@ export interface UseReviewMarkerOptions {
   onDismiss?: () => void;
   /** Optional boundary element to constrain popover within */
   collisionBoundary?: Element | null | Array<Element | null>;
-  /** Callback triggered when user clicks 'Review ulang' in the result step */
-  onReReview?: () => void;
   /** Callback triggered when user clicks 'Hapus review' in the result step */
   onDeleteReview?: () => void;
   /** Optional callback to execute live AI review */
   onStartReview?: () => Promise<any>;
+  /** Whether to show the bottom footer with action buttons (default: true) */
+  showFooter?: boolean;
+  /** Preferred placement side ('top' | 'bottom') */
+  side?: "top" | "bottom";
+  /** Preferred alignment ('start' | 'center' | 'end') */
+  align?: "start" | "center" | "end";
 }
 
 /**
@@ -277,9 +321,9 @@ export interface UseReviewMarkerReturn {
   activeBoundary: Element | null | Array<Element | null> | undefined;
   currentResult: ClauseReviewResult | null;
   activeText?: string;
+  showFooter: boolean;
   handleClose: () => void;
   handleOpenChange: (nextOpen: boolean) => void;
-  handleReReview: () => void;
   handleDeleteReview: () => void;
 }
 
