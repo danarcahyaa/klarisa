@@ -650,3 +650,6 @@ export function getSelectedBlockNodes(editor: Editor): PMNode[] {
 
   return blocks
 }
+
+// Re-export modular clause highlight utilities
+export * from "./tip-tap.utils";

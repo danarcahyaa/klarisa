@@ -7,6 +7,11 @@ import type {
   UseSelectionTooltipOptions,
   UseSelectionTooltipReturn,
 } from "@/types/clause.type";
+import {
+  markClauseSelection,
+  getSelectedHighlightId as getHighlightIdFromSelection,
+  removeHighlightMark,
+} from "@/lib/tip-tap.utils";
 
 export type { UseSelectionTooltipOptions, UseSelectionTooltipReturn };
 
@@ -87,7 +92,7 @@ export function useSelectionTooltip({
         if (!selectionContainsActiveHighlight) {
           // If transient mark was not saved, clean it up
           if (!getReviewById?.(activeHighlightIdRef.current)) {
-            editor.commands.unsetHighlightMark(activeHighlightIdRef.current, true);
+            removeHighlightMark(editor, activeHighlightIdRef.current, true);
           }
           setIsReviewOpen(false);
           setFrozenReviewText("");
@@ -110,23 +115,7 @@ export function useSelectionTooltip({
    * Identifies clause review marks directly by their unique id attribute.
    */
   const getSelectedHighlightId = useCallback((): string | null => {
-    if (!editor) return null;
-    const { from, to } = editor.state.selection;
-    if (from === to) return null;
-
-    let foundId: string | null = null;
-    editor.state.doc.nodesBetween(from, to, (node) => {
-      if (node.isText && node.marks) {
-        for (const mark of node.marks) {
-          if (mark.attrs?.id) {
-            foundId = mark.attrs.id;
-            return false;
-          }
-        }
-      }
-    });
-
-    return foundId;
+    return getHighlightIdFromSelection(editor, "data-review-id");
   }, [editor]);
 
   const selectedHighlightId = getSelectedHighlightId();
@@ -170,15 +159,12 @@ export function useSelectionTooltip({
         }
 
         // If new clause review, generate ID and apply mark
-        const newId =
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `id-${Date.now()}`;
-        setActiveHighlightId(newId);
-        setActiveReviewResult(null);
-        setReviewStep(undefined);
-
-        (editor.chain() as any).setHighlight({ id: newId }).run();
+        const newId = markClauseSelection(editor, "data-review-id");
+        if (newId) {
+          setActiveHighlightId(newId);
+          setActiveReviewResult(null);
+          setReviewStep(undefined);
+        }
       } else {
         setFrozenReviewText("");
         setReviewStep(undefined);
@@ -188,7 +174,7 @@ export function useSelectionTooltip({
           !getReviewById?.(activeHighlightIdRef.current) &&
           editor
         ) {
-          editor.commands.unsetHighlightMark(activeHighlightIdRef.current, true);
+          removeHighlightMark(editor, activeHighlightIdRef.current, true);
         }
         setActiveHighlightId(null);
         setActiveReviewResult(null);
