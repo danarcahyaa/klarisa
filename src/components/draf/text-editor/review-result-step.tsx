@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, Copy, RotateCcw, Scale, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,14 +33,28 @@ export function ReviewResultStep({
 }: ReviewResultStepProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const reasoningText = result.result || result.reasoning || "";
-  const isLongText = reasoningText.length > 200;
+  const hasLongContentInit =
+    reasoningText.length > 200 || reasoningText.split("\n").length > 4;
+  const [isOverflowing, setIsOverflowing] = useState(hasLongContentInit);
 
   // Reset expansion state if the displayed review result changes
   useEffect(() => {
     setIsExpanded(false);
   }, [reasoningText]);
+
+  // Check content overflow based on scroll height vs collapsed threshold
+  useEffect(() => {
+    if (contentRef.current) {
+      const scrollHeight = contentRef.current.scrollHeight;
+      const maxHeightThreshold = 80;
+      setIsOverflowing(scrollHeight > maxHeightThreshold || hasLongContentInit);
+    } else {
+      setIsOverflowing(hasLongContentInit);
+    }
+  }, [reasoningText, hasLongContentInit]);
 
   /**
    * Copies review reasoning text to clipboard.
@@ -89,15 +103,24 @@ export function ReviewResultStep({
             </button>
           </div>
           <div>
-            <p
+            <div
+              ref={contentRef}
               className={cn(
-                "text-xs leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-line",
-                !isExpanded && isLongText && "line-clamp-4"
+                "relative transition-all duration-300",
+                !isExpanded && isOverflowing && "max-h-20 overflow-hidden"
               )}
             >
-              {reasoningText}
-            </p>
-            {isLongText && (
+              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-line">
+                {reasoningText}
+              </p>
+
+              {/* Bottom gradient fade when collapsed */}
+              {!isExpanded && isOverflowing && (
+                <div className="absolute inset-x-0 bottom-0 pointer-events-none h-10 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80" />
+              )}
+            </div>
+
+            {isOverflowing && (
               <button
                 type="button"
                 onClick={() => setIsExpanded((prev) => !prev)}
@@ -115,7 +138,7 @@ export function ReviewResultStep({
             <h4 className="text-xs font-medium text-klarisa-navy">
               Rujukan Undang-Undang
             </h4>
-            <div className="flex flex-wrap gap-1.5 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {result.references.map((ref, idx) => {
                 const regCode = ref.code || ref.name || ref.title || "";
                 const artNum = ref.article_number
@@ -136,7 +159,6 @@ export function ReviewResultStep({
                     key={idx}
                     variant="klarisa-tertiary"
                     className="text-[10px] font-medium h-auto py-0.5 px-2 gap-1 max-w-full"
-                    title={fullDesc}
                   >
                     <Scale className="size-3 shrink-0" />
                     <span className="truncate">{label}</span>
