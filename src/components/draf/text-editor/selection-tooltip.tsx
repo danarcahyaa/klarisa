@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { CircleDotDashed, FileSearch } from "lucide-react";
-import { ReviewMarkerPopover } from "./review-marker-popover";
+import { ReviewMarkerPopover } from "./review-clause/review-marker-popover";
 import {
   useSelectionTooltip,
   type UseSelectionTooltipOptions,

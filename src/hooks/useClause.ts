@@ -13,6 +13,11 @@ import type {
   UseClauseOptions,
   UseClauseReturn,
 } from "@/types/clause.type";
+import {
+  syncHighlightsAndItems,
+  findMarkIdsInDoc,
+  removeHighlightMark,
+} from "@/lib/tip-tap.utils";
 
 export type { UseClauseOptions, UseClauseReturn };
 
@@ -58,42 +63,18 @@ export function useClause({
     (targetReviews: ClauseReviewItem[]) => {
       if (!editor || editor.isDestroyed || editor.isEmpty) return;
 
-      const validReviewIds = new Set(targetReviews.map((r) => r.id));
-      const { tr } = editor.state;
-      let hasRemovals = false;
-      const existingMarkIdsInDoc = new Set<string>();
-
-      tr.doc.descendants((node: any, pos: number) => {
-        if (node.marks) {
-          node.marks.forEach((mark: any) => {
-            if (mark.attrs?.id) {
-              if (!validReviewIds.has(mark.attrs.id)) {
-                // Remove orphaned review mark from editor
-                tr.removeMark(pos, pos + node.nodeSize, mark);
-                hasRemovals = true;
-              } else {
-                existingMarkIdsInDoc.add(mark.attrs.id);
-              }
-            }
-          });
-        }
-      });
-
-      if (hasRemovals) {
-        editor.view.dispatch(tr);
-      }
-
-      // Check if any review item in state is missing its mark in the editor document
-      const remainingReviews = targetReviews.filter((r) =>
-        existingMarkIdsInDoc.has(r.id)
+      const { remainingItems } = syncHighlightsAndItems(
+        editor,
+        targetReviews,
+        "data-review-id"
       );
 
-      if (remainingReviews.length !== targetReviews.length) {
-        setReviews(remainingReviews);
-        reviewsRef.current = remainingReviews;
-        lastSavedReviewsRef.current = remainingReviews;
+      if (remainingItems.length !== targetReviews.length) {
+        setReviews(remainingItems);
+        reviewsRef.current = remainingItems;
+        lastSavedReviewsRef.current = remainingItems;
         if (contractId) {
-          saveClauseReviewsAction(contractId, remainingReviews).catch((err) => {
+          saveClauseReviewsAction(contractId, remainingItems).catch((err) => {
             console.error("[useClause] Stale review prune save error:", err);
           });
         }
@@ -148,14 +129,7 @@ export function useClause({
     const handleUpdate = () => {
       if (!isInitializedRef.current || reviewsRef.current.length === 0) return;
 
-      const existingMarkIds = new Set<string>();
-      editor.state.doc.descendants((node) => {
-        node.marks?.forEach((mark) => {
-          if (mark.attrs?.id) {
-            existingMarkIds.add(mark.attrs.id);
-          }
-        });
-      });
+      const existingMarkIds = findMarkIdsInDoc(editor, "data-review-id");
 
       // Filter out reviews whose mark ID no longer exists anywhere in the document
       const remaining = reviewsRef.current.filter((r) =>
@@ -248,9 +222,9 @@ export function useClause({
 
       setIsDeletingReview(true);
       try {
-        //  Remove mark from editor document (allow autosave to persist clean content)
+        // Remove mark from editor document (allow autosave to persist clean content)
         if (editor) {
-          (editor.chain() as any).unsetHighlightMark(highlightId, false).run();
+          removeHighlightMark(editor, highlightId, false);
         }
 
         // Remove review from local state

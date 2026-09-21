@@ -25,9 +25,31 @@ export const StandardHighlight = Highlight.extend({
         default: null,
         parseHTML: (element) => element.getAttribute("id"),
         renderHTML: (attributes) =>
-          attributes.id
-            ? { id: attributes.id, class: "review-clause-mark" }
+          attributes.id ? { id: attributes.id } : {},
+      },
+      "data-review-id": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-review-id"),
+        renderHTML: (attributes) =>
+          attributes["data-review-id"]
+            ? { "data-review-id": attributes["data-review-id"] }
             : {},
+      },
+      "data-revise-id": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-revise-id"),
+        renderHTML: (attributes) =>
+          attributes["data-revise-id"]
+            ? { "data-revise-id": attributes["data-revise-id"] }
+            : {},
+      },
+      class: {
+        default: "review-clause-mark",
+        parseHTML: (element) => element.getAttribute("class"),
+        renderHTML: (attributes) =>
+          attributes.class
+            ? { class: attributes.class }
+            : { class: "review-clause-mark" },
       },
     };
   },
@@ -42,7 +64,18 @@ export const StandardHighlight = Highlight.extend({
               tr.doc.descendants((node: any, pos: number) => {
                 if (node.marks) {
                   node.marks.forEach((mark: any) => {
-                    if (mark.attrs?.id && (!id || mark.attrs.id === id)) {
+                    const markId =
+                      mark.attrs?.id ||
+                      mark.attrs?.["data-review-id"] ||
+                      mark.attrs?.["data-revise-id"];
+                    if (
+                      markId &&
+                      (!id ||
+                        markId === id ||
+                        mark.attrs?.id === id ||
+                        mark.attrs?.["data-review-id"] === id ||
+                        mark.attrs?.["data-revise-id"] === id)
+                    ) {
                       tr.removeMark(pos, pos + node.nodeSize, mark);
                     }
                   });

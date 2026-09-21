@@ -20,13 +20,11 @@ import {
   DraftRepository,
   createDraftRepository,
 } from "@/repositories/draft.repository";
-import { createLegalArticleRepository } from "@/repositories/legal-article.repository";
 import { EmbeddingService } from "@/services/embedding.service";
 import { groqService } from "@/services/groq.service";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   type ClauseReviewItem,
-  type LegalArticlesRow,
   type ReviewClauseResponse,
   type SaveClauseReviewsResponse,
   GROQ_CLAUSE_REVIEW_SCHEMA,
