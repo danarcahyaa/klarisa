@@ -15,6 +15,8 @@ export interface MarkClauseOptions {
   preventAutosave?: boolean;
   /** Custom ID if already generated, otherwise auto-generated */
   id?: string;
+  /** Additional custom attributes to apply to mark */
+  attrs?: Record<string, any>;
 }
 
 export interface SyncHighlightsResult<T> {
@@ -84,6 +86,7 @@ export function markClauseSelection(
     .setHighlight({
       id: generatedId,
       [attrName]: generatedId,
+      ...(options.attrs || {}),
     })
     .run();
 
@@ -254,6 +257,46 @@ export function getSelectedHighlightId(
 }
 
 /**
+ * Retrieves the exact text currently spanned by a specific highlight mark in the editor document.
+ *
+ * @param editor The TipTap editor instance.
+ * @param id The mark ID to locate.
+ * @param dataIdName Context identifier (e.g. "data-review-id", "data-repair-id").
+ * @returns The text string inside the highlight mark, or null if not found.
+ */
+export function getTextForHighlightMark(
+  editor: Editor | null | undefined,
+  id: string,
+  dataIdName: ClauseDataIdContext = "data-review-id"
+): string | null {
+  if (!editor || editor.isDestroyed || !id) return null;
+  const attrName = normalizeDataIdName(dataIdName);
+  const parts: string[] = [];
+  let lastPos = -1;
+
+  editor.state.doc.descendants((node: any, pos: number) => {
+    if (node.isText && node.marks && node.marks.length > 0) {
+      for (const mark of node.marks) {
+        if (isMarkInContext(mark, attrName)) {
+          const markId = getMarkIdForContext(mark, attrName);
+          if (markId === id) {
+            if (lastPos !== -1 && pos > lastPos) {
+              parts.push(" ");
+            }
+            parts.push(node.text || "");
+            lastPos = pos + node.nodeSize;
+            break;
+          }
+        }
+      }
+    }
+  });
+
+  const fullText = parts.join("").trim();
+  return fullText || null;
+}
+
+/**
  * Removes a highlight mark from the editor document by ID.
  *
  * @param editor The TipTap editor instance.
@@ -267,4 +310,49 @@ export function removeHighlightMark(
 ): boolean {
   if (!editor || editor.isDestroyed) return false;
   return (editor.commands as any).unsetHighlightMark(id, preventAutosave);
+}
+
+/**
+ * Updates attributes on an existing highlight mark by ID in the editor document.
+ *
+ * @param editor The TipTap editor instance.
+ * @param id The mark ID to update.
+ * @param attrsToUpdate Key-value map of attributes to update.
+ * @param preventAutosave Whether to prevent autosave transaction.
+ */
+export function updateHighlightMarkAttrs(
+  editor: Editor | null | undefined,
+  id: string,
+  attrsToUpdate: Record<string, any>,
+  preventAutosave = false
+): boolean {
+  if (!editor || editor.isDestroyed) return false;
+  const { tr } = editor.state;
+  let updated = false;
+
+  tr.doc.descendants((node: any, pos: number) => {
+    if (node.marks && node.marks.length > 0) {
+      node.marks.forEach((mark: any) => {
+        const markId =
+          mark.attrs?.id ||
+          mark.attrs?.["data-review-id"] ||
+          mark.attrs?.["data-revise-id"];
+        if (markId === id) {
+          const newAttrs = { ...mark.attrs, ...attrsToUpdate };
+          const newMark = mark.type.create(newAttrs);
+          tr.removeMark(pos, pos + node.nodeSize, mark);
+          tr.addMark(pos, pos + node.nodeSize, newMark);
+          updated = true;
+        }
+      });
+    }
+  });
+
+  if (updated) {
+    if (preventAutosave) {
+      tr.setMeta("preventAutosave", true);
+    }
+    editor.view.dispatch(tr);
+  }
+  return updated;
 }

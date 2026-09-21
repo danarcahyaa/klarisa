@@ -25,6 +25,7 @@ import { groqService } from "@/services/groq.service";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   type ClauseReviewItem,
+  type ClauseReviewStatus,
   type ReviewClauseResponse,
   type SaveClauseReviewsResponse,
   GROQ_CLAUSE_REVIEW_SCHEMA,
@@ -78,7 +79,13 @@ export class ClauseService {
         );
       }
 
-      const { contractId, clauseText, highlightId, currentReviews = [] } = validation.data;
+      const {
+        contractId,
+        clauseText,
+        highlightId,
+        currentReviews = [],
+        saveToDatabase,
+      } = validation.data;
 
       const hasAccess = await this.verifyDraftAccess(userId, contractId);
       if (!hasAccess) {
@@ -102,6 +109,8 @@ export class ClauseService {
             matchedRegulations = matchRes.data.chunks[0].matched_regulations;
           }
         }
+        console.log(`[ClauseService] Matched Regulation count ${matchedRegulations.length}`);
+        console.log("[ClauseService] RAG MATCHED REGULATIONS", matchedRegulations);
       } catch (err) {
         console.warn("[ClauseService] RAG retrieval encountered non-critical error:", err);
       }
@@ -119,15 +128,49 @@ export class ClauseService {
               .join("\n\n")
           : "Tidak ada pasal hukum spesifik yang ditemukan di database.";
 
-      const systemPrompt = `Anda adalah Asisten Analis Klausul Kontrak yang bertugas membantu orang awam memahami klausul kontrak secara cepat, objektif, dan jelas.
+      const systemPrompt = `Anda adalah Asisten Analis Klausul Kontrak yang bertugas membantu memahami klausul kontrak secara cepat, objektif, dan jelas.
 
 TUGAS ANDA:
-1. Penjelasan Klausul: Jelaskan maksud dan isi klausul secara singkat, padat, dan jelas dengan bahasa sehari-hari yang mudah dimengerti orang awam (maksimal 2 kalimat, tanpa istilah teknis hukum).
-2. Analisis Kondisi & Anomali: Jelaskan secara deskriptif dan normal (DILARANG menggunakan kata atau judul kaku seperti "Status Anomali"). Sampaikan secara mengalir apakah klausul tersebut wajar, sah secara hukum, berat sebelah/timpang, atau melanggar aturan.
-3. Deteksi Placeholder / Bagian Kosong: Jika di dalam klausul terdapat placeholder (seperti tanda kurung siku [...], [Nama], [Tanggal], [Nominal]), garis bawah (___), atau titik-titik, sampaikan dengan jelas bahwa bagian tersebut masih belum diisi atau masih kosong dan perlu dilengkapi.
-4. Ringkas & Padat: Masing-masing bagian berikan respon yang ringkas dan padat (maksimal 2 kalimat).
-5. DILARANG memberikan rekomendasi perbaikan kalimat atau saran klausul pengganti.
-6. Cantumkan ID pasal regulasi pada cited_article_ids jika terdapat pasal yang benar-benar relevan dari database, atau kosongkan jika tidak ada.`;
+Klasifikasikan teks klausul yang diberikan ke dalam SALAH SATU dari 5 status berikut dan berikan hasil review terstruktur:
+
+1. "AMBIGUOUS":
+   - Pilih status ini jika teks yang dipilih pengguna TIDAK JELAS, hanya sebagian kalimat tidak utuh, hanya serpihan huruf/kata yang terpotong, atau tidak memiliki makna yang lengkap.
+   - PENTING: Untuk status AMBIGUOUS, DILARANG menjelaskan teks/klausul yang dipilih pengguna! Set 'explanation' menjadi string kosong "".
+   - Pada 'analysis': Jelaskan secara singkat (1-2 kalimat) bahwa klausul atau teks yang dipilih masih ambigu, tidak lengkap, atau berupa potongan kata sehingga maknanya tidak dapat dianalisis.
+   - 'has_risk': WAJIB bernilai false.
+
+2. "VIOLATES_LAW":
+   - Pilih status ini jika klausul sudah jelas dan isinya secara substantif berpotensi melanggar hukum atau peraturan perundang-undangan di Indonesia.
+   - Pada 'explanation': Jelaskan isi dan maksud klausul secara singkat dan padat (1-2 kalimat).
+   - Pada 'analysis': Jelaskan secara singkat pasal mana yang dilanggar dan pada undang-undang mana (1-2 kalimat).
+   - 'has_risk': WAJIB bernilai true.
+   - Cantumkan ID pasal yang relevan dari referensi regulasi di 'cited_article_ids' jika tersedia.
+
+3. "UNFAIR_ONE_SIDED":
+   - Pilih status ini jika klausul tidak melanggar ketentuan perundang-undangan secara langsung, namun berpotensi berat sebelah, timpang, atau secara tidak adil merugikan salah satu pihak.
+   - Pada 'explanation': Jelaskan isi dan maksud klausul secara singkat dan padat (1-2 kalimat).
+   - Pada 'analysis': Jelaskan secara singkat mengapa klausul tersebut berpotensi berat sebelah dan pihak mana yang berpotensi dirugikan (1-2 kalimat).
+   - 'has_risk': WAJIB bernilai true.
+
+4. "INCOMPLETE":
+   - Pilih status ini HANYA jika di dalam teks klausul SECARA NYATA terdapat placeholder kosong atau bagian yang belum diisi, seperti tanda kurung siku [...], [Nama], [Tanggal], [Nominal], garis bawah kosong (___), atau titik-titik (...) yang belum dilengkapi.
+   - PENTING: DILARANG menganggap klausul tidak lengkap hanya karena tidak mencantumkan jadwal pembayaran, mekanisme teknis lanjutan, atau kalimat terbilang (misal kata 'Rupiah' setelah 'Rp'). Hal-hal tersebut lumrah diatur di pasal lain. Jika teks klausul sudah merupakan kalimat utuh tanpa tanda placeholder/kosong, JANGAN pilih INCOMPLETE!
+   - Pada 'explanation': Jelaskan isi dan maksud klausul secara singkat dan padat (1-2 kalimat).
+   - Pada 'analysis': Jelaskan secara singkat tanda placeholder/bagian kosong mana yang nyata tertulis dan belum diisi (1-2 kalimat).
+   - 'has_risk': WAJIB bernilai true.
+
+5. "SAFE":
+   - Pilih status ini jika klausul jelas, wajar/seimbang bagi para pihak, tidak melanggar hukum, dan tidak memiliki placeholder kosong.
+   - PENTING: Evaluasi HANYA apa yang tertulis dalam potongan klausul ini. Jangan mencari-cari kekurangan seperti jadwal pembayaran atau pasal pelengkap lain yang biasanya ada di pasal terpisah. Jika klausul menyatakan nilai pembayaran atau hak/kewajiban standar secara wajar, pilih SAFE!
+   - Pada 'explanation': Jelaskan isi dan maksud klausul secara singkat dan jelas (1-2 kalimat).
+   - Pada 'analysis': Cukup sampaikan bahwa klausul ini wajar, jelas, dan aman.
+   - 'has_risk': WAJIB bernilai false.
+
+ATURAN WAJIB BAHASA & EVALUASI:
+- Evaluasi klausul HANYA berdasarkan isi klausul itu sendiri, bukan menuntut seluruh kontrak berada dalam satu klausul.
+- DILARANG KERAS menggunakan kata-kata teknis atau istilah hukum rumit (seperti wanprestasi, force majeure, klausula eksonerasi, ganti rugi imateriel, yurisdiksi, dll) pada SEMUA tipe hasil review. Gunakan bahasa sehari-hari yang santai, lugas, dan mudah dipahami orang awam.
+- Pastikan klausul dijelaskan secara singkat terlebih dahulu pada 'explanation', KECUALI jika statusnya "AMBIGUOUS" ('explanation' harus string kosong "").
+- DILARANG memberikan saran revisi redaksional atau klausul alternatif.`;
 
       const userPrompt = `TINJAU KLAUSUL BERIKUT:
 """
@@ -138,9 +181,11 @@ REFERENSI REGULASI TERKAIT:
 ${regulationsContext}
 
 Berikan respons terstruktur sesuai skema JSON:
-- explanation: penjelasan klausul secara singkat, padat, dan jelas bagi orang awam.
-- anomaly_analysis: penjelasan deskriptif apakah klausul aman/sah, timpang sebelah, melanggar aturan, atau ada placeholder/bagian yang belum diisi/kosong (tanpa kata "Status Anomali").
-- cited_article_ids: daftar ID pasal regulasi yang relevan jika ada.`;
+- status: salah satu dari "AMBIGUOUS" | "VIOLATES_LAW" | "UNFAIR_ONE_SIDED" | "INCOMPLETE" | "SAFE"
+- explanation: penjelasan maksud klausul dengan bahasa awam yang mudah dipahami (WAJIB kosong jika AMBIGUOUS)
+- analysis: uraian hasil review tanpa istilah teknis (pasal & UU jika VIOLATES_LAW; kerugian sepihak jika UNFAIR_ONE_SIDED; bagian placeholder yang belum lengkap jika INCOMPLETE; keterangan ambigu jika AMBIGUOUS; pernyataan aman jika SAFE)
+- has_risk: boolean (false jika AMBIGUOUS atau SAFE; true jika VIOLATES_LAW, UNFAIR_ONE_SIDED, atau INCOMPLETE)
+- cited_article_ids: daftar ID regulasi yang dilanggar/dirujuk jika ada`;
 
       // Step 3: Execute Groq LLM call with retry
       const llmResponse = await groqService.generateCompletion(
@@ -160,8 +205,10 @@ Berikan respons terstruktur sesuai skema JSON:
         );
       }
 
+      let status: ClauseReviewStatus = "AMBIGUOUS";
       let explanationText = "";
-      let anomalyText = "";
+      let analysisText = "";
+      let hasRisk = false;
       let citedIds: string[] = [];
 
       try {
@@ -170,24 +217,45 @@ Berikan respons terstruktur sesuai skema JSON:
           .replace(/\s*```$/i, "")
           .trim();
         const parsed = JSON.parse(raw);
-        if (parsed.explanation) {
-          explanationText = parsed.explanation;
+
+        // Normalize status enum
+        if (
+          parsed.status === "AMBIGUOUS" ||
+          parsed.status === "VIOLATES_LAW" ||
+          parsed.status === "UNFAIR_ONE_SIDED" ||
+          parsed.status === "INCOMPLETE" ||
+          parsed.status === "SAFE"
+        ) {
+          status = parsed.status;
+        } else if (parsed.status === "AMBIGOUS") {
+          status = "AMBIGUOUS";
         }
-        if (parsed.anomaly_analysis) {
-          anomalyText = parsed.anomaly_analysis;
-        } else if (parsed.anomaly_status) {
-          anomalyText = parsed.anomaly_status;
-        } else if (parsed.legal_reasoning && !explanationText) {
-          explanationText = parsed.legal_reasoning;
+
+        if (parsed.explanation && status !== "AMBIGUOUS") {
+          explanationText = String(parsed.explanation).trim();
         }
+
+        if (parsed.analysis) {
+          analysisText = String(parsed.analysis).trim();
+        } else if (parsed.anomaly_analysis) {
+          analysisText = String(parsed.anomaly_analysis).trim();
+        }
+
+        // Automatic risk assignment: true for VIOLATES_LAW, UNFAIR_ONE_SIDED, and INCOMPLETE; false for AMBIGUOUS and SAFE
+        hasRisk =
+          status === "VIOLATES_LAW" ||
+          status === "UNFAIR_ONE_SIDED" ||
+          status === "INCOMPLETE";
+
         if (Array.isArray(parsed.cited_article_ids)) {
           citedIds = parsed.cited_article_ids;
         }
       } catch {
-        explanationText = llmResponse.data.text.trim();
+        analysisText = llmResponse.data.text.trim();
+        hasRisk = false;
       }
 
-      if (!explanationText && !anomalyText) {
+      if (!explanationText && !analysisText) {
         return createErrorResponse(
           "Hasil penjelasan klausul tidak valid atau kosong. Silakan coba lagi."
         );
@@ -201,23 +269,35 @@ Berikan respons terstruktur sesuai skema JSON:
 
       // Fallback matching: if cited IDs empty, check if article number is mentioned in text
       if (finalReferences.length === 0 && matchedRegulations.length > 0) {
-        const combinedLower = `${explanationText} ${anomalyText}`.toLowerCase();
+        const combinedLower = `${explanationText} ${analysisText}`.toLowerCase();
         finalReferences = matchedRegulations.filter((art) => {
           const num = art.article_number.toLowerCase().trim();
           return num && combinedLower.includes(num);
         });
       }
 
-      // If still empty but matchedRegulations exist, attach top 2 as context references
-      if (finalReferences.length === 0 && matchedRegulations.length > 0) {
+      // If still empty but matchedRegulations exist, attach top 2 as context references only for VIOLATES_LAW
+      if (status === "VIOLATES_LAW" && finalReferences.length === 0 && matchedRegulations.length > 0) {
         finalReferences = matchedRegulations.slice(0, 2);
       }
 
-      // Step 5: Format final result string (descriptive paragraphs without rigid labels)
-      const fullResultString =
-        explanationText && anomalyText
-          ? `${explanationText}\n\n${anomalyText}`
-          : explanationText || anomalyText;
+      // Step 5: Format final result string
+      // If SAFE: only the brief clause explanation without extra labels
+      // If AMBIGUOUS: only the brief ambiguity notice (no clause explanation prefix)
+      // Otherwise: brief clause explanation first, followed by the specific analysis
+      let fullResultString = "";
+      if (status === "SAFE") {
+        fullResultString = explanationText || analysisText || "Klausul ini wajar, seimbang, dan aman.";
+      } else if (status === "AMBIGUOUS") {
+        fullResultString =
+          analysisText ||
+          "Teks yang dipilih masih ambigu atau tidak lengkap sehingga tidak dapat dianalisis.";
+      } else {
+        fullResultString =
+          explanationText && analysisText
+            ? `${explanationText}\n\n${analysisText}`
+            : explanationText || analysisText;
+      }
 
       const now = new Date().toISOString();
       const reviewId = highlightId || `clause-${Date.now()}`;
@@ -227,6 +307,8 @@ Berikan respons terstruktur sesuai skema JSON:
         clauseText,
         result: fullResultString,
         references: finalReferences,
+        status,
+        hasRisk,
         createdAt: now,
         updatedAt: now,
       };
@@ -243,6 +325,8 @@ Berikan respons terstruktur sesuai skema JSON:
                 clauseText,
                 result: fullResultString,
                 references: finalReferences,
+                status,
+                hasRisk,
                 updatedAt: now,
               }
             : item
@@ -251,16 +335,27 @@ Berikan respons terstruktur sesuai skema JSON:
         updatedReviews = [...currentReviews, newReviewItem];
       }
 
-      // Step 7: Persist array to database
-      const saveResult = await this.draftRepo.updateReviewMetadata(contractId, updatedReviews);
-      if (saveResult.error) {
-        return createErrorResponse(mapSupabaseError(saveResult.error.message));
+      // Step 7: Persist array to database if saveToDatabase is true (or not specified)
+      if (saveToDatabase !== false) {
+        const saveResult = await this.draftRepo.updateReviewMetadata(contractId, updatedReviews);
+        if (saveResult.error) {
+          return createErrorResponse(mapSupabaseError(saveResult.error.message));
+        }
+
+        return createSuccessResponse(
+          {
+            review: newReviewItem,
+            reviews: updatedReviews,
+          },
+          "Klausul berhasil di-review."
+        );
       }
 
+      // If saveToDatabase is false, return new review item without persisting to database
       return createSuccessResponse(
         {
           review: newReviewItem,
-          reviews: updatedReviews,
+          reviews: currentReviews,
         },
         "Klausul berhasil di-review."
       );

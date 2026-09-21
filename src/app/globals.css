@@ -611,15 +611,36 @@ mark.active-highlight {
 
 /* Styling for reviewed clause highlights in contract draft editor */
 mark.review-clause-mark {
+  border-radius: 2px;
+  transition: all 0.15s ease-in-out;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+}
+
+/* Default / Non-Risky (Biru) */
+mark.review-clause-mark,
+mark.review-clause-mark[data-has-risk="false"],
+mark.review-clause-safe {
   background-color: rgba(59, 130, 246, 0.15) !important;
   border-bottom: 2px solid #3b82f6 !important;
   color: inherit !important;
-  border-radius: 2px;
-  cursor: text !important;
-  transition: background-color 0.15s ease-in-out;
 }
 
-mark.review-clause-mark:hover {
+mark.review-clause-mark:hover,
+mark.review-clause-mark[data-has-risk="false"]:hover,
+mark.review-clause-safe:hover {
   background-color: rgba(59, 130, 246, 0.25) !important;
-  cursor: text !important;
+}
+
+/* Risky Clause (Merah - seperti review contract) */
+mark.review-clause-mark[data-has-risk="true"],
+mark.review-clause-risk {
+  background-color: rgba(254, 226, 226, 0.85) !important;
+  border-bottom: 2px solid #ef4444 !important;
+  color: #7f1d1d !important;
+}
+
+mark.review-clause-mark[data-has-risk="true"]:hover,
+mark.review-clause-risk:hover {
+  background-color: rgba(254, 202, 202, 0.95) !important;
 }

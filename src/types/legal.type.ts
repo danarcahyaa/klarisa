@@ -32,6 +32,13 @@ export interface LegalArticle {
   content: string;
 }
 
-export type ComplianceStatus = "VIOLATES_LAW" | "UNFAIR_ONE_SIDED" | "COMPLIANT" | "INCOMPLETE";
+export type ComplianceStatus =
+  | "VIOLATES_LAW"
+  | "UNFAIR_ONE_SIDED"
+  | "COMPLIANT"
+  | "INCOMPLETE"
+  | "AMBIGUOUS"
+  | "SAFE";
+
 
 

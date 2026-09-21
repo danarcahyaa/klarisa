@@ -1,21 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Check, Copy, RotateCcw, Scale, Trash2 } from "lucide-react";
+import { Check, Copy, Scale, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ClauseReviewResult } from "@/types/clause.type";
+import { ReviewStatusBadge } from "./review-status-badge";
 
 export type { ClauseReviewResult };
 
 export interface ReviewResultStepProps {
   /** Structured AI analysis review result data */
   result: ClauseReviewResult;
-  /** Callback triggered when user clicks 'Review ulang' */
-  onReReview?: () => void;
   /** Callback triggered when user clicks 'Hapus review' */
   onDeleteReview?: () => void;
+  /** Whether to display the action footer */
+  showFooter?: boolean;
   /** Optional custom CSS classes for the container */
   className?: string;
 }
@@ -27,8 +28,8 @@ export interface ReviewResultStepProps {
  */
 export function ReviewResultStep({
   result,
-  onReReview,
   onDeleteReview,
+  showFooter = true,
   className,
 }: ReviewResultStepProps) {
   const [isCopied, setIsCopied] = useState(false);
@@ -82,9 +83,12 @@ export function ReviewResultStep({
         {/* Findings & Legal Reasoning */}
         <div className="group relative space-y-1.5">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-medium text-klarisa-navy">
-              Hasil Review
-            </h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-medium text-klarisa-navy dark:text-slate-200">
+                Hasil Review
+              </h4>
+              <ReviewStatusBadge status={result.status} hasRisk={result.hasRisk} />
+            </div>
             <button
               type="button"
               onClick={handleCopyReview}
@@ -170,27 +174,20 @@ export function ReviewResultStep({
         )}
       </div>
 
-      {/* Sticky Action Footer: Review ulang & Hapus review */}
-      <div className="sticky bottom-0 z-10 shrink-0 bg-white dark:bg-slate-900 flex items-center justify-end gap-2 px-4 py-2.5 border-t border-slate-100 dark:border-slate-800">
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onDeleteReview}
-        >
-          <Trash2 className="size-3" />
-          <span>Hapus</span>
-        </Button>
-
-        <Button
-          type="button"
-          size="xs"
-          onClick={onReReview}
-        >
-          <RotateCcw className="size-3" />
-          <span>Review ulang</span>
-        </Button>
-      </div>
+      {/* Sticky Action Footer: Hapus review (only when saved) */}
+      {showFooter && (
+        <div className="sticky bottom-0 z-10 shrink-0 bg-white dark:bg-slate-900 flex items-center justify-end gap-2 px-4 py-2.5 border-t border-slate-100 dark:border-slate-800">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={onDeleteReview}
+          >
+            <Trash2 className="size-3" />
+            <span>Hapus</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

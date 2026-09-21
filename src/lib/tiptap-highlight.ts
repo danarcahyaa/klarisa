@@ -1,4 +1,5 @@
 import { Highlight } from "@tiptap/extension-highlight";
+import { TextSelection } from "@tiptap/pm/state";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -43,6 +44,14 @@ export const StandardHighlight = Highlight.extend({
             ? { "data-revise-id": attributes["data-revise-id"] }
             : {},
       },
+      "data-has-risk": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-has-risk"),
+        renderHTML: (attributes) =>
+          attributes["data-has-risk"] !== null && attributes["data-has-risk"] !== undefined
+            ? { "data-has-risk": String(attributes["data-has-risk"]) }
+            : {},
+      },
       class: {
         default: "review-clause-mark",
         parseHTML: (element) => element.getAttribute("class"),
@@ -84,9 +93,7 @@ export const StandardHighlight = Highlight.extend({
               // Collapse selection so floating tooltip ("Tanya" button) is immediately dismissed
               try {
                 const endPos = tr.selection.to;
-                tr.setSelection(
-                  (editor.state.selection.constructor as any).near(tr.doc.resolve(endPos))
-                );
+                tr.setSelection(TextSelection.near(tr.doc.resolve(endPos)));
               } catch {
                 // Fallback ignored
               }
@@ -94,6 +101,7 @@ export const StandardHighlight = Highlight.extend({
                 tr.setMeta("preventAutosave", true);
               }
             }
+            dispatch(tr);
           }
           return true;
         },

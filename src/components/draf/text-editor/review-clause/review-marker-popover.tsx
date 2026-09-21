@@ -22,6 +22,8 @@ import type {
 export { ReviewPrepareStep } from "./review-prepare-step";
 export { ReviewProcessingStep } from "./review-processing-step";
 export { ReviewResultStep } from "./review-result-step";
+export { ReviewStatusBadge, type ReviewStatusBadgeProps } from "./review-status-badge";
+export { StartReviewPopover, type StartReviewPopoverProps } from "./start-review-popover";
 export type {
   ReviewProcessStep,
   ReviewProcessingPhase,
@@ -34,10 +36,10 @@ export type {
  * Progression:
  * 1. Preparing State: Centered loading spinner.
  * 2. Processing State: Sequential progress indicators with spinners and checkmarks.
- * 3. Completed State: Structured AI review results with action buttons (Review ulang, Hapus review).
+ * 3. Completed State: Structured AI review results with action button (Hapus review).
  */
 export function ReviewMarkerPopover(props: ReviewMarkerPopoverProps) {
-  const { children } = props;
+  const { children, side = "top", align = "center" } = props;
   const {
     isOpen,
     currentStep,
@@ -45,9 +47,9 @@ export function ReviewMarkerPopover(props: ReviewMarkerPopoverProps) {
     activeBoundary,
     currentResult,
     activeText,
+    showFooter,
     handleClose,
     handleOpenChange,
-    handleReReview,
     handleDeleteReview,
   } = useReviewMarker(props);
 
@@ -56,12 +58,13 @@ export function ReviewMarkerPopover(props: ReviewMarkerPopoverProps) {
       {children && <PopoverTrigger asChild>{children}</PopoverTrigger>}
 
       <PopoverContent
-        align="center"
-        side="top"
+        align={align}
+        side={side}
         sideOffset={10}
         avoidCollisions={true}
         collisionBoundary={activeBoundary}
         collisionPadding={16}
+        sticky="always"
         onPointerDown={(e) => {
           // Prevent click/pointer events from bubbling to editor canvas
           e.stopPropagation();
@@ -134,7 +137,7 @@ export function ReviewMarkerPopover(props: ReviewMarkerPopoverProps) {
         {currentStep === "completed" && currentResult && (
           <ReviewResultStep
             result={currentResult}
-            onReReview={handleReReview}
+            showFooter={showFooter}
             onDeleteReview={handleDeleteReview}
           />
         )}

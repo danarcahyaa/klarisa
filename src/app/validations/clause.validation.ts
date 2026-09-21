@@ -8,6 +8,7 @@ export const reviewClauseSchema = z.object({
   clauseText: z.string().min(3, "Teks klausul minimal terdiri dari 3 karakter."),
   highlightId: z.string().optional(),
   currentReviews: z.array(z.any()).optional(),
+  saveToDatabase: z.boolean().optional(),
 });
 
 export type ReviewClauseInput = z.infer<typeof reviewClauseSchema>;
