@@ -109,8 +109,6 @@ export class ClauseService {
             matchedRegulations = matchRes.data.chunks[0].matched_regulations;
           }
         }
-        console.log(`[ClauseService] Matched Regulation count ${matchedRegulations.length}`);
-        console.log("[ClauseService] RAG MATCHED REGULATIONS", matchedRegulations);
       } catch (err) {
         console.warn("[ClauseService] RAG retrieval encountered non-critical error:", err);
       }
