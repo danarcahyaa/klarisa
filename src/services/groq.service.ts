@@ -38,7 +38,7 @@ export class GroqService {
     try {
       const groq = this.getGroqClient();
       const modelName = GROQ_QWEN_MODEL;
-      const { systemInstruction, jsonMode = false, responseSchema, temperature = 0.1 } = options;
+      const { systemInstruction, jsonMode = false, responseSchema, temperature = 0.1, maxTokens } = options;
 
       let effectiveSystemInstruction = systemInstruction ?? "";
 
@@ -81,6 +81,7 @@ export class GroqService {
             ...(responseFormat ? { response_format: responseFormat as any } : {}),
             stream: false,
             reasoning_effort: "none",
+            max_completion_tokens: maxTokens || 4096,
           });
 
           const choice = response.choices?.[0];
@@ -126,16 +127,24 @@ export class GroqService {
       throw lastError;
     } catch (error) {
       const rawErrorMsg = error instanceof Error ? error.message : String(error);
-      let userFriendlyMessage = "Gagal memproses permintaan LLM dengan provider groq.";
+      let userFriendlyMessage = "Gagal memproses permintaan dengan server AI.";
 
       if (rawErrorMsg.includes("503") || rawErrorMsg.includes("high demand") || rawErrorMsg.includes("UNAVAILABLE")) {
-        userFriendlyMessage = "Layanan server AI (Groq / Qwen) sedang mengalami beban lonjakan tinggi sementara. Silakan coba beberapa saat lagi.";
+        userFriendlyMessage = "Layanan server AI sedang mengalami beban lonjakan tinggi sementara. Silakan coba beberapa saat lagi.";
       } else if (rawErrorMsg.includes("429") || rawErrorMsg.includes("RESOURCE_EXHAUSTED") || rawErrorMsg.includes("rate_limit")) {
         userFriendlyMessage = "Batas penggunaan API (rate limit) telah tercapai. Silakan tunggu sejenak dan coba kembali.";
       } else if (rawErrorMsg.includes("API key") || rawErrorMsg.includes("GROQ_API_KEY")) {
         userFriendlyMessage = "Konfigurasi kunci API (API Key) AI belum sesuai. Harap periksa pengaturan lingkungan.";
+      } else if (
+        rawErrorMsg.includes("max completion tokens") ||
+        rawErrorMsg.includes("json_validate_failed") ||
+        rawErrorMsg.includes("Failed to generate JSON")
+      ) {
+        userFriendlyMessage = "Teks klausul atau instruksi terlalu panjang untuk diproses dalam satu sesi. Silakan coba pilih bagian klausul yang lebih spesifik.";
+      } else if (rawErrorMsg.includes("400") || rawErrorMsg.includes("invalid_request_error")) {
+        userFriendlyMessage = "Permintaan perbaikan tidak dapat diproses. Silakan periksa kembali teks klausul atau instruksi Anda.";
       } else if (rawErrorMsg) {
-        userFriendlyMessage = rawErrorMsg;
+        userFriendlyMessage = "Terjadi kesalahan saat memproses perbaikan klausul dengan AI. Silakan coba lagi.";
       }
 
       console.error("[GroqService] Generation failed for provider groq:", error);

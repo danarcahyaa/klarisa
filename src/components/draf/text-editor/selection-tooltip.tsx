@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { CircleDotDashed, FileSearch } from "lucide-react";
 import { ReviewMarkerPopover } from "./review-clause/review-marker-popover";
 import { StartReviewPopover } from "./review-clause/start-review-popover";
+import { ReviseMarkerPopover } from "./revise-clause/revise-marker-popover";
 import {
   useSelectionTooltip,
   type UseSelectionTooltipOptions,
 } from "@/hooks/useSelectionTooltip";
+import {
+  getHtmlForRange,
+  getSelectionPopoverPlacement,
+  hasReviseMarkInRange,
+} from "@/lib/tip-tap.utils";
 
 export type AskSelectionTooltipProps = UseSelectionTooltipOptions;
 
@@ -18,12 +24,13 @@ export type AskSelectionTooltipProps = UseSelectionTooltipOptions;
  * Provides quick actions: Review / Lihat Review, Revise Clause, and Ask AI.
  */
 export function SelectionTooltip(props: AskSelectionTooltipProps) {
-  const { editor } = props;
+  const { editor, onReviseClause, isRevisingClause } = props;
 
   const {
     isReviewOpen,
     isForceHidden,
     canvasBoundary,
+    activeHighlightId,
     activeReviewResult,
     reviewStep,
     selectedTextString,
@@ -40,66 +47,87 @@ export function SelectionTooltip(props: AskSelectionTooltipProps) {
   } = useSelectionTooltip(props);
 
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [isReviseOpen, setIsReviseOpen] = useState(false);
 
-  // Automatically dismiss options popover whenever the review popover is open or for existing reviews
+  // Automatically dismiss popovers whenever the review popover is open or for existing reviews
   useEffect(() => {
     if (isReviewOpen || isExistingReview) {
       setIsOptionsOpen(false);
+      setIsReviseOpen(false);
     }
   }, [isReviewOpen, isExistingReview]);
 
+  const handleOptionsOpenChange = useCallback((open: boolean) => {
+    setIsOptionsOpen(open);
+    if (open) {
+      setIsReviseOpen(false);
+    }
+  }, []);
+
+  const frozenReviseTextRef = useRef<string>("");
+  const frozenReviseHtmlRef = useRef<string>("");
+  const frozenReviseRangeRef = useRef<{ from: number; to: number }>({ from: 0, to: 0 });
+
+  const handleReviseOpenChange = useCallback(
+    (open: boolean) => {
+      setIsReviseOpen(open);
+      if (open) {
+        setIsOptionsOpen(false);
+        if (editor) {
+          const { from, to } = editor.state.selection;
+          const text =
+            selectedTextString ||
+            editor.state.doc.textBetween(from, to, " ").trim();
+          const html = getHtmlForRange(editor, from, to);
+          frozenReviseTextRef.current = text;
+          frozenReviseHtmlRef.current = html || text;
+          frozenReviseRangeRef.current = { from, to };
+        }
+      }
+    },
+    [editor, selectedTextString]
+  );
+
+  const handleStartRevise = useCallback(
+    (instruction?: string) => {
+      if (!editor) return;
+      setIsReviseOpen(false);
+      setIsOptionsOpen(false);
+
+      const targetRange = frozenReviseRangeRef.current;
+      const from = targetRange.from !== targetRange.to ? targetRange.from : editor.state.selection.from;
+      const to = targetRange.from !== targetRange.to ? targetRange.to : editor.state.selection.to;
+
+      const selectedHtml =
+        frozenReviseHtmlRef.current ||
+        getHtmlForRange(editor, from, to) ||
+        frozenReviseTextRef.current ||
+        editor.state.doc.textBetween(from, to, " ").trim();
+
+      if (selectedHtml) {
+        // Provide saved review result as context if available
+        const reviewContext = activeReviewResult?.result || undefined;
+        onReviseClause?.(
+          selectedHtml,
+          instruction,
+          activeHighlightId || undefined,
+          reviewContext,
+          from !== to ? { from, to } : undefined
+        );
+      }
+    },
+    [editor, onReviseClause, activeHighlightId, activeReviewResult]
+  );
+
   const handleDeleteReviewWithCleanup = useCallback(() => {
     setIsOptionsOpen(false);
+    setIsReviseOpen(false);
     handleDeleteReview();
   }, [handleDeleteReview]);
 
-  // Dynamically calculate preferred side and alignment based on selection position within the canvas
-  // to avoid collision detection flips and initial placement flashes
-  const getPlacement = useCallback((): {
-    side: "top" | "bottom";
-    align: "start" | "center" | "end";
-  } => {
-    if (!editor || editor.isDestroyed) {
-      return { side: "top", align: "center" };
-    }
-    try {
-      const { from, to } = editor.state.selection;
-      if (from === to) return { side: "top", align: "center" };
-      const coords = editor.view.coordsAtPos(from);
-      const canvasEl =
-        canvasBoundary ||
-        (editor.view.dom.closest("[data-editor-canvas]") as Element | null) ||
-        editor.view.dom;
-      const canvasRect = canvasEl?.getBoundingClientRect();
+  const placement = getSelectionPopoverPlacement(editor, canvasBoundary);
 
-      let side: "top" | "bottom" = "top";
-      let align: "start" | "center" | "end" = "center";
-
-      if (canvasRect && coords) {
-        const spaceAbove = coords.top - canvasRect.top;
-        // If space above is less than 280px (approx popover min-height + offset), place on bottom
-        if (spaceAbove < 280) {
-          side = "bottom";
-        }
-
-        const spaceLeft = coords.left - canvasRect.left;
-        const spaceRight = canvasRect.right - coords.right;
-        if (spaceLeft < 200) {
-          align = "start";
-        } else if (spaceRight < 200) {
-          align = "end";
-        }
-      }
-
-      return { side, align };
-    } catch {
-      return { side: "top", align: "center" };
-    }
-  }, [editor, canvasBoundary]);
-
-  const placement = getPlacement();
-
-  if (!editor || isForceHidden) return null;
+  if (!editor || isForceHidden || isRevisingClause) return null;
 
   return (
     <BubbleMenu
@@ -110,19 +138,26 @@ export function SelectionTooltip(props: AskSelectionTooltipProps) {
         offset: 8,
       }}
       shouldShow={({ editor: currentEditor, state, from, to }) => {
-        if (isForceHidden) {
+        if (isForceHidden || isRevisingClause) {
           return false;
         }
-        if (isReviewOpen || isOptionsOpen) {
+        if (isReviewOpen || isOptionsOpen || isReviseOpen) {
           return true;
         }
         if (!currentEditor.isEditable || state.selection.empty || from === to) {
           return false;
         }
+
+        // Do not show selection tooltip if selection contains or touches a struck-through / revise clause
+        if (hasReviseMarkInRange(currentEditor, from, to)) {
+          return false;
+        }
+
         const text = state.doc.textBetween(from, to, " ").trim();
         return text.length > 0;
       }}
     >
+
       {isForceHidden ? null : (
         <div
           className="not-prose z-[60] animate-in fade-in zoom-in-95 duration-150 w-fit"
@@ -168,7 +203,7 @@ export function SelectionTooltip(props: AskSelectionTooltipProps) {
           ) : (
             <StartReviewPopover
               open={isOptionsOpen}
-              onOpenChange={setIsOptionsOpen}
+              onOpenChange={handleOptionsOpenChange}
               side={placement.side}
               align={placement.align}
               collisionBoundary={canvasBoundary}
@@ -182,17 +217,26 @@ export function SelectionTooltip(props: AskSelectionTooltipProps) {
           <div className="h-3.5 w-px bg-slate-200 shrink-0" aria-hidden="true" />
 
           {/* 2. Revise Clause */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-            }}
-            onClick={handleReviseClauseClick}
-            className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-200/60 transition-colors cursor-pointer select-none leading-normal whitespace-nowrap"
+          <ReviseMarkerPopover
+            open={isReviseOpen}
+            onOpenChange={handleReviseOpenChange}
+            side={placement.side}
+            align={placement.align}
+            collisionBoundary={canvasBoundary}
+            selectedText={selectedTextString || frozenReviseTextRef.current}
+            onStartRevise={handleStartRevise}
           >
-            <CircleDotDashed className="size-3.5 text-slate-500 shrink-0" />
-            <span>Perbaiki Klausul</span>
-          </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-200/60 transition-colors cursor-pointer select-none leading-normal whitespace-nowrap"
+            >
+              <CircleDotDashed className="size-3.5 text-slate-500 shrink-0" />
+              <span>Perbaiki Klausul</span>
+            </button>
+          </ReviseMarkerPopover>
 
           {/* Divider */}
           <div className="h-3.5 w-px bg-slate-200 shrink-0" aria-hidden="true" />

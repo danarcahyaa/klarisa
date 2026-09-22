@@ -644,3 +644,161 @@ mark.review-clause-mark[data-has-risk="true"]:hover,
 mark.review-clause-risk:hover {
   background-color: rgba(254, 202, 202, 0.95) !important;
 }
+
+/* Premium text shine animation for clause revision in progress */
+@keyframes shine {
+  0% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shine-text,
+.light .shine-text,
+.shimmer,
+mark.shimmer,
+mark.shine-text {
+  display: inline !important;
+  background-image: linear-gradient(
+    90deg,
+    #64748b 0%,
+    #64748b 25%,
+    #cbd5e1 50%,
+    #64748b 75%,
+    #64748b 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  background-repeat: repeat !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  background-color: transparent !important;
+  animation: shine 1.5s linear infinite !important;
+  will-change: background-position !important;
+  border-bottom: none !important;
+  border-radius: 2px;
+  pointer-events: none !important;
+  user-select: none !important;
+  cursor: not-allowed !important;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+}
+
+.dark .shine-text,
+.dark .shimmer,
+.dark mark.shimmer,
+.dark mark.shine-text {
+  background-image: linear-gradient(
+    90deg,
+    #94a3b8 0%,
+    #94a3b8 25%,
+    #f8fafc 50%,
+    #94a3b8 75%,
+    #94a3b8 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  background-repeat: repeat !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Strikethrough style for original clause without underline - locked from user editing */
+mark.revise-clause-strikethrough {
+  background-color: rgba(254, 226, 226, 0.85) !important;
+  color: #991b1b !important;
+  text-decoration: line-through !important;
+  text-decoration-line: line-through !important;
+  border-bottom: none !important;
+  border-radius: 2px;
+  transition: all 0.15s ease-in-out;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  cursor: not-allowed !important;
+}
+
+
+/* Inline revision suggestion (teks biasa warna hijau muda tepat di samping teks yang dicoret) */
+.revise-inline-wrapper {
+  display: inline !important;
+  vertical-align: baseline !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+.revise-inline-suggestion {
+  display: inline !important;
+  background-color: rgba(209, 250, 229, 0.50) !important;
+  color: var(--klarisa-navy) !important;
+  border-radius: 2px !important;
+  padding: 1px 4px !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
+  user-select: text !important;
+}
+
+.revise-inline-suggestion p {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Shadcn-style Button Group for Accept & Reject actions */
+.revise-inline-btn-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  margin-left: 6px !important;
+  margin-right: 2px !important;
+  background-color: #0f172a !important; /* Neutral dark theme matching shadcn button group */
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15) !important;
+  height: 22px !important;
+  user-select: none !important;
+  line-height: 1 !important;
+}
+
+.revise-inline-group-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  padding: 0 6px !important;
+  background-color: transparent !important;
+  color: #f1f5f9 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s ease, color 0.12s ease !important;
+  outline: none !important;
+}
+
+.revise-inline-group-btn:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+.revise-inline-group-btn:active {
+  background-color: #334155 !important;
+}
+
+.revise-inline-group-divider {
+  width: 1px !important;
+  height: 14px !important;
+  background-color: #334155 !important;
+}
+
+

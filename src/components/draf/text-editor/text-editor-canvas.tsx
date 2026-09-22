@@ -3,10 +3,13 @@ import { EditorContent, EditorContext } from "@tiptap/react";
 import { AgentPanel } from "../agent/agent-panel";
 import { useDraftEditor } from "@/hooks/useDraftEditor";
 import { useClause } from "@/hooks/useClause";
+import { useReviseClause } from "@/hooks/useReviseClause";
 import { useSelectionTextDraft } from "@/hooks/useSelectionTextDraft";
 import { SelectionTooltip } from "./selection-tooltip";
 import type { ClauseReviewItem } from "@/types/clause.type";
 import { Skeleton } from "@/components/ui/skeleton";
+
+
 
 interface TextEditorCanvasProps {
   contractId?: string;
@@ -39,6 +42,14 @@ export function TextEditorCanvas({
     initialReviews,
     editor,
   });
+
+  const {
+    isRevising: isRevisingClause,
+    activeRevision,
+    handleStartRevise,
+    handleAcceptRevision,
+    handleRejectRevision,
+  } = useReviseClause({ editor });
 
   const {
     selectedTextForAsk,
@@ -88,7 +99,9 @@ export function TextEditorCanvas({
                     onAsk={handleSelectTextForAsk}
                     reviews={reviews}
                     isReviewing={isReviewing}
+                    isRevisingClause={isRevisingClause}
                     onReviewClause={handleReviewClause}
+                    onReviseClause={handleStartRevise}
                     onDeleteReview={handleDeleteReview}
                     getReviewById={getReviewById}
                   />
@@ -101,6 +114,8 @@ export function TextEditorCanvas({
               )}
             </div>
           </div>
+
+
 
           {/* AI Agent Sidebar on the right */}
           <AgentPanel

@@ -14,6 +14,7 @@ import {
   removeHighlightMark,
   updateHighlightMarkAttrs,
   generateHighlightId,
+  hasReviseMarkInRange,
 } from "@/lib/tip-tap.utils";
 
 export type { UseSelectionTooltipOptions, UseSelectionTooltipReturn };
@@ -113,7 +114,11 @@ export function useSelectionTooltip({
 
       const { from, to } = editor.state.selection;
       if (from !== to) {
-        setIsForceHidden(false);
+        if (hasReviseMarkInRange(editor, from, to)) {
+          setIsForceHidden(true);
+        } else {
+          setIsForceHidden(false);
+        }
       }
       setSelectionRange((prev) => {
         if (prev.from === from && prev.to === to) return prev;
