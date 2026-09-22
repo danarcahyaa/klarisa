@@ -10,6 +10,7 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import { TableKit } from "@tiptap/extension-table";
 import { StandardHighlight } from "@/lib/tiptap-highlight";
+import { ReviseSuggestionExtension } from "@/lib/tiptap-revise-suggestion";
 import { getDraftDetailAction } from "@/app/actions/draft-editor.action";
 import type { ContractDetail } from "@/types/contract.type";
 
@@ -26,7 +27,7 @@ export interface UseDraftEditorReturn {
 
 /**
  * Custom hook to initialize and configure the Tiptap editor for contract drafts:
- * - Configures core extensions (StarterKit, Heading, Lists, Tables, Alignments, StandardHighlight).
+ * - Configures core extensions (StarterKit, Heading, Lists, Tables, Alignments, StandardHighlight, ReviseSuggestionExtension).
  * - Manages content synchronization and autosave event dispatching.
  * - Provides draft detail fetching helper.
  */
@@ -41,7 +42,9 @@ export function useDraftEditor({
     extensions: [
       StarterKit,
       StandardHighlight,
+      ReviseSuggestionExtension,
       TableKit,
+
       TextStyleKit,
       Heading.configure({
         levels: [1, 2, 3, 4, 5, 6],

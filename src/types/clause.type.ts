@@ -213,11 +213,21 @@ export interface UseSelectionTooltipOptions {
   /** Optional callback triggered when user clicks 'Review' */
   onReview?: (selectedText: string, highlightId?: string) => void;
   /** Optional callback triggered when user clicks 'Revise Clause' */
-  onReviseClause?: (selectedText: string, highlightId?: string) => void;
+  onReviseClause?: (
+    selectedText: string,
+    instruction?: string,
+    citationId?: string,
+    reviewContext?: string,
+    selectionRange?: { from: number; to: number }
+  ) => void;
+
   /** Active reviews list from useClause */
   reviews?: ClauseReviewItem[];
   /** Loading state for AI review */
   isReviewing?: boolean;
+  /** Loading state for AI clause revision */
+  isRevisingClause?: boolean;
+
   /** Callback to trigger AI review for a clause */
   onReviewClause?: (
     clauseText: string,
@@ -334,3 +344,26 @@ export interface ReviewMarkerPopoverProps extends UseReviewMarkerOptions {
   /** Optional trigger element (e.g. 'Review Klausul' button) */
   children?: React.ReactNode;
 }
+
+/**
+ * Props for ReviseMarkerPopover component.
+ */
+export interface ReviseMarkerPopoverProps {
+  /** Controls open state of the popover */
+  open?: boolean;
+  /** Callback triggered when open state changes */
+  onOpenChange?: (open: boolean) => void;
+  /** Preferred placement side */
+  side?: "top" | "bottom";
+  /** Preferred alignment */
+  align?: "start" | "center" | "end";
+  /** Boundary element to constrain popover within */
+  collisionBoundary?: Element | null | Array<Element | null>;
+  /** Callback triggered when user clicks 'Mulai' */
+  onStartRevise?: (instruction?: string) => void;
+  /** Optional placeholder text for the instruction input */
+  placeholder?: string;
+  /** Optional custom trigger element */
+  children?: React.ReactNode;
+}
+

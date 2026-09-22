@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/react";
+import { DOMSerializer } from "@tiptap/pm/model";
 
 /**
  * Standard data ID attribute names for clause selection highlights.
@@ -356,3 +357,157 @@ export function updateHighlightMarkAttrs(
   }
   return updated;
 }
+
+/**
+ * Checks whether a given document range [from, to] contains or touches an active revise mark
+ * (e.g. struck-through clause, shimmer animation, or shine-text).
+ *
+ * @param editor The TipTap editor instance.
+ * @param from Starting document position (optional, defaults to current selection.from).
+ * @param to Ending document position (optional, defaults to current selection.to).
+ * @returns boolean True if range touches an active revise/strikethrough mark.
+ */
+export function hasReviseMarkInRange(
+  editor: Editor | null | undefined,
+  from?: number,
+  to?: number
+): boolean {
+  if (!editor || editor.isDestroyed) return false;
+
+  const start = from !== undefined ? from : editor.state.selection.from;
+  const end = to !== undefined ? to : editor.state.selection.to;
+  if (start === end) return false;
+
+  let hasRevise = false;
+  editor.state.doc.nodesBetween(start, end, (node: any) => {
+    if (node.isText && node.marks) {
+      for (const mark of node.marks) {
+        if (
+          mark.attrs?.["data-revise-id"] ||
+          mark.attrs?.class?.includes("revise-clause-strikethrough") ||
+          mark.attrs?.class?.includes("shimmer") ||
+          mark.attrs?.class?.includes("shine-text")
+        ) {
+          hasRevise = true;
+          return false;
+        }
+      }
+    }
+  });
+
+  return hasRevise;
+}
+
+/**
+ * Serializes a document range [from, to] into clean semantic HTML supported by TipTap.
+ * Strips internal highlight/revise mark elements while preserving formatting marks (e.g. strong, em, u, s).
+ * Ensures block-level enclosure (e.g. <p>...</p>) if not already wrapped in a block node.
+ *
+ * @param editor The TipTap editor instance.
+ * @param from Starting position in document.
+ * @param to Ending position in document.
+ * @returns Clean HTML string representing the selected range.
+ */
+export function getHtmlForRange(
+  editor: Editor | null | undefined,
+  from: number,
+  to: number
+): string {
+  if (!editor || editor.isDestroyed || from >= to) return "";
+
+  try {
+    const slice = editor.state.doc.slice(from, to);
+    const serializer = DOMSerializer.fromSchema(editor.schema);
+    const fragment = serializer.serializeFragment(slice.content);
+
+    if (typeof document === "undefined") {
+      return editor.state.doc.textBetween(from, to, " ").trim();
+    }
+
+    const tempDiv = document.createElement("div");
+    tempDiv.appendChild(fragment);
+
+    // Strip internal highlight / revise mark elements while keeping their inner text/elements
+    const internalMarks = tempDiv.querySelectorAll("mark");
+    internalMarks.forEach((mark) => {
+      mark.replaceWith(...Array.from(mark.childNodes));
+    });
+
+    let html = tempDiv.innerHTML.trim();
+
+    // If html is not wrapped in a block tag (p, h1-h6, ul, ol, li, blockquote), wrap in <p>
+    const isBlockWrapped = /^\s*<(p|h[1-6]|ul|ol|li|blockquote)[\s>]/i.test(html);
+    if (html && !isBlockWrapped) {
+      html = `<p>${html}</p>`;
+    }
+
+    return html;
+  } catch (err) {
+    console.error("[getHtmlForRange] Failed to serialize range to HTML:", err);
+    const text = editor.state.doc.textBetween(from, to, " ").trim();
+    return text ? `<p>${text}</p>` : "";
+  }
+}
+
+export interface PopoverPlacement {
+  side: "top" | "bottom";
+  align: "start" | "center" | "end";
+}
+
+/**
+ * Dynamically calculates preferred side and alignment for floating popovers
+ * based on editor selection coordinates relative to a canvas boundary element.
+ * Helps avoid collision detection flips and initial placement flicker.
+ *
+ * @param editor The TipTap editor instance.
+ * @param canvasBoundary Optional boundary container element.
+ * @param minSpaceAbove Minimum space in pixels required above selection (default: 280).
+ * @param minSpaceHorizontal Minimum space in pixels required horizontally (default: 200).
+ * @returns Object with preferred side ("top" | "bottom") and align ("start" | "center" | "end").
+ */
+export function getSelectionPopoverPlacement(
+  editor: Editor | null | undefined,
+  canvasBoundary?: Element | null,
+  minSpaceAbove = 280,
+  minSpaceHorizontal = 200
+): PopoverPlacement {
+  if (!editor || editor.isDestroyed) {
+    return { side: "top", align: "center" };
+  }
+
+  try {
+    const { from, to } = editor.state.selection;
+    if (from === to) return { side: "top", align: "center" };
+
+    const coords = editor.view.coordsAtPos(from);
+    const canvasEl =
+      canvasBoundary ||
+      (editor.view.dom.closest("[data-editor-canvas]") as Element | null) ||
+      editor.view.dom;
+    const canvasRect = canvasEl?.getBoundingClientRect();
+
+    let side: "top" | "bottom" = "top";
+    let align: "start" | "center" | "end" = "center";
+
+    if (canvasRect && coords) {
+      const spaceAbove = coords.top - canvasRect.top;
+      // If space above is less than minSpaceAbove, place on bottom
+      if (spaceAbove < minSpaceAbove) {
+        side = "bottom";
+      }
+
+      const spaceLeft = coords.left - canvasRect.left;
+      const spaceRight = canvasRect.right - coords.right;
+      if (spaceLeft < minSpaceHorizontal) {
+        align = "start";
+      } else if (spaceRight < minSpaceHorizontal) {
+        align = "end";
+      }
+    }
+
+    return { side, align };
+  } catch {
+    return { side: "top", align: "center" };
+  }
+}
+

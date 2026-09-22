@@ -2,7 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.type";
-import type { BaseResponse } from "@/types/response.type";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -40,14 +39,12 @@ export class ClauseService {
   constructor(
     private readonly draftRepo: DraftRepository = new DraftRepository(createAdminClient()),
     private readonly embeddingService: EmbeddingService = new EmbeddingService(createAdminClient()),
-    private readonly supabase: SupabaseClient<Database> = createAdminClient()
   ) {}
 
   withClient(client: SupabaseClient<Database>) {
     return new ClauseService(
       createDraftRepository(client),
       new EmbeddingService(client),
-      client
     );
   }
 

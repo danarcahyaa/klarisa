@@ -29,6 +29,7 @@ import {
   FloatingDelayGroup,
 } from "@floating-ui/react"
 import "@/components/tiptap-ui-primitive/tooltip/tooltip.scss"
+import { cn } from "@/lib/utils"
 
 interface TooltipProviderProps {
   children: React.ReactNode
@@ -89,13 +90,13 @@ function useTooltip({
     onOpenChange: setOpen,
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(4),
+      offset(6),
       flip({
         crossAxis: placement.includes("-"),
         fallbackAxisSideDirection: "start",
-        padding: 4,
+        padding: 8,
       }),
-      shift({ padding: 4 }),
+      shift({ padding: 8 }),
     ],
   })
 
@@ -206,7 +207,7 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
 
 export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
   function TooltipContent(
-    { style, children, portal = true, portalProps = {}, ...props },
+    { style, children, portal = true, portalProps = {}, className, ...props },
     propRef
   ) {
     const context = useTooltipContext()
@@ -219,10 +220,11 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
         ref={ref}
         style={{
           ...context.floatingStyles,
+          zIndex: 9999,
           ...style,
         }}
         {...context.getFloatingProps(props)}
-        className="tiptap-tooltip"
+        className={cn("tiptap-tooltip", className)}
       >
         {children}
       </div>
