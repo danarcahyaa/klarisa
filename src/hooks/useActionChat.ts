@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   deleteChatAction,
@@ -39,6 +40,7 @@ export function useActionChat({
   setError,
   setStreamingAiId,
 }: UseActionChatOptions): UseActionChatReturn {
+  const router = useRouter();
   const [isLoadingChat, setIsLoadingChat] = useState<boolean>(() => {
     if (initialChatId) return true;
     if (typeof window !== "undefined") {
@@ -72,20 +74,13 @@ export function useActionChat({
     setConversationsPage(1);
     isFetchingConversationsRef.current = false;
 
-    // Remove chat_id and id from URL on reset
+    // Clean URL query parameters (chat_id and id) on reset
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      let changed = false;
-      if (url.searchParams.has("chat_id")) {
+      if (url.searchParams.has("chat_id") || url.searchParams.has("id")) {
         url.searchParams.delete("chat_id");
-        changed = true;
-      }
-      if (url.searchParams.has("id")) {
         url.searchParams.delete("id");
-        changed = true;
-      }
-      if (changed) {
-        window.history.replaceState(null, "", url.toString());
+        window.history.replaceState(null, "", url.pathname);
       }
     }
   }, [setPrompt, setMessages, setChatId, setInteractionId, setIsLoading, setError, setFirstChatTitle, setStreamingAiId]);
@@ -98,7 +93,17 @@ export function useActionChat({
       let idToLoad = targetChatId;
       if (!idToLoad && typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
-        idToLoad = params.get("chat_id") || params.get("id") || undefined;
+        // Normalize: if legacy ?id= is found, convert to chat_id
+        if (params.has("id")) {
+          const legacyId = params.get("id");
+          params.delete("id");
+          if (legacyId && !params.has("chat_id")) {
+            params.set("chat_id", legacyId);
+          }
+          const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+          window.history.replaceState(null, "", cleanUrl);
+        }
+        idToLoad = params.get("chat_id") || undefined;
       }
 
       if (!idToLoad) {
@@ -120,7 +125,11 @@ export function useActionChat({
         }
 
         if (!res.success || !res.data) {
-          throw new Error(res.error ?? "Gagal memuat detail percakapan.");
+          // If chat id is invalid, ngawur, deleted, or unauthorized -> redirect to /dashboard/create
+          reset();
+          router.replace("/dashboard/create");
+          toast.error("Percakapan tidak ditemukan.");
+          return false;
         }
 
         const chatData = res.data;
@@ -181,11 +190,10 @@ export function useActionChat({
         return true;
       } catch (err) {
         if (loadingChatIdRef.current === idToLoad) {
-          const msg =
-            err instanceof Error
-              ? err.message
-              : "Terjadi kesalahan saat memuat riwayat percakapan.";
-          setError(msg);
+          // If error loading or chat id is wrong/invalid, redirect to /dashboard/create
+          reset();
+          router.replace("/dashboard/create");
+          toast.error("Percakapan tidak ditemukan.");
         }
         return false;
       } finally {
@@ -194,7 +202,7 @@ export function useActionChat({
         }
       }
     },
-    [setChatId, setFirstChatTitle, setInteractionId, setMessages, setError]
+    [router, reset, setChatId, setFirstChatTitle, setInteractionId, setMessages, setError]
   );
 
   /**

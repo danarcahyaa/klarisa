@@ -177,7 +177,7 @@ export function ConversationList({
   }, [messages, variant]);
 
   return (
-    <div className={cn("flex-1 mb-6 pr-1 animate-in fade-in duration-500", isSmall ? "space-y-4" : "space-y-6")}>
+    <div className={cn("flex-1 min-w-0 max-w-full w-full mb-6 pr-1 animate-in fade-in duration-500", isSmall ? "space-y-4" : "space-y-6")}>
       {/* Invisible sentinel for scroll-to-top lazy pagination */}
       {hasMore && !isLoadingMore && (
         <div ref={topSentinelRef} className="h-6 w-full pointer-events-none" aria-hidden="true" />

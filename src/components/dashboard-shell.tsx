@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  ChevronDown,
   FilePen,
   FileSearch,
   LogOut,
@@ -13,19 +14,31 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
+  Plus,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Button, SubmitButton } from "@/components/ui/button";
+import { ActionPopover } from "@/components/ui/action-popover";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { SidebarRecentChats } from "@/components/sidebar-recent-chats";
 import { SearchChatDialog } from "@/components/draf/chat-ai/search-chat-dialog";
+import { updateChatTitleAction, deleteChatAction } from "@/app/actions/chat.action";
 import {
   CHAT_EVENTS,
   type ChatSelectEventDetail,
+  type ChatUpdatedEventDetail,
+  type ChatTitleChangeEventDetail,
   dispatchChatReset,
+  dispatchChatUpdated,
+  dispatchChatDeleted,
 } from "@/lib/chat-events";
 import type { ChatRow } from "@/types/chat.type";
 
@@ -59,16 +72,31 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
   const pathname = usePathname();
   const pageSubtitle = getPageSubtitle(pathname);
   const searchParams = useSearchParams();
-  const searchChatId = searchParams?.get("chat_id") || searchParams?.get("id") || null;
+  const searchChatId = searchParams?.get("chat_id") || null;
+  const initialTitleFromChats = initialChats?.find((c) => c.id === searchChatId)?.title || null;
   const [activeChatId, setActiveChatId] = useState<string | null>(searchChatId);
+  const [activeChatTitle, setActiveChatTitle] = useState<string | null>(initialTitleFromChats);
   const [isOpen, setIsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
+  const [isMobileChatPopoverOpen, setIsMobileChatPopoverOpen] = useState(false);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isSubmittingRename, setIsSubmittingRename] = useState(false);
+  const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
   const { handleLogout, isLoading } = useAuth();
 
   useEffect(() => {
     setActiveChatId(searchChatId);
-  }, [searchChatId]);
+    if (!searchChatId) {
+      setActiveChatTitle(null);
+    } else {
+      const matchingChat = initialChats?.find((c) => c.id === searchChatId);
+      if (matchingChat?.title) {
+        setActiveChatTitle(matchingChat.title);
+      }
+    }
+  }, [searchChatId, initialChats]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,6 +105,10 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       const { chatId } = (event as CustomEvent<ChatSelectEventDetail>).detail;
       if (chatId) {
         setActiveChatId(chatId);
+        const matchingChat = initialChats?.find((c) => c.id === chatId);
+        if (matchingChat?.title) {
+          setActiveChatTitle(matchingChat.title);
+        }
       }
     };
 
@@ -84,11 +116,30 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       const customEvent = event as CustomEvent<{ chat: ChatRow }>;
       if (customEvent.detail?.chat?.id) {
         setActiveChatId(customEvent.detail.chat.id);
+        if (customEvent.detail.chat.title) {
+          setActiveChatTitle(customEvent.detail.chat.title);
+        }
+      }
+    };
+
+    const handleUpdated = (event: Event) => {
+      const { chatId, title } = (event as CustomEvent<ChatUpdatedEventDetail>).detail;
+      if (chatId === activeChatId) {
+        setActiveChatTitle(title);
+      }
+    };
+
+    const handleTitleChange = (event: Event) => {
+      const { title, chatId } = (event as CustomEvent<ChatTitleChangeEventDetail>).detail;
+      setActiveChatTitle(title);
+      if (chatId) {
+        setActiveChatId(chatId);
       }
     };
 
     const handleReset = () => {
       setActiveChatId(null);
+      setActiveChatTitle(null);
     };
 
     const handleDeleted = (event: Event) => {
@@ -96,19 +147,26 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
         event as CustomEvent<{ chatId: string }>
       ).detail;
       setActiveChatId((prev) => (prev === deletedId ? null : prev));
+      if (deletedId === activeChatId) {
+        setActiveChatTitle(null);
+      }
     };
 
     window.addEventListener(CHAT_EVENTS.SELECT, handleSelect);
     window.addEventListener(CHAT_EVENTS.CREATED, handleCreated);
+    window.addEventListener(CHAT_EVENTS.UPDATED, handleUpdated);
+    window.addEventListener(CHAT_EVENTS.TITLE_CHANGE, handleTitleChange);
     window.addEventListener(CHAT_EVENTS.RESET, handleReset);
     window.addEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     return () => {
       window.removeEventListener(CHAT_EVENTS.SELECT, handleSelect);
       window.removeEventListener(CHAT_EVENTS.CREATED, handleCreated);
+      window.removeEventListener(CHAT_EVENTS.UPDATED, handleUpdated);
+      window.removeEventListener(CHAT_EVENTS.TITLE_CHANGE, handleTitleChange);
       window.removeEventListener(CHAT_EVENTS.RESET, handleReset);
       window.removeEventListener(CHAT_EVENTS.DELETED, handleDeleted);
     };
-  }, []);
+  }, [activeChatId, initialChats]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -126,6 +184,68 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
+
+  const handleMobileNewChat = () => {
+    setIsMobileChatPopoverOpen(false);
+    dispatchChatReset();
+    setActiveChatId(null);
+    setActiveChatTitle(null);
+    router.push("/dashboard/create");
+  };
+
+  const handleSaveRename = async (newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) {
+      toast.error("Nama percakapan tidak boleh kosong.");
+      return false;
+    }
+
+    setIsSubmittingRename(true);
+    try {
+      if (activeChatId) {
+        const res = await updateChatTitleAction(activeChatId, trimmed);
+        if (!res.success) {
+          toast.error(res.error ?? "Gagal mengganti nama percakapan.");
+          return false;
+        }
+        dispatchChatUpdated(activeChatId, trimmed);
+      }
+
+      setActiveChatTitle(trimmed);
+      toast.success("Nama percakapan berhasil diperbarui.");
+      return true;
+    } catch {
+      toast.error("Terjadi kesalahan saat mengganti nama percakapan.");
+      return false;
+    } finally {
+      setIsSubmittingRename(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsSubmittingDelete(true);
+    try {
+      if (activeChatId) {
+        const res = await deleteChatAction(activeChatId);
+        if (!res.success) {
+          toast.error(res.error ?? "Gagal menghapus percakapan.");
+          return;
+        }
+        dispatchChatDeleted(activeChatId);
+      }
+
+      dispatchChatReset();
+      setActiveChatId(null);
+      setActiveChatTitle(null);
+      router.push("/dashboard/create");
+      toast.success("Percakapan berhasil dihapus.");
+      setIsDeleteOpen(false);
+    } catch {
+      toast.error("Terjadi kesalahan saat menghapus percakapan.");
+    } finally {
+      setIsSubmittingDelete(false);
+    }
+  };
 
   const sidebar = (
     <div className={cn("flex h-full flex-col bg-white pl-3 pr-0 py-5 text-[#172031] transition-all duration-300 ease-in-out", isSidebarCollapsed && "lg:px-1")}>
@@ -318,7 +438,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
         </div>
       )}
 
-      <section className="relative min-w-0 lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
+      <section className="relative min-w-0 max-w-full overflow-x-clip lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
         {/* Mobile Top Header Bar */}
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[#e1e6ee] bg-[#f7f8fb] px-4 lg:hidden">
           <Button
@@ -334,9 +454,85 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
             <Menu className="size-4.5" />
           </Button>
 
-          <span className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase truncate">
-            {pageSubtitle}
-          </span>
+          {(() => {
+            const isDraftRoute =
+              pathname.startsWith("/dashboard/create") ||
+              pathname.startsWith("/dashboard/draft");
+            const isDraftWithChat = isDraftRoute && Boolean(activeChatTitle?.trim());
+            const mobileSubtitle = isDraftWithChat
+              ? activeChatTitle?.trim()
+              : pageSubtitle;
+
+            if (isDraftWithChat) {
+              return (
+                <div className="flex items-center gap-1 min-w-0 flex-1">
+                  <span
+                    title={mobileSubtitle ?? undefined}
+                    className="truncate text-xs font-semibold text-slate-800"
+                  >
+                    {mobileSubtitle}
+                  </span>
+
+                  <ActionPopover
+                    open={isMobileChatPopoverOpen}
+                    onOpenChange={setIsMobileChatPopoverOpen}
+                    align="start"
+                    sideOffset={6}
+                    className="w-40"
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        aria-label="Opsi percakapan"
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "size-3.5 transition-transform duration-200",
+                            isMobileChatPopoverOpen && "rotate-180"
+                          )}
+                        />
+                      </Button>
+                    }
+                    items={[
+                      {
+                        text: "Cari",
+                        icon: <Search className="size-3.5 text-slate-500" />,
+                        onClick: () => setIsSearchChatOpen(true),
+                      },
+                      {
+                        text: "Percakapan baru",
+                        icon: <Plus className="size-3.5 text-slate-500" />,
+                        onClick: handleMobileNewChat,
+                      },
+                      {
+                        text: "Ganti Nama",
+                        icon: <Pencil className="size-3.5 text-slate-500" />,
+                        onClick: () => setIsRenameOpen(true),
+                      },
+                    ]}
+                    footer={[
+                      {
+                        text: "Hapus",
+                        icon: <Trash2 className="size-3.5 text-red-500" />,
+                        variant: "destructive",
+                        onClick: () => setIsDeleteOpen(true),
+                      },
+                    ]}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <span
+                title={mobileSubtitle ?? undefined}
+                className="text-xs truncate flex-1 min-w-0 text-klarisa-secondary font-bold tracking-wider uppercase"
+              >
+                {mobileSubtitle}
+              </span>
+            );
+          })()}
         </header>
 
         <div className="min-w-0">{children}</div>
@@ -354,6 +550,27 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
           setIsOpen(false);
         }}
         initialChats={initialChats}
+      />
+
+      {/* Mobile Rename Chat Dialog */}
+      <FormDialog
+        open={isRenameOpen}
+        onOpenChange={setIsRenameOpen}
+        item="Percakapan"
+        title="Ganti Nama Percakapan"
+        defaultValue={activeChatTitle || "Draf Kontrak"}
+        isLoading={isSubmittingRename}
+        onConfirm={handleSaveRename}
+      />
+
+      {/* Mobile Delete Chat Dialog */}
+      <DeleteDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Hapus Percakapan"
+        item={activeChatTitle || "Percakapan"}
+        isLoading={isSubmittingDelete}
+        onConfirm={handleConfirmDelete}
       />
     </main>
   );

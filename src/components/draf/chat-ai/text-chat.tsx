@@ -81,20 +81,20 @@ export function TextChat({
   return (
     <div
       className={cn(
-        "group flex w-full",
+        "group flex w-full min-w-0 max-w-full",
         isUser ? "justify-end" : "justify-start",
         className
       )}
     >
-      <div className={cn("flex flex-col", isUser ? "max-w-[85%] items-end" : "w-full items-start")}>
+      <div className={cn("flex flex-col min-w-0", isUser ? "max-w-[85%] items-end" : "w-full max-w-full items-start")}>
         {/* Render multi-phase status steps if present */}
         {!isUser && statusSteps && statusSteps.length > 0 && (
-          <div className={cn("flex flex-col w-full", isSmall ? "gap-1.5 mb-1.5" : "gap-2 mb-2")}>
+          <div className={cn("flex flex-col w-full min-w-0", isSmall ? "gap-1.5 mb-1.5" : "gap-2 mb-2")}>
             {statusSteps.map((step, idx) => (
               <div
                 key={idx}
                 className={cn(
-                  "leading-relaxed",
+                  "leading-relaxed break-words [overflow-wrap:anywhere]",
                   isSmall ? "text-xs" : "text-sm",
                   step.isShimmer
                     ? "animate-pulse font-medium text-slate-500 dark:text-slate-400"
@@ -111,7 +111,7 @@ export function TextChat({
         {Boolean(displayContent) && (
           <div
             className={cn(
-              "leading-relaxed",
+              "leading-relaxed min-w-0 break-words [overflow-wrap:anywhere]",
               isSmall ? "text-xs" : "text-sm",
               isUser
                 ? cn(
@@ -119,7 +119,7 @@ export function TextChat({
                     isSmall ? "px-3 py-2" : "px-4 py-3"
                   )
                 : cn(
-                    "w-full bg-transparent px-0 text-slate-800 prose prose-sm max-w-none dark:prose-invert dark:text-slate-100 [&_p]:leading-relaxed [&_p:last-child]:mb-0 [&_p]:whitespace-pre-line [&_ol]:list-decimal [&_ul]:list-disc",
+                    "w-full max-w-full bg-transparent px-0 text-slate-800 prose prose-sm max-w-none dark:prose-invert dark:text-slate-100 [&_p]:leading-relaxed [&_p:last-child]:mb-0 [&_p]:whitespace-pre-line [&_ol]:list-decimal [&_ul]:list-disc",
                     isSmall
                       ? "text-xs [&_p]:text-xs [&_li]:text-xs [&_p]:mb-2"
                       : "text-sm [&_p]:mb-3",
@@ -130,7 +130,7 @@ export function TextChat({
             <div
               ref={contentRef}
               className={cn(
-                "relative transition-all duration-300",
+                "relative transition-all duration-300 min-w-0 break-words [overflow-wrap:anywhere]",
                 canCollapse && isOverflowing && !isExpanded && "max-h-36 overflow-hidden"
               )}
             >

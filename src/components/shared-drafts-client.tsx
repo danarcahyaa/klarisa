@@ -34,7 +34,7 @@ export function SharedDraftsClient({ items }: { items: ContractListItem[] }) {
         </div>
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {data.map((item) => (
-            <Link href={`/dashboard/create?id=${item.id}`} key={item.id} className="grid gap-4 border-b border-slate-200 p-5 last:border-0 hover:bg-slate-50 sm:grid-cols-[40px_1fr_auto_18px] sm:items-center">
+            <Link href={`/dashboard/create?chat_id=${item.id}`} key={item.id} className="grid gap-4 border-b border-slate-200 p-5 last:border-0 hover:bg-slate-50 sm:grid-cols-[40px_1fr_auto_18px] sm:items-center">
               <span className="grid size-10 place-items-center rounded-md bg-[#edf2ff] text-klarisa-secondary">
                 <Share2 className="size-4"/>
               </span>

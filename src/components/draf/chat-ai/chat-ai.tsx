@@ -9,7 +9,12 @@ import { useInitialChat } from "@/hooks/useInitialChat";
 import { useActionChat } from "@/hooks/useActionChat";
 import { useInteractionChat } from "@/hooks/useInteractionChat";
 import { useScroll } from "@/hooks/useScroll";
-import { CHAT_EVENTS, type ChatSelectEventDetail } from "@/lib/chat-events";
+import {
+  CHAT_EVENTS,
+  dispatchChatTitleChange,
+  type ChatSelectEventDetail,
+  type ChatUpdatedEventDetail,
+} from "@/lib/chat-events";
 import type { ChatMessageItem } from "@/types/draft.type";
 import { EmptyStateHeader } from "./empty-state-header";
 import { TemplateOptions } from "./template-options";
@@ -121,8 +126,8 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     messagesEndRef,
   });
 
-  // Listen for chat select and reset events dispatched by the sidebar
-  // to load chat detail or start a fresh contract drafting session without a full page reload.
+  // Listen for chat select, reset, and title update events dispatched by external components
+  // to load chat detail, start a fresh session, or keep local title synchronized.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleChatSelect = (event: Event) => {
@@ -134,13 +139,22 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     const handleChatReset = () => {
       reset();
     };
+    const handleChatUpdated = (event: Event) => {
+      const { chatId: updatedChatId, title: updatedTitle } = (event as CustomEvent<ChatUpdatedEventDetail>).detail;
+      if (updatedChatId && updatedChatId === chatId && updatedTitle) {
+        setTitle(updatedTitle);
+      }
+    };
+
     window.addEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
     window.addEventListener(CHAT_EVENTS.RESET, handleChatReset);
+    window.addEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
     return () => {
       window.removeEventListener(CHAT_EVENTS.SELECT, handleChatSelect);
       window.removeEventListener(CHAT_EVENTS.RESET, handleChatReset);
+      window.removeEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
     };
-  }, [handleLoadChatDetail, reset]);
+  }, [handleLoadChatDetail, reset, chatId, setTitle]);
 
   useEffect(() => {
     return () => {
@@ -148,11 +162,27 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     };
   }, [handleStop]);
 
+  // Synchronize active chat title with DashboardShell (e.g. for mobile top header bar)
+  useEffect(() => {
+    if (hasMessages && title) {
+      dispatchChatTitleChange(title, chatId ?? undefined);
+    } else if (!hasMessages) {
+      dispatchChatTitleChange(null);
+    }
+  }, [hasMessages, title, chatId]);
+
+  useEffect(() => {
+    return () => {
+      dispatchChatTitleChange(null);
+    };
+  }, []);
+
   return (
-    <div className={cn("flex flex-col w-full min-h-svh", className)}>
-      {/* Sticky header shown when chat is active or loading chat */}
+    <div className={cn("flex flex-col w-full min-h-svh max-w-full overflow-x-clip", className)}>
+      {/* Sticky header shown on desktop when chat is active or loading chat (hidden on mobile to avoid duplicate header) */}
       {(hasMessages || isLoadingChat) && (
         <ChatHeader
+          className="hidden lg:block"
           title={title}
           chatId={chatId}
           onRename={setTitle}
@@ -167,7 +197,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       {/* Main chat container constrained to 860px */}
       <main
         className={cn(
-          "mx-auto w-[860px] max-w-full px-4 sm:px-7 flex-1 flex flex-col transition-all duration-500 ease-in-out",
+          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 flex flex-col transition-all duration-500 ease-in-out",
           hasMessages || isLoadingChat
             ? "pt-4 pb-0 justify-between"
             : "py-10 lg:py-16 justify-center"
@@ -216,7 +246,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
           {(hasMessages || isLoadingChat) && (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -top-14 -left-8 -right-8 sm:-left-12 sm:-right-12 bottom-0 -z-10 bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
+              className="pointer-events-none absolute -top-14 -left-4 -right-4 sm:-left-7 sm:-right-7 bottom-0 -z-10 bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
             />
           )}
 

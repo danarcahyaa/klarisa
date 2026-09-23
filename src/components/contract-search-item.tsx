@@ -57,7 +57,7 @@ export function ContractSearchItem({
 
   const isDraft = item.type === "draft";
   const href = isDraft
-    ? `/dashboard/create?id=${item.id}`
+    ? `/dashboard/create?chat_id=${item.id}`
     : `/dashboard/review/result/${item.id}`;
 
   const dateValue = item.createdAt ?? item.updatedAt;

@@ -87,7 +87,7 @@ export function DeleteDialog({
     <Dialog open={open} onOpenChange={isSubmitting ? () => {} : onOpenChange}>
       <DialogContent
         showCloseButton={!isSubmitting}
-        className={cn("sm:max-w-md", className)}
+        className={cn("sm:max-w-md max-w-sm", className)}
       >
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold line-clamp-1 text-slate-900 dark:text-slate-100">

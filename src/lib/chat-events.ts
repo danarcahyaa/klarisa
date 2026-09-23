@@ -11,6 +11,8 @@ export const CHAT_EVENTS = {
   SELECT: "klarisa:chat-select",
   /** Fired when user navigates to create a new chat or resets chat session. */
   RESET: "klarisa:chat-reset",
+  /** Fired when active chat title is set, changed, or cleared. */
+  TITLE_CHANGE: "klarisa:chat-title-change",
 } as const;
 
 export interface ChatCreatedEventDetail {
@@ -94,5 +96,22 @@ export function dispatchChatSelect(chatId: string): void {
 export function dispatchChatReset(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(CHAT_EVENTS.RESET));
+}
+
+export interface ChatTitleChangeEventDetail {
+  title: string | null;
+  chatId?: string;
+}
+
+/**
+ * Dispatch a custom event when the active chat title changes or is loaded.
+ */
+export function dispatchChatTitleChange(title: string | null, chatId?: string): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<ChatTitleChangeEventDetail>(CHAT_EVENTS.TITLE_CHANGE, {
+      detail: { title, chatId },
+    })
+  );
 }
 

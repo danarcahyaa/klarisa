@@ -59,13 +59,13 @@ export function ContractSearchClient({
   };
 
   return (
-    <div className="mx-auto max-w-[1010px] px-8 pb-8 sm:px-7 lg:pb-12">
+    <div className="mx-auto max-w-[1010px] px-4 pb-8 sm:px-7 lg:pb-12">
       {/* Sticky Header Section: Title, Filters, Search & Counter */}
       <div className="sticky top-14 lg:top-0 z-20 bg-[#f7f8fb] pt-4 sm:pt-6 lg:pt-12">
         <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase hidden lg:block">
             Cari Kontrak
         </p>
-        <h1 className="mt-2 font-heading text-5xl font-medium tracking-[-.04em]">
+        <h1 className="mt-2 font-heading text-3xl sm:text-5xl font-medium tracking-[-.04em]">
             Temukan Kontrak Anda
         </h1>
 
@@ -85,7 +85,7 @@ export function ContractSearchClient({
               defaultValue="Semua"
               onValueChange={(val) => setFilter(val as ContractSearchFilterType)}
             >
-              <SelectTrigger variant="outline" className="w-[95px] sm:w-[120px] shrink-0">
+              <SelectTrigger variant="outline" className="w-[100px] sm:w-[120px] shrink-0">
                 <SelectValue placeholder="Semua">{filter}</SelectValue>
               </SelectTrigger>
               <SelectContent>
