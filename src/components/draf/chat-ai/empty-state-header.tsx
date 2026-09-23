@@ -10,7 +10,7 @@ interface EmptyStateHeaderProps {
  * Header component for the AI contract drafting empty state.
  */
 export function EmptyStateHeader({
-  title = "Rancang draf kontrak dalam hitungan detik.",
+  title = "Rancang draft kontrak dalam hitungan detik.",
   className,
 }: EmptyStateHeaderProps) {
   return (
