@@ -12,7 +12,7 @@ export function SharedDraftsClient({ items }: { items: ContractListItem[] }) {
   const data = useMemo(() => items.filter((item) => !deferredQuery || item.title.toLocaleLowerCase("id-ID").includes(deferredQuery)), [deferredQuery, items]);
   return (
     <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-7 lg:py-12">
-      <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">DRAFT DIBAGIKAN</p>
+      <p className="hidden text-xs font-bold tracking-wider text-klarisa-secondary uppercase lg:block">DRAFT DIBAGIKAN</p>
       <div className="mt-5 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-heading text-[clamp(2.5rem,5vw,3.8rem)] font-normal leading-none tracking-[-.055em]">Diskusi yang sedang berjalan.</h1>

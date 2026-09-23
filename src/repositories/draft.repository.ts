@@ -20,13 +20,6 @@ export class DraftRepository {
       .order("updated_at", { ascending: false });
   }
 
-  async listCollaborations(userId: string) {
-    return this.supabase
-      .from("draft_collaborators")
-      .select("contract_id, role")
-      .eq("user_id", userId);
-  }
-
   async listDraftsByIds(contractIds: string[]) {
     if (contractIds.length === 0) return { data: [] as ContractRecord[], error: null };
     return this.supabase
@@ -42,11 +35,8 @@ export class DraftRepository {
   }
 
   async deleteContract(userId: string, contractId: string) {
-    // Clean up associated draft records to prevent foreign key constraints
+    // Clean up associated draft record to prevent foreign key constraints
     await this.supabase.from("contract_draft").delete().eq("contract_id", contractId);
-    await this.supabase.from("draft_collaborators").delete().eq("contract_id", contractId);
-    await this.supabase.from("draft_comments").delete().eq("contract_id", contractId);
-    await this.supabase.from("draft_settings").delete().eq("contract_id", contractId);
     return this.supabase.from("contracts").delete().eq("id", contractId).eq("user_id", userId);
   }
 
@@ -62,144 +52,6 @@ export class DraftRepository {
   async findDraftById(contractId: string) {
     return this.supabase
       .from("contract_draft")
-      .select("*")
-      .eq("contract_id", contractId)
-      .maybeSingle();
-  }
-
-  async findCollaborator(userId: string, contractId: string) {
-    return this.supabase
-      .from("draft_collaborators")
-      .select("*")
-      .eq("contract_id", contractId)
-      .eq("user_id", userId)
-      .maybeSingle();
-  }
-
-  async listCollaborators(contractId: string) {
-    return this.supabase
-      .from("draft_collaborators")
-      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
-      .eq("contract_id", contractId)
-      .order("created_at", { ascending: true });
-  }
-
-  async upsertCollaborator(payload: TablesInsert<"draft_collaborators">) {
-    return this.supabase
-      .from("draft_collaborators")
-      .upsert(payload, { onConflict: "contract_id,user_id" })
-      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
-      .single();
-  }
-
-  async updateCollaboratorRole(contractId: string, userId: string, role: "commenter" | "viewer") {
-    return this.supabase
-      .from("draft_collaborators")
-      .update({ role })
-      .eq("contract_id", contractId)
-      .eq("user_id", userId)
-      .select("*, profiles!draft_collaborators_user_id_fkey(full_name, avatar_url)")
-      .maybeSingle();
-  }
-
-  async deleteCollaborator(contractId: string, userId: string) {
-    return this.supabase
-      .from("draft_collaborators")
-      .delete()
-      .eq("contract_id", contractId)
-      .eq("user_id", userId);
-  }
-
-  async findAuthUserByEmail(email: string) {
-    const result = await this.supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (result.error) return { data: null, error: result.error };
-    return {
-      data: result.data.users.find((user) => user.email?.toLocaleLowerCase("id-ID") === email) ?? null,
-      error: null,
-    };
-  }
-
-  async listComments(contractId: string) {
-    return this.supabase
-      .from("draft_comments")
-      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
-      .eq("contract_id", contractId)
-      .order("created_at", { ascending: true });
-  }
-
-  async createComment(payload: TablesInsert<"draft_comments">) {
-    return this.supabase
-      .from("draft_comments")
-      .insert(payload)
-      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
-      .single();
-  }
-
-  async findComment(contractId: string, commentId: string) {
-    return this.supabase
-      .from("draft_comments")
-      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
-      .eq("id", commentId)
-      .eq("contract_id", contractId)
-      .maybeSingle();
-  }
-
-  async updateComment(contractId: string, commentId: string, comment: string) {
-    return this.supabase
-      .from("draft_comments")
-      .update({ comment })
-      .eq("id", commentId)
-      .eq("contract_id", contractId)
-      .select("*, profiles!draft_comments_author_id_fkey(full_name, avatar_url)")
-      .maybeSingle();
-  }
-
-  async setCommentResolved(contractId: string, commentId: string, resolvedAt: string | null, resolvedBy: string | null) {
-    // Since resolved_at/by are not standalone columns, they are stored in metadata
-    const current = await this.supabase
-      .from("draft_comments")
-      .select("metadata")
-      .eq("id", commentId)
-      .eq("contract_id", contractId)
-      .maybeSingle();
-    const existingMeta = (current.data?.metadata as Record<string, unknown>) ?? {};
-    const updatedMeta = { ...existingMeta, resolved_at: resolvedAt, resolved_by: resolvedBy };
-    return this.supabase
-      .from("draft_comments")
-      .update({ metadata: updatedMeta })
-      .eq("id", commentId)
-      .eq("contract_id", contractId);
-  }
-
-  async deleteComment(contractId: string, commentId: string) {
-    return this.supabase
-      .from("draft_comments")
-      .delete()
-      .eq("id", commentId)
-      .eq("contract_id", contractId);
-  }
-
-  async findOwnedWorkspace(userId: string) {
-    return this.supabase
-      .from("workspaces")
-      .select("id")
-      .eq("owner_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-  }
-
-  async upsertDraftSettings(payload: TablesInsert<"draft_settings">) {
-    return this.supabase
-      .from("draft_settings")
-      .upsert(payload, { onConflict: "contract_id" })
-      .select()
-      .single();
-  }
-
-  async getDraftSettings(contractId: string) {
-    return this.supabase
-      .from("draft_settings")
       .select("*")
       .eq("contract_id", contractId)
       .maybeSingle();

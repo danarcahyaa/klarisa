@@ -126,9 +126,9 @@ function RecentChatsList({
   };
 
   return (
-    <div className={cn("grid pt-6 text-xs text-slate-500 pb-10", className)}>
+    <div className={cn("grid pt-6 text-xs text-slate-500", className)}>
       {/* Header section with TERKINI and Search button aligned with nav */}
-      <div className="flex items-center justify-between px-2 pr-3 pb-2">
+      <div className="flex items-center justify-between px-2 pr-3">
         <b className="text-xs font-bold tracking-wider text-slate-400 uppercase">TERKINI</b>
         <Button
           type="button"

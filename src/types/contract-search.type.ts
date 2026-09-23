@@ -6,7 +6,7 @@ export type { SearchItem };
 export type ContractSearchFilterType = "Semua" | "Draft" | "Review";
 
 export interface ContractSearchParams {
-  userId?: string;
+  userId: string;
   query?: string;
   filter?: ContractSearchFilterType;
   limit?: number;

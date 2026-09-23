@@ -14,9 +14,32 @@ export interface DocumentDraftRow {
   document_id?: string;
   updated_at?: string;
 }
-export type DraftSettingsRow = Tables<"draft_settings">;
-export type DraftCollaboratorRow = Tables<"draft_collaborators">;
-export type DraftCommentRow = Tables<"draft_comments">;
+export interface DraftSettingsRow {
+  contract_id: string;
+  status: "private" | "shared" | "archived";
+  workspace_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DraftCollaboratorRow {
+  contract_id: string;
+  user_id: string;
+  role: "editor" | "commenter" | "viewer";
+  invited_by: string | null;
+  created_at: string;
+}
+
+export interface DraftCommentRow {
+  id: string;
+  contract_id: string;
+  author_id: string;
+  comment: string;
+  parent_id: string | null;
+  metadata: Json | null;
+  created_at: string;
+  updated_at: string;
+}
 export type ContractType = "review" | "draft";
 
 export interface ContractMetadata {

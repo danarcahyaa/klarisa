@@ -28,7 +28,7 @@ export default async function DashboardHome() {
   return (
     <div className="mx-auto max-w-[1190px] px-4 py-10 sm:px-7 lg:py-16">
       <section className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
-        <div><p className={eyebrow}>WORKSPACE PRIBADI</p><h1 className="mt-5 font-heading text-[clamp(2.75rem,5vw,4.4rem)] font-normal leading-[.95] tracking-[-.06em]">Selamat datang, {firstName}.</h1><p className="mt-3 max-w-2xl text-sm text-slate-500">Lanjutkan dokumen yang memerlukan keputusan, atau mulai dari kontrak baru.</p></div>
+        <div><p className={`${eyebrow} hidden lg:block`}>WORKSPACE PRIBADI</p><h1 className="mt-5 font-heading text-[clamp(2.75rem,5vw,4.4rem)] font-normal leading-[.95] tracking-[-.06em]">Selamat datang, {firstName}.</h1><p className="mt-3 max-w-2xl text-sm text-slate-500">Lanjutkan dokumen yang memerlukan keputusan, atau mulai dari kontrak baru.</p></div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           <CreateDraftButton/>
           <Link href="/dashboard/review" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-klarisa-navy px-4 text-xs font-bold text-white transition-colors hover:bg-klarisa-navy/80"><FileSearch className="size-4" />Review kontrak</Link>

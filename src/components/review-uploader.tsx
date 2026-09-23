@@ -43,10 +43,10 @@ export function ReviewUploader() {
     <div className="mx-auto max-w-[1180px] px-4 py-10 sm:px-7 lg:py-16">
       <section className="flex flex-col items-start justify-between gap-7 border-b border-slate-200 pb-9 lg:flex-row lg:items-end">
         <div>
-          <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">
+          <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase hidden lg:block max-lg:!hidden">
             REVIEW KONTRAK
           </p>
-          <h1 className="mt-5 max-w-2xl font-heading text-[clamp(2.8rem,5vw,4.2rem)] font-normal leading-[.94] tracking-[-.06em]">
+          <h1 className="mt-2 lg:mt-5 max-w-2xl font-heading text-[clamp(2.8rem,5vw,4.2rem)] font-normal leading-[.94] tracking-[-.06em]">
             Pahami setiap klausul kontrak
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-6 text-slate-500">

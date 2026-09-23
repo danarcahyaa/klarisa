@@ -85,6 +85,8 @@ export function useDraftEditor({
       setIsLoadingDetail(true);
       try {
         const res = await getDraftDetailAction(id);
+        console.log("Result: ")
+        console.log(res)
         if (res.success && res.data) {
           return res.data;
         }

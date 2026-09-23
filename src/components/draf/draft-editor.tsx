@@ -38,6 +38,8 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
       setIsLoading(true);
       loadDraftDetail(targetId)
         .then((data) => {
+          console.log("Draft: ")
+          console.log(data)
           if (data) {
             setDraft(data);
           }

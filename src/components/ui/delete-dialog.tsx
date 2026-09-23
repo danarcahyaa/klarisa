@@ -50,7 +50,7 @@ export interface DeleteDialogProps {
 export function DeleteDialog({
   open,
   onOpenChange,
-  item = "Item",
+  item = "",
   title,
   description,
   isLoading,
@@ -90,7 +90,7 @@ export function DeleteDialog({
         className={cn("sm:max-w-md", className)}
       >
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <DialogTitle className="text-sm font-semibold line-clamp-1 text-slate-900 dark:text-slate-100">
             {title ?? `Hapus ${item}`}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">

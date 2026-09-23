@@ -16,13 +16,17 @@ export class ContractService {
    * Search contract records from database with input validation, sanitization, and response mapping.
    */
   async searchContracts(params: {
-    userId?: string;
+    userId: string;
     query?: string;
     filter?: ContractSearchFilterType;
     limit?: number;
     offset?: number;
   }): Promise<ContractSearchResponse> {
     try {
+      if (!params.userId || params.userId.trim().length === 0) {
+        return createErrorResponse("Pengguna tidak teridentifikasi. Silakan masuk kembali.");
+      }
+
       const sanitizedQuery = sanitizeString(params.query ?? "");
       const validation = contractQuerySchema.safeParse({
         query: sanitizedQuery || undefined,
@@ -46,19 +50,16 @@ export class ContractService {
         return createErrorResponse(mapSupabaseError(error.message));
       }
 
-      const searchItems: SearchItem[] = (data ?? []).map((row) => {
-        const record = row as Record<string, any>;
-        return {
-          id: record.id,
-          type: (record.type === "draft" ? "draft" : "review") as "draft" | "review",
-          title: record.title,
-          isPinned: record.is_pinned ?? false,
-          createdAt: record.created_at,
-          updatedAt: record.updated_at,
-          riskCount: 0,
-          metadata: (record.metadata as unknown as SearchItem["metadata"]) ?? {},
-        };
-      });
+      const searchItems: SearchItem[] = (data ?? []).map((row) => ({
+        id: row.id,
+        type: row.type === "draft" ? "draft" : "review",
+        title: row.title,
+        isPinned: Boolean(row.is_pinned),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        riskCount: 0,
+        metadata: {},
+      }));
 
       return createSuccessResponse({
         items: searchItems,

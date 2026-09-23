@@ -43,13 +43,9 @@ import type { Database, Json } from "@/types/database.type";
 import type { BaseResponse } from "@/types/response.type";
 import { createClient } from "@/lib/supabase/client";
 import {
-  mapCollaborator,
-  mapComment,
   mapDraftVersion,
   mapListItem,
   metadataOf,
-  type DraftCollaboratorRecord,
-  type DraftCommentRecord,
 } from "./draft-mapper";
 import type {
   GeminiInteractionOptions,
@@ -308,33 +304,31 @@ export class DraftService {
       );
     }
 
-    const draftResult = await this.repository.findDraftById(idValidation.data);
-    if (draftResult.error) {
+    const contractResult = await this.repository.findById(userId, idValidation.data);
+    if (contractResult.error) {
       return createErrorResponse<ContractDetail>(
-        mapSupabaseError(draftResult.error.message),
+        mapSupabaseError(contractResult.error.message),
       );
     }
-    if (!draftResult.data) {
+    if (!contractResult.data) {
       return createErrorResponse<ContractDetail>("Draft tidak ditemukan.");
     }
 
-    const draftRecord = draftResult.data;
+    const contractRecord = contractResult.data;
+    const draftRecord = contractRecord.contract_draft;
+    if (!draftRecord) {
+      return createErrorResponse<ContractDetail>("Isi draft tidak ditemukan.");
+    }
+
     const permission = "owner";
     const meta = metadataOf(draftRecord.metadata);
 
-    const [versionsResult, collaboratorsResult, commentsResult] =
-      await Promise.all([
-        this.repository.listDraftVersions(idValidation.data),
-        this.repository.listCollaborators(idValidation.data),
-        this.repository.listComments(idValidation.data),
-      ]);
+    const versionsResult = await this.repository.listDraftVersions(idValidation.data);
 
-    if (versionsResult.error || collaboratorsResult.error || commentsResult.error) {
-      const err =
-        versionsResult.error ||
-        collaboratorsResult.error ||
-        commentsResult.error;
-      return createErrorResponse<ContractDetail>(mapSupabaseError(err!.message));
+    if ((versionsResult as any).error) {
+      return createErrorResponse<ContractDetail>(
+        mapSupabaseError((versionsResult as any).error.message),
+      );
     }
 
     const activeVersionId = meta.active_version_id;
@@ -361,11 +355,11 @@ export class DraftService {
     }
 
     const detail: ContractDetail = {
-      id: draftRecord.contract_id,
-      title: (draftRecord.metadata as any)?.title || "Draf Kontrak",
+      id: contractRecord.id,
+      title: contractRecord.title,
       type: "draft",
-      isPinned: false,
-      updatedAt: draftRecord.updated_at,
+      isPinned: contractRecord.is_pinned,
+      updatedAt: contractRecord.updated_at,
       score: (draftRecord.metadata as any)?.fairness_score ?? null,
       riskCount: (draftRecord.metadata as any)?.total_clausul_risk ?? 0,
       metadata: meta,
@@ -373,17 +367,8 @@ export class DraftService {
       content,
       permission,
       versions: (versionsResult.data ?? []).map(mapDraftVersion),
-      collaborators: (
-        (collaboratorsResult.data ?? []) as DraftCollaboratorRecord[]
-      ).map(mapCollaborator),
-      comments: ((commentsResult.data ?? []) as DraftCommentRecord[])
-        .filter((comment) => {
-          if (!activeVersionId) return true;
-          const commentMeta =
-            (comment.metadata as Record<string, unknown> | null) ?? {};
-          return commentMeta.document_version_id === activeVersionId;
-        })
-        .map((comment) => mapComment(comment, userId)),
+      collaborators: [],
+      comments: [],
       settings: null,
     };
 

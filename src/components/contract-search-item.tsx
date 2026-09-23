@@ -4,9 +4,12 @@ import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import { Pin } from "lucide-react";
 import { formatIndonesianDate } from "@/lib/utils";
-import { ContractSearchItemPopover } from "./contract-search-item-popover";
-import { RenameContractDialog } from "./rename-contract-dialog";
-import { DeleteContractDialog } from "./delete-contract-dialog";
+import {
+  ContractSearchItemActionPopover,
+  ContractSearchItemPopover,
+} from "./contract-search-item-popover";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 
 export type SearchItem = {
   id: string;
@@ -88,7 +91,10 @@ export function ContractSearchItem({
   };
 
   const handleConfirmDelete = async () => {
-    return await onDelete?.(item);
+    const res = await onDelete?.(item);
+    if (res !== false) {
+      setIsDeleteOpen(false);
+    }
   };
 
   return (
@@ -101,7 +107,7 @@ export function ContractSearchItem({
           <b className="truncate text-sm font-medium text-slate-800 flex items-center gap-1.5">
             {item.isPinned && (
               <Pin
-                className="size-3.5 rotate-45 shrink-0"
+                className="size-3.5 shrink-0"
                 aria-label="Disematkan"
               />
             )}
@@ -111,7 +117,7 @@ export function ContractSearchItem({
         </Link>
 
         <div className="flex items-center justify-end shrink-0 min-w-[50px]">
-          <ContractSearchItemPopover
+          <ContractSearchItemActionPopover
             isOpen={isPopoverOpen}
             onOpenChange={setIsPopoverOpen}
             isDraft={isDraft}
@@ -123,19 +129,22 @@ export function ContractSearchItem({
         </div>
       </div>
 
-      {/* Dedicated Rename Contract Dialog */}
-      <RenameContractDialog
+      {/* Rename Contract Dialog */}
+      <FormDialog
         open={isRenameOpen}
         onOpenChange={setIsRenameOpen}
-        initialTitle={item.title}
+        title="Ganti Nama Kontrak"
+        item="Kontrak"
+        defaultValue={item.title}
         onConfirm={handleConfirmRename}
       />
 
       {/* Reusable Delete Contract Dialog */}
-      <DeleteContractDialog
+      <DeleteDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        title={item.title}
+        item={item.title}
+        title="Hapus Kontrak"
         onConfirm={handleConfirmDelete}
       />
     </>

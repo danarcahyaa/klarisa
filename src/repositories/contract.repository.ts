@@ -9,7 +9,7 @@ export class ContractRepository {
    * Search contract documents from Supabase database filtered by user, title query, and category filter.
    */
   async searchContracts(params: {
-    userId?: string;
+    userId: string;
     query?: string;
     filter?: ContractSearchFilterType;
     limit?: number;
@@ -17,11 +17,8 @@ export class ContractRepository {
   }) {
     let dbQuery = this.supabase
       .from("contracts")
-      .select("*", { count: "exact" });
-
-    if (params.userId) {
-      dbQuery = dbQuery.eq("user_id", params.userId);
-    }
+      .select("*", { count: "exact" })
+      .eq("user_id", params.userId);
 
     if (params.filter === "Draft") {
       dbQuery = dbQuery.eq("type", "draft");
@@ -37,7 +34,7 @@ export class ContractRepository {
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false });
 
-    const limit = params.limit ?? 10;
+    const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
     dbQuery = dbQuery.range(offset, offset + limit - 1);
 
@@ -45,9 +42,12 @@ export class ContractRepository {
   }
 
   /**
-   * Delete a contract record by ID and user ID.
+   * Delete a contract record and clean up associated child rows if any.
    */
   async deleteContract(userId: string, contractId: string) {
+    await this.supabase.from("contract_draft").delete().eq("contract_id", contractId);
+    await this.supabase.from("contract_review").delete().eq("contract_id", contractId);
+
     return this.supabase
       .from("contracts")
       .delete()

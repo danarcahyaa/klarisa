@@ -2,16 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
-import { createContractRepository } from "@/repositories/contract.repository";
-import { createContractService } from "@/services/contract.service";
+import {
+  searchContractsAction,
+  togglePinContractAction,
+  renameContractAction,
+  deleteContractAction,
+} from "@/app/actions/contract.action";
 import { useDebounce } from "@/hooks/useDebounce";
 import type {
   ContractSearchFilterType,
   SearchItem,
 } from "@/types/contract-search.type";
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 10;
 
 /**
  * Sort search items so pinned items always appear at the top.
@@ -30,6 +33,8 @@ function sortSearchResults(list: SearchItem[]): SearchItem[] {
 export interface UseSearchOptions {
   /** Initial items passed from server component */
   initialItems?: ReadonlyArray<SearchItem>;
+  /** Initial total count of items matching the query in the database */
+  initialTotalCount?: number;
 }
 
 export function useSearch(options: UseSearchOptions = {}) {
@@ -39,9 +44,8 @@ export function useSearch(options: UseSearchOptions = {}) {
     sortSearchResults([...(options.initialItems ?? [])])
   );
   const [totalCount, setTotalCount] = useState<number>(
-    options.initialItems?.length ?? 0
+    options.initialTotalCount ?? options.initialItems?.length ?? 0
   );
-  const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
   const [isLoading, setIsLoading] = useState(false);
   const [isLazyLoading, setIsLazyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,25 +55,26 @@ export function useSearch(options: UseSearchOptions = {}) {
   const isFirstRender = useRef(true);
   const isLazyLoadingRef = useRef(false);
 
-  // Instantiate client Supabase repository and service instances
-  const service = useMemo(() => {
-    const supabase = createClient();
-    const repository = createContractRepository(supabase);
-    return createContractService(repository);
-  }, []);
+  // Synchronize state when initialItems or initialTotalCount props update from server
+  useEffect(() => {
+    if (options.initialItems) {
+      setItems(sortSearchResults([...options.initialItems]));
+      setTotalCount(options.initialTotalCount ?? options.initialItems.length);
+    }
+  }, [options.initialItems, options.initialTotalCount]);
 
   /**
-   * Fetch matching contracts from database using ContractService.
+   * Fetch matching contracts from database using searchContractsAction.
    */
   const fetchSearchResults = useCallback(
     async (searchQuery: string, categoryFilter: ContractSearchFilterType) => {
       setIsLoading(true);
       setError(null);
 
-      const response = await service.searchContracts({
+      const response = await searchContractsAction({
         query: searchQuery,
         filter: categoryFilter,
-        limit: 50, // Fetch up to 50 items for pagination view
+        limit: BATCH_SIZE,
         offset: 0,
       });
 
@@ -82,7 +87,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         setError(response.error ?? "Gagal memuat dokumen.");
       }
     },
-    [service]
+    []
   );
 
   // Trigger database search whenever debouncedQuery or filter changes (skipped on initial mount)
@@ -92,14 +97,47 @@ export function useSearch(options: UseSearchOptions = {}) {
       return;
     }
     fetchSearchResults(debouncedQuery, filter);
-    setVisibleCount(BATCH_SIZE);
   }, [debouncedQuery, filter, fetchSearchResults]);
 
-  const visibleItems = useMemo(() => {
-    return items.slice(0, visibleCount);
-  }, [items, visibleCount]);
+  const visibleItems = items;
+  const visibleCount = items.length;
+  const hasMore = items.length < totalCount;
 
-  const hasMore = visibleCount < items.length;
+  /**
+   * Trigger loading the next batch of items from database
+   */
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLazyLoadingRef.current || isLoading) {
+      return;
+    }
+
+    isLazyLoadingRef.current = true;
+    setIsLazyLoading(true);
+
+    try {
+      const response = await searchContractsAction({
+        query: debouncedQuery,
+        filter,
+        limit: BATCH_SIZE,
+        offset: items.length,
+      });
+
+      if (response.success && response.data) {
+        const nextBatch = response.data.items;
+        setItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const uniqueNew = nextBatch.filter((i) => !existingIds.has(i.id));
+          return sortSearchResults([...prev, ...uniqueNew]);
+        });
+        setTotalCount(response.data.totalCount);
+      } else if (!response.success && response.error) {
+        setError(response.error);
+      }
+    } finally {
+      setIsLazyLoading(false);
+      isLazyLoadingRef.current = false;
+    }
+  }, [hasMore, isLoading, debouncedQuery, filter, items.length]);
 
   // IntersectionObserver for lazy loading pagination
   useEffect(() => {
@@ -108,24 +146,21 @@ export function useSearch(options: UseSearchOptions = {}) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLazyLoadingRef.current) {
-          isLazyLoadingRef.current = true;
-          setIsLazyLoading(true);
-          setTimeout(() => {
-            setVisibleCount((prev) => prev + BATCH_SIZE);
-            setIsLazyLoading(false);
-            isLazyLoadingRef.current = false;
-          }, 300);
+        if (entries[0].isIntersecting && !isLazyLoadingRef.current && !isLoading) {
+          loadMore();
         }
       },
-      { threshold: 0.1 }
+      {
+        rootMargin: "150px",
+        threshold: 0,
+      }
     );
 
     observer.observe(target);
     return () => {
       observer.disconnect();
     };
-  }, [hasMore]);
+  }, [hasMore, loadMore, isLoading]);
 
   /**
    * Action handler: Pin or unpin item (Optimistic update with revert & toast error on failure)
@@ -143,13 +178,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         )
       );
 
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const userId = user?.id ?? "";
-
-      const response = await service.togglePin(userId, item.id, nextPinnedState);
+      const response = await togglePinContractAction(item.id, nextPinnedState);
 
       if (!response.success) {
         // Revert optimistic update
@@ -173,7 +202,7 @@ export function useSearch(options: UseSearchOptions = {}) {
       }
       // Success: No toast displayed per user specification
     },
-    [service]
+    []
   );
 
   /**
@@ -187,17 +216,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         return false;
       }
 
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const userId = user?.id ?? "";
-
-      const response = await service.renameContract(
-        userId,
-        item.id,
-        sanitizedTitle
-      );
+      const response = await renameContractAction(item.id, sanitizedTitle);
 
       if (response.success) {
         setItems((prev) =>
@@ -212,7 +231,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         return false;
       }
     },
-    [service]
+    []
   );
 
   /**
@@ -220,13 +239,7 @@ export function useSearch(options: UseSearchOptions = {}) {
    */
   const handleDelete = useCallback(
     async (item: SearchItem) => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const userId = user?.id ?? "";
-
-      const response = await service.deleteContract(userId, item.id);
+      const response = await deleteContractAction(item.id);
 
       if (response.success) {
         setItems((prev) => prev.filter((i) => i.id !== item.id));
@@ -236,7 +249,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         toast.error(response.error ?? "Gagal menghapus kontrak.");
       }
     },
-    [service]
+    []
   );
 
   return {
@@ -253,6 +266,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     isLazyLoading,
     error,
     observerTargetRef,
+    loadMore,
     handlePin,
     handleRename,
     handleDelete,
