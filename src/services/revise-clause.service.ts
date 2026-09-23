@@ -8,7 +8,6 @@ import { EmbeddingService } from "@/services/embedding.service";
 import { groqService, GroqService } from "@/services/groq.service";
 import {
   reviseClauseSchema,
-  type ReviseClauseInput,
 } from "@/app/validations/revise-clause.validation";
 import {
   type ReviseClauseInputDTO,
