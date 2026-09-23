@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
-import { Search } from "lucide-react";
+import { FilePen, FileSearch, Search } from "lucide-react";
 import { FormInput } from "@/components/ui/form-input";
 import {
   Select,
@@ -15,6 +16,7 @@ import { ContractSearchItem, type SearchItem } from "./contract-search-item";
 import { ContractSearchSkeleton } from "./contract-search-skeleton";
 import { useSearch } from "@/hooks/useSearch";
 import type { ContractSearchFilterType } from "@/types/contract-search.type";
+import { Button } from "./ui/button";
 
 export function ContractSearchClient({
   initialItems,
@@ -64,7 +66,7 @@ export function ContractSearchClient({
             Cari Kontrak
         </p>
         <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">
-            Cari Kontrak Anda
+            Temukan Kontrak Anda
         </h1>
 
         <div className="mt-6">
@@ -76,14 +78,14 @@ export function ContractSearchClient({
             onChange={handleFileSelect}
           />
 
-          {/* Top Controls Bar: Filter on the left, Search input in the middle */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Top Controls Bar: Filter on the left, Search input in the middle, Action buttons on the right */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <Select
               value={filter}
               defaultValue="Semua"
               onValueChange={(val) => setFilter(val as ContractSearchFilterType)}
             >
-              <SelectTrigger variant="outline" className="w-[110px] sm:w-[120px] shrink-0">
+              <SelectTrigger variant="outline" className="w-[95px] sm:w-[120px] shrink-0">
                 <SelectValue placeholder="Semua">{filter}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -98,10 +100,37 @@ export function ContractSearchClient({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Cari review atau draft..."
-              leftIcon={<Search className="size-4 text-klarisa-secondary" />}
-              containerClassName="flex-1 space-y-0"
+              leftIcon={<Search className="size-4 text-klarisa-navy" />}
+              containerClassName="flex-1 space-y-0 min-w-0"
               inputClassName="bg-white"
             />
+
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <Button
+                asChild
+                variant="outline"
+                className="size-11 p-0 sm:h-11 sm:w-auto sm:px-4 shrink-0"
+                title="Buat draft"
+                aria-label="Buat draft"
+              >
+                <Link href="/dashboard/create">
+                  <FilePen className="size-4" />
+                  <span className="hidden sm:inline">Buat draft</span>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                className="size-11 p-0 sm:h-11 sm:w-auto sm:px-4 shrink-0"
+                title="Review kontrak"
+                aria-label="Review kontrak"
+              >
+                <Link href="/dashboard/review">
+                  <FileSearch className="size-4" />
+                  <span className="hidden sm:inline">Review kontrak</span>
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Counter Bar */}

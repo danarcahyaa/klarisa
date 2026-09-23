@@ -56,7 +56,7 @@ export function useAuth(): UseAuthReturn {
   /**
    * Handler for email & password login.
    */
-  const handleLogin = async (data: LoginDTO, redirectTo = '/dashboard'): Promise<boolean> => {
+  const handleLogin = async (data: LoginDTO, redirectTo = '/dashboard/search'): Promise<boolean> => {
     setIsLoading(true)
     setError(null)
     setIsSuccess(false)
@@ -78,7 +78,7 @@ export function useAuth(): UseAuthReturn {
       setIsLoading(false)
       const safeRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith('//')
         ? redirectTo
-        : '/dashboard'
+        : '/dashboard/search'
       router.push(safeRedirect)
       router.refresh()
       return true
@@ -127,7 +127,7 @@ export function useAuth(): UseAuthReturn {
   /**
    * Handler for Google OAuth login.
    */
-  const handleGoogleLogin = async (redirectTo = '/dashboard'): Promise<void> => {
+  const handleGoogleLogin = async (redirectTo = '/dashboard/search'): Promise<void> => {
     setIsAuthGoogle(true)
     setIsLoading(true)
     setError(null)

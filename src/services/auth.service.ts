@@ -90,7 +90,7 @@ export class AuthService {
   /**
    * User OAuth Google authentication service method.
    */
-  async loginWithGoogle(redirectTo = '/dashboard'): Promise<AuthResponse<null>> {
+  async loginWithGoogle(redirectTo = '/dashboard/search'): Promise<AuthResponse<null>> {
     const { error } = await this.repo.signInWithOAuth('google', redirectTo)
     if (error) {
       return createErrorResponse(mapSupabaseError(error.message))

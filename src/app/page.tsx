@@ -108,7 +108,7 @@ export default async function HomePage() {
                 size="sm"
                 className="min-h-11 px-4"
               >
-                <Link href="/dashboard">
+                <Link href="/dashboard/search">
                   Buka workspace <ArrowRight />
                 </Link>
               </Button>

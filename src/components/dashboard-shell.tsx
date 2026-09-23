@@ -5,9 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  FilePlus2,
+  FilePen,
   FileSearch,
-  LayoutGrid,
   LogOut,
   Menu,
   MessageCircle,
@@ -31,10 +30,9 @@ import {
 import type { ChatRow } from "@/types/chat.type";
 
 const navigation = [
-  { label: "Ringkasan", href: "/dashboard", icon: LayoutGrid, exact: true },
   { label: "Cari kontrak", href: "/dashboard/search", icon: Search, exact: true },
   { label: "Review kontrak", href: "/dashboard/review", icon: FileSearch, exact: false },
-  { label: "Draft kontrak", href: "/dashboard/create", icon: FilePlus2, exact: false },
+  { label: "Draft kontrak", href: "/dashboard/create", icon: FilePen, exact: false },
 ] as const;
 
 type DashboardShellProps = {
@@ -53,8 +51,7 @@ function getPageSubtitle(pathname: string): string {
   if (pathname.startsWith("/dashboard/review")) return "REVIEW KONTRAK";
   if (pathname.startsWith("/dashboard/create") || pathname.startsWith("/dashboard/draft")) return "DRAFT KONTRAK";
   if (pathname.startsWith("/dashboard/shared")) return "DRAFT DIBAGIKAN";
-  if (pathname === "/dashboard") return "WORKSPACE PRIBADI";
-  return "WORKSPACE DOKUMEN";
+  return "WORKSPACE KONTRAK";
 }
 
 export function DashboardShell({ children, user, initialChats }: DashboardShellProps) {
