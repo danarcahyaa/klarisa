@@ -69,8 +69,8 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
   const reviewHref = user
-    ? "/dashboard/search"
-    : "/login?next=/dashboard/search";
+    ? "/dashboard/review"
+    : "/login?next=/dashboard/review";
 
   return (
     <main className="overflow-x-clip bg-background text-foreground">
@@ -108,7 +108,7 @@ export default async function HomePage() {
                 size="sm"
                 className="min-h-11 px-4"
               >
-                <Link href="/dashboard/search">
+                <Link href="/dashboard">
                   Buka workspace <ArrowRight />
                 </Link>
               </Button>

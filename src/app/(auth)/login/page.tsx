@@ -15,10 +15,10 @@ function LoginFormContent() {
   const searchParams = useSearchParams()
   const urlError = searchParams.get('error')
   const urlMessage = searchParams.get('message')
-  const requestedNext = searchParams.get('next') || '/dashboard/search'
+  const requestedNext = searchParams.get('next') || '/dashboard'
   const redirectTo = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
-    : '/dashboard/search'
+    : '/dashboard'
 
   const { handleLogin, handleGoogleLogin, isLoading, error, isAuthGoogle, clearError } = useAuth()
 

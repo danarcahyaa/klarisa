@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const context = await getDraftServerContext();
 
   if (!context) {
-    redirect("/login?next=/dashboard/search");
+    redirect("/login?next=/dashboard");
   }
 
   const { user } = context;

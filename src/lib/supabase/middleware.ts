@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
     const safeDestination =
       requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
         ? requestedNext
-        : '/dashboard/search'
+        : '/dashboard'
     return redirectWithRefreshedCookies(new URL(safeDestination, request.url))
   }
 

@@ -30,7 +30,7 @@ import {
 import type { ChatRow } from "@/types/chat.type";
 
 const navigation = [
-  { label: "Cari kontrak", href: "/dashboard/search", icon: Search, exact: true },
+  { label: "Cari kontrak", href: "/dashboard", icon: Search, exact: true },
   { label: "Review kontrak", href: "/dashboard/review", icon: FileSearch, exact: false },
   { label: "Draft kontrak", href: "/dashboard/create", icon: FilePen, exact: false },
 ] as const;
@@ -47,7 +47,7 @@ type DashboardShellProps = {
 };
 
 function getPageSubtitle(pathname: string): string {
-  if (pathname === "/dashboard/search") return "CARI KONTRAK";
+  if (pathname === "/dashboard" || pathname === "/dashboard/search") return "CARI KONTRAK";
   if (pathname.startsWith("/dashboard/review")) return "REVIEW KONTRAK";
   if (pathname.startsWith("/dashboard/create") || pathname.startsWith("/dashboard/draft")) return "DRAFT KONTRAK";
   if (pathname.startsWith("/dashboard/shared")) return "DRAFT DIBAGIKAN";

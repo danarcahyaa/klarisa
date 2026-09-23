@@ -65,7 +65,7 @@ export function ContractSearchClient({
         <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase hidden lg:block">
             Cari Kontrak
         </p>
-        <h1 className="mt-2 font-heading text-2xl font-semibold tracking-[-.04em] sm:text-3xl">
+        <h1 className="mt-2 font-heading text-5xl font-medium tracking-[-.04em]">
             Temukan Kontrak Anda
         </h1>
 
