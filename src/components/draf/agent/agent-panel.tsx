@@ -83,43 +83,43 @@ export function AgentPanel({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden h-full max-h-full bg-transparent relative",
+        "flex flex-col overflow-hidden h-full max-h-full bg-white dark:bg-slate-950 relative",
         className
       )}
     >
+      {/* Fixed top header when in chat mode */}
+      <AgentHeader
+        title={chatTitle}
+        chatId={chatId}
+        onRename={setChatTitle}
+        onNewChat={handleNewChat}
+        onDelete={handleNewChat}
+        onSelectChat={handleSelectChat}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onClose={onClose}
+        isLoading={isLoadingChat}
+        isActionDisabled={isSending || isLoadingChat}
+        isEmpty={!hasMessages}
+      />
+
       {/* Scrollable Messages & Content Area */}
       <div className="flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative">
-        {/* Sticky header matching create draf */}
-        <AgentHeader
-          title={chatTitle}
-          chatId={chatId}
-          onRename={setChatTitle}
-          onNewChat={handleNewChat}
-          onDelete={handleNewChat}
-          onSelectChat={handleSelectChat}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          onClose={onClose}
-          isLoading={isLoadingChat}
-          isActionDisabled={isSending || isLoadingChat}
-          isEmpty={!hasMessages}
-        />
-
         <div
           className={cn(
             "flex-1 flex flex-col w-full transition-all duration-500 ease-in-out",
             hasMessages || isLoadingChat
               ? "justify-between"
-              : "justify-center items-center px-4 py-6"
+              : "justify-center items-center px-4 py-8 sm:py-6"
           )}
         >
           {/* Dedicated Empty State with Search Conversation button */}
           {!isLoadingChat && (
             <div
               className={cn(
-                "transition-all duration-500 ease-in-out w-full flex justify-center mb-3",
+                "transition-all duration-500 ease-in-out w-full flex justify-center",
                 hasMessages
                   ? "max-h-0 opacity-0 -translate-y-4 pointer-events-none mb-0 overflow-hidden"
-                  : "max-h-[300px] opacity-100 translate-y-0 mb-4"
+                  : "max-h-[300px] opacity-100 translate-y-0 mb-6 sm:mb-8"
               )}
             >
               <AgentEmptyState onSearchClick={() => setIsSearchOpen(true)} />
@@ -152,14 +152,14 @@ export function AgentPanel({
               "relative w-full transition-all duration-500 ease-in-out",
               hasMessages || isLoadingChat
                 ? "mt-auto sticky bottom-0 z-30 px-3 pb-3 pt-2 bg-transparent"
-                : "max-w-md mx-auto"
+                : "w-full max-w-md mx-auto"
             )}
           >
-            {/* Progressive gradient blur background that smoothly fades from bottom to top (active chat only) */}
+            {/* Smooth gradient background that smoothly fades from bottom to top (active chat only) */}
             {(hasMessages || isLoadingChat) && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -top-12 left-0 right-0 bottom-0 -z-10 bg-gradient-to-t from-[#f7f8fb] from-50% via-[#f7f8fb]/95 via-75% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)] dark:from-slate-950 dark:via-slate-950/95"
+                className="pointer-events-none absolute -top-8 left-0 right-0 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90"
               />
             )}
 
@@ -179,7 +179,7 @@ export function AgentPanel({
               onStop={handleStop}
               value={input}
               onChange={(e) => setInput(e)}
-              placeholder={selectedText ? "Tanyakan tentang teks ini..." : "Tanyakan sesuatu..."}
+              placeholder={selectedText ? "Tanyakan tentang ini..." : "Tanyakan sesuatu..."}
             />
           </div>
         </div>

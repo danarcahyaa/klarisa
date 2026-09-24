@@ -139,27 +139,29 @@ export function ChatHeader({
               <>
                 <span
                   title={displayTitle}
-                  className="truncate text-xs font-semibold text-slate-800 max-w-[220px] sm:max-w-md"
+                  className="truncate text-xs font-semibold text-slate-800 max-w-[220px] sm:max-w-md dark:text-slate-200"
                 >
                   {displayTitle}
                 </span>
 
                 <ActionPopover
+                  modal
                   open={isPopoverOpen}
                   onOpenChange={setIsPopoverOpen}
                   align="start"
                   sideOffset={6}
-                  className="w-40"
+                  className="w-40 z-[150]"
                   trigger={
                     <Button
                       type="button"
                       variant="ghost"
                       size="xs"
                       aria-label="Opsi percakapan"
+                      className="h-6 w-6 p-0 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 cursor-pointer"
                     >
                       <ChevronDown
                         className={cn(
-                          "size-3.5 transition-transform duration-200",
+                          "size-3.5 text-slate-500 transition-transform duration-200 dark:text-slate-400",
                           isPopoverOpen && "rotate-180"
                         )}
                       />

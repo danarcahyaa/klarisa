@@ -24,38 +24,38 @@ export function AgentEmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center text-center w-full max-w-sm transition-all duration-500 ease-in-out",
+        "flex flex-col items-center text-center w-full max-w-sm px-2 transition-all duration-500 ease-in-out",
         className
       )}
     >
-      <div className="flex items-start justify-center gap-2 mb-1.5">
+      <div className="flex items-center justify-center gap-2 mb-2">
         <Image
           src="/klarisa/logo-ai.svg"
           alt="Klarisa AI"
-          width={24}
-          height={24}
+          width={28}
+          height={28}
           priority
+          className="size-7 object-contain"
         />
-        <h3 className="font-semibold font-heading text-slate-800 text-xl dark:text-slate-100">
+        <h3 className="font-semibold font-heading text-slate-800 text-xl sm:text-2xl dark:text-slate-100">
           Klarisa
         </h3>
       </div>
 
-      <p className="text-slate-500 text-xs leading-relaxed max-w-xs dark:text-slate-400">
+      <p className="text-slate-500 text-sm sm:text-xs leading-relaxed max-w-[280px] sm:max-w-xs dark:text-slate-400">
         Tanyakan saran penulisan klausul atau lengkapi draf kontrak Anda.
       </p>
 
       {/* Dedicated search conversation button */}
       <Button
-      className="mt-1.5"
+        className="mt-3.5 h-8 px-3.5 text-xs font-medium gap-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
         type="button"
-        variant={"outline"}
-        size="xs"
+        variant="outline"
+        size="sm"
         onClick={onSearchClick}
-
       >
-        <Search className="size-2.5" />
-        <span className="text-slate-500">Cari percakapan</span>
+        <Search className="size-3.5 text-slate-400" />
+        <span>Cari percakapan</span>
       </Button>
     </div>
   );
