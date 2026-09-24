@@ -40,6 +40,7 @@ export const SubmitButton = React.forwardRef<HTMLButtonElement, SubmitButtonProp
     ref
   ) => {
     const isDisabled = disabled || isLoading
+    const isIconOnly = typeof size === "string" && size.startsWith("icon")
 
     const handleRightIconClick = (e: React.MouseEvent<HTMLSpanElement>) => {
       if (isDisabled) return
@@ -48,6 +49,13 @@ export const SubmitButton = React.forwardRef<HTMLButtonElement, SubmitButtonProp
         onRightIconClick(e)
       }
     }
+
+    const spinnerSize =
+      size === "icon-xs"
+        ? "size-3"
+        : size === "icon-sm"
+        ? "size-3.5"
+        : "size-4"
 
     return (
       <Button
@@ -59,39 +67,49 @@ export const SubmitButton = React.forwardRef<HTMLButtonElement, SubmitButtonProp
         className={cn("relative inline-flex items-center justify-center gap-2", className)}
         {...props}
       >
-        {/* Left Icon or Spinner */}
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
+        {isIconOnly ? (
+          isLoading ? (
+            <Loader2 className={cn(spinnerSize, "animate-spin shrink-0")} aria-hidden="true" />
+          ) : (
+            children
+          )
         ) : (
-          leftIcon && <span className="inline-flex shrink-0 items-center">{leftIcon}</span>
-        )}
-
-        {/* Content / Text */}
-        <span className="truncate">
-          {isLoading && loadingText ? loadingText : children}
-        </span>
-
-        {/* Right Icon (e.g., Password Eye, Arrow) */}
-        {!isLoading && rightIcon && (
-          <span
-            onClick={handleRightIconClick}
-            className={cn(
-              "inline-flex shrink-0 items-center justify-center transition-opacity",
-              onRightIconClick ? "cursor-pointer hover:opacity-80 p-0.5 -mr-1" : "pointer-events-none",
-              rightIconClassName
+          <>
+            {/* Left Icon or Spinner */}
+            {isLoading ? (
+              <Loader2 className="size-4 animate-spin shrink-0" aria-hidden="true" />
+            ) : (
+              leftIcon && <span className="inline-flex shrink-0 items-center">{leftIcon}</span>
             )}
-            role={onRightIconClick ? "button" : undefined}
-            tabIndex={onRightIconClick ? 0 : undefined}
-            onKeyDown={(e) => {
-              if (onRightIconClick && (e.key === "Enter" || e.key === " ")) {
-                e.preventDefault()
-                e.stopPropagation()
-                onRightIconClick(e as unknown as React.MouseEvent<HTMLSpanElement>)
-              }
-            }}
-          >
-            {rightIcon}
-          </span>
+
+            {/* Content / Text */}
+            <span className="truncate">
+              {isLoading && loadingText ? loadingText : children}
+            </span>
+
+            {/* Right Icon (e.g., Password Eye, Arrow) */}
+            {!isLoading && rightIcon && (
+              <span
+                onClick={handleRightIconClick}
+                className={cn(
+                  "inline-flex shrink-0 items-center justify-center transition-opacity",
+                  onRightIconClick ? "cursor-pointer hover:opacity-80 p-0.5 -mr-1" : "pointer-events-none",
+                  rightIconClassName
+                )}
+                role={onRightIconClick ? "button" : undefined}
+                tabIndex={onRightIconClick ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (onRightIconClick && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onRightIconClick(e as unknown as React.MouseEvent<HTMLSpanElement>)
+                  }
+                }}
+              >
+                {rightIcon}
+              </span>
+            )}
+          </>
         )}
       </Button>
     )

@@ -410,6 +410,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
           isLoading={isLoading}
           onClick={() => handleLogout()}
           aria-label="Keluar dari workspace"
+          title="Keluar dari workspace"
           className={cn(isSidebarCollapsed && "lg:hidden")}
         >
           <LogOut className="size-4" />

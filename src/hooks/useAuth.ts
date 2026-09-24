@@ -158,6 +158,7 @@ export function useAuth(): UseAuthReturn {
       const response = await authService.logout()
       if (!response.success) {
         setError(response.error || 'Logout failed.')
+        setIsLoading(false)
       } else {
         setUser(null)
         router.push('/login')
@@ -166,7 +167,6 @@ export function useAuth(): UseAuthReturn {
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An error occurred during logout.'
       setError(errMsg)
-    } finally {
       setIsLoading(false)
     }
   }
