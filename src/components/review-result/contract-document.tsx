@@ -6,6 +6,7 @@ export type ContractDocumentProps = {
   htmlContent?: string | null;
   activeFinding?: string;
   onSelectFinding?: (findingId: string) => void;
+  onClauseClick?: (findingId: string, targetEl: HTMLElement) => void;
 };
 
 /** Read-only view: highlights risky clauses and supports click selection */
@@ -13,7 +14,8 @@ function ContractReadView({
   htmlContent,
   activeFinding,
   onSelectFinding,
-}: Pick<ContractDocumentProps, "htmlContent" | "activeFinding" | "onSelectFinding">) {
+  onClauseClick,
+}: ContractDocumentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +25,6 @@ function ContractReadView({
       const source = el.getAttribute("data-finding-source");
       if (activeFinding && source === activeFinding) {
         el.classList.add("active-highlight");
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
         el.classList.remove("active-highlight");
       }
@@ -36,7 +37,7 @@ function ContractReadView({
     if (target) {
       const sourceId = target.getAttribute("data-finding-source");
       if (sourceId) {
-        onSelectFinding?.(sourceId);
+        onClauseClick?.(sourceId, target as HTMLElement);
       }
     }
   };
@@ -77,6 +78,7 @@ export function ContractDocument({
   htmlContent,
   activeFinding,
   onSelectFinding,
+  onClauseClick,
 }: ContractDocumentProps) {
   return (
     <div className="animate-in fade-in duration-200">
@@ -84,6 +86,7 @@ export function ContractDocument({
         htmlContent={htmlContent}
         activeFinding={activeFinding}
         onSelectFinding={onSelectFinding}
+        onClauseClick={onClauseClick}
       />
     </div>
   );

@@ -6,8 +6,14 @@ import { ReviewRiskSummaryBar } from "./review-risk-summary-bar";
 export function FindingListSkeleton() {
   return (
     <section role="status" aria-label="Memuat daftar temuan" className="motion-safe:animate-pulse">
-      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 pt-3">
-        <ReviewRiskSummaryBar isLoading={true} />
+      <div className="sticky top-0 z-20 px-3 pt-3 pb-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-6 progressive-blur-fade"
+        />
+        <div className="relative z-10">
+          <ReviewRiskSummaryBar isLoading={true} />
+        </div>
       </div>
       <div className="divide-y divide-slate-100 mt-2">
         {[1, 2, 3, 4].map((item) => (

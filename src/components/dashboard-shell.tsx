@@ -420,12 +420,14 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
   );
 
   const isDraftDetail = pathname.startsWith("/dashboard/draft");
+  const isFixedWorkspace =
+    isDraftDetail || pathname.startsWith("/dashboard/review/result");
 
   return (
     <main
       className={cn(
         "bg-[#f7f8fb] text-[#172031] transition-[grid-template-columns] duration-300 ease-in-out lg:grid lg:h-svh lg:min-h-0 lg:overflow-hidden",
-        isDraftDetail ? "h-svh overflow-hidden flex flex-col" : "min-h-svh",
+        isFixedWorkspace ? "h-svh overflow-hidden flex flex-col" : "min-h-svh",
         isSidebarCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[216px_minmax(0,1fr)]"
       )}
     >
@@ -450,7 +452,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       <section
         className={cn(
           "relative min-w-0 max-w-full overflow-x-clip lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto",
-          isDraftDetail && "h-full flex flex-col min-h-0 overflow-hidden lg:overflow-y-hidden"
+          isFixedWorkspace && "h-full flex flex-col min-h-0 overflow-hidden lg:overflow-y-hidden"
         )}
       >
         {/* Mobile Top Header Bar */}
@@ -549,7 +551,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
           })()}
         </header>
 
-        <div className={cn("min-w-0", isDraftDetail && "flex-1 min-h-0 flex flex-col overflow-hidden")}>{children}</div>
+        <div className={cn("min-w-0", isFixedWorkspace && "flex-1 min-h-0 flex flex-col overflow-hidden")}>{children}</div>
       </section>
 
       {/* Search Chat Modal Dialog */}

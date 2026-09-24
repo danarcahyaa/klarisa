@@ -51,15 +51,15 @@ export function FindingLegalReferencesCard({
               key={gIdx}
               type="button"
               onClick={() => onSelectGroup(group)}
-              className="flex w-98 min-w-0 items-center justify-between gap-2.5 pb-2 pl-1 text-left transition-colors cursor-pointer group/item overflow-hidden"
+              className="flex w-full min-w-0 items-center justify-between gap-2.5 pb-2 pl-1 text-left transition-colors cursor-pointer group/item overflow-hidden"
             >
               <div className="flex min-w-0 flex-1 items-start gap-2.5 overflow-hidden">
                 <div className="grid min-w-0 flex-1 gap-0.5 overflow-hidden">
-                  <h5 className="text-sm font-medium hover:underline text-slate-800 truncate" title={group.regulationName}>
+                  <h5 className="text-sm font-medium hover:underline text-slate-800 line-clamp-1 truncate" title={group.regulationName}>
                     {group.regulationName}
                   </h5>
                   {group.hierarchyText && (
-                    <p className="text-[11px] font-medium text-slate-500 truncate" title={group.hierarchyText}>
+                    <p className="text-[11px] font-medium text-slate-500 line-clamp-1 truncate" title={group.hierarchyText}>
                       {group.hierarchyText}
                     </p>
                   )}

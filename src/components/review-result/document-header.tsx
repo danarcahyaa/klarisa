@@ -35,7 +35,7 @@ export function DocumentHeader({
   const formattedDate = createdAt ? formatIndonesianDate(createdAt) : null;
 
   return (
-    <header className="flex h-16 min-h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-7">
+    <header className="relative z-20 lg:sticky lg:top-0 lg:z-30 flex h-16 min-h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-7">
       <Button
         variant="ghost"
         size="icon-sm"

@@ -130,7 +130,7 @@ export interface UseReviewResultWorkspaceReturn {
     errorType: "limitation" | "reasoning";
     errorMessage?: string;
   } | null;
-  selectFromList: (findingId: string) => void;
+  selectFromList: (findingId: string, shouldScroll?: boolean) => void;
   handleBackToReview: () => void;
 }
 

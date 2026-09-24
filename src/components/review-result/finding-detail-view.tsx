@@ -67,7 +67,7 @@ export function FindingDetailView({
 
   return (
     <div>
-      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-lg">
+      <div className="sticky top-0 z-20 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 backdrop-blur-md">
         <div className="px-3 pt-3">
           <ReviewRiskSummaryBar totalAnalyzed={totalAnalyzed || totalFindings} riskyCount={totalFindings} />
         </div>

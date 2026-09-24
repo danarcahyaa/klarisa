@@ -172,14 +172,16 @@ export function useReviewResultWorkspace(
     };
   }, [reviewId]);
 
-  const selectFromList = useCallback((findingId: string) => {
+  const selectFromList = useCallback((findingId: string, shouldScroll = true) => {
     setActiveFinding(findingId);
-    window.requestAnimationFrame(() => {
-      const targetEl = document.querySelector(`[data-finding-source="${findingId}"]`);
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
+    if (shouldScroll) {
+      window.requestAnimationFrame(() => {
+        const targetEl = document.querySelector(`[data-finding-source="${findingId}"]`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    }
   }, []);
 
   const handleBackToReview = useCallback(() => {

@@ -118,8 +118,14 @@ export function FindingList({
 
   return (
     <section>
-      <div className="sticky top-0 z-20 bg-transparent backdrop-blur-md px-3 py-3">
-        <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
+      <div className="sticky top-0 z-20 px-3 pt-3 pb-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-6 progressive-blur-fade"
+        />
+        <div className="relative z-10">
+          <ReviewRiskSummaryBar isLoading={false} totalAnalyzed={totalAnalyzed || riskCount} riskyCount={riskCount} />
+        </div>
       </div>
       <div className="divide-y divide-slate-100">
         {!isAlertDismissed && (
