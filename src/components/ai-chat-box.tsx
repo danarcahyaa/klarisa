@@ -207,8 +207,8 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
         className={cn(
           "group relative flex w-full gap-2 border bg-white transition-all duration-200 ease-in-out",
           isSmall
-            ? "min-h-[72px] sm:min-h-[76px] rounded-xl border-slate-200 p-2.5 sm:p-3 items-center"
-            : (isMultiLine ? "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-end" : "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-center"),
+            ? "min-h-[72px] sm:min-h-[76px] rounded-xl border-slate-200 p-2.5 sm:p-4 items-center"
+            : (isMultiLine ? "min-h-[52px] rounded-xl border-slate-300 p-4 items-end" : "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-center"),
           disabled && "bg-slate-50/70 opacity-70",
           className
         )}
