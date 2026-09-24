@@ -418,8 +418,16 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
     </div>
   );
 
+  const isDraftDetail = pathname.startsWith("/dashboard/draft");
+
   return (
-    <main className={cn("min-h-svh bg-[#f7f8fb] text-[#172031] transition-[grid-template-columns] duration-300 ease-in-out lg:grid lg:h-svh lg:min-h-0 lg:overflow-hidden", isSidebarCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[216px_minmax(0,1fr)]")}>
+    <main
+      className={cn(
+        "bg-[#f7f8fb] text-[#172031] transition-[grid-template-columns] duration-300 ease-in-out lg:grid lg:h-svh lg:min-h-0 lg:overflow-hidden",
+        isDraftDetail ? "h-svh overflow-hidden flex flex-col" : "min-h-svh",
+        isSidebarCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[216px_minmax(0,1fr)]"
+      )}
+    >
       <aside className={cn("fixed inset-y-0 left-0 z-50 hidden border-r border-[#e1e6ee] transition-[width] duration-300 ease-in-out lg:block", isSidebarCollapsed ? "w-[72px]" : "w-[216px]")}>
         {sidebar}
       </aside>
@@ -438,9 +446,14 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
         </div>
       )}
 
-      <section className="relative min-w-0 max-w-full overflow-x-clip lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
+      <section
+        className={cn(
+          "relative min-w-0 max-w-full overflow-x-clip lg:col-start-2 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto",
+          isDraftDetail && "h-full flex flex-col min-h-0 overflow-hidden lg:overflow-y-hidden"
+        )}
+      >
         {/* Mobile Top Header Bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[#e1e6ee] bg-[#f7f8fb] px-4 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[#e1e6ee] bg-[#f7f8fb] px-4 lg:hidden">
           <Button
             type="button"
             variant="outline"
@@ -535,7 +548,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
           })()}
         </header>
 
-        <div className="min-w-0">{children}</div>
+        <div className={cn("min-w-0", isDraftDetail && "flex-1 min-h-0 flex flex-col overflow-hidden")}>{children}</div>
       </section>
 
       {/* Search Chat Modal Dialog */}

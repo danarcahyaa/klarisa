@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { TextEditorToolbar } from "./text-editor-toolbar";
 import { EditorContent, EditorContext } from "@tiptap/react";
 import { AgentPanel } from "../agent/agent-panel";
@@ -8,8 +9,13 @@ import { useSelectionTextDraft } from "@/hooks/useSelectionTextDraft";
 import { SelectionTooltip } from "./selection-tooltip";
 import type { ClauseReviewItem } from "@/types/clause.type";
 import { Skeleton } from "@/components/ui/skeleton";
-
-
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 interface TextEditorCanvasProps {
   contractId?: string;
@@ -26,6 +32,8 @@ export function TextEditorCanvas({
   isLoading = false,
   onContentChange,
 }: TextEditorCanvasProps) {
+  const [isMobileAgentOpen, setIsMobileAgentOpen] = useState(false);
+
   const { editor } = useDraftEditor({
     initialContent,
     onContentChange,
@@ -60,6 +68,16 @@ export function TextEditorCanvas({
     handleDismissSelectedText,
   } = useSelectionTextDraft({ editor });
 
+  const handleAsk = useCallback(
+    (text: string, highlightId?: string) => {
+      handleSelectTextForAsk(text, highlightId);
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setIsMobileAgentOpen(true);
+      }
+    },
+    [handleSelectTextForAsk]
+  );
+
   return (
     <section className="min-w-0 h-full w-full">
       <EditorContext.Provider value={{ editor }}>
@@ -69,6 +87,8 @@ export function TextEditorCanvas({
             <TextEditorToolbar
               editor={editor}
               className="w-full shrink-0"
+              isAgentOpen={isMobileAgentOpen}
+              onToggleAgent={() => setIsMobileAgentOpen((prev) => !prev)}
             />
 
             {/* ONLY SCROLLABLE AREA: Document Canvas */}
@@ -96,7 +116,7 @@ export function TextEditorCanvas({
                 <>
                   <SelectionTooltip
                     editor={editor}
-                    onAsk={handleSelectTextForAsk}
+                    onAsk={handleAsk}
                     reviews={reviews}
                     isReviewing={isReviewing}
                     isRevisingClause={isRevisingClause}
@@ -115,18 +135,38 @@ export function TextEditorCanvas({
             </div>
           </div>
 
-
-
-          {/* AI Agent Sidebar on the right */}
-          <AgentPanel
-            selectedText={selectedTextForAsk}
-            highlightId={selectedHighlightId}
-            isMultiLine={isMultiLine}
-            setSelectedTextRef={setSelectedTextRef}
-            onDismissSelectedText={handleDismissSelectedText}
-            className="w-full h-full"
-          />
+          {/* AI Agent Sidebar on the right (Desktop only) */}
+          <div className="hidden lg:flex flex-1 h-full min-w-0 overflow-hidden">
+            <AgentPanel
+              selectedText={selectedTextForAsk}
+              highlightId={selectedHighlightId}
+              isMultiLine={isMultiLine}
+              setSelectedTextRef={setSelectedTextRef}
+              onDismissSelectedText={handleDismissSelectedText}
+              className="w-full h-full"
+            />
+          </div>
         </div>
+
+        {/* Mobile Agent Panel Sheet */}
+        <Sheet open={isMobileAgentOpen} onOpenChange={setIsMobileAgentOpen}>
+          <SheetContent
+            side="bottom"
+            className="w-full h-[88vh] rounded-t-2xl sm:rounded-t-3xl max-h-[94vh] p-0 flex flex-col gap-0 overflow-hidden bg-white dark:bg-slate-950"
+          >
+            
+            <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col py-3 pl-3 pr-1">
+              <AgentPanel
+                selectedText={selectedTextForAsk}
+                highlightId={selectedHighlightId}
+                isMultiLine={isMultiLine}
+                setSelectedTextRef={setSelectedTextRef}
+                onDismissSelectedText={handleDismissSelectedText}
+                className="w-full h-full"
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </EditorContext.Provider>
     </section>
   );

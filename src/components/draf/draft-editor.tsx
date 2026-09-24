@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { EditorHeader } from "./header/editor-header";
 import type { ContractDetail } from "@/types/contract.type";
 import { TextEditorCanvas } from "./text-editor/text-editor-canvas";
@@ -58,6 +59,7 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
 
   const {
     title,
+    content,
     updatedAt,
     isSaving,
     isSaved,
@@ -72,8 +74,42 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
     handleDelete,
   } = useDraftEditorAction({ initialDraft: activeDraft, backHref });
 
+  const handleExportDocx = useCallback(async () => {
+    try {
+      toast.loading("Mengekspor draft ke DOCX...", { id: "export-docx" });
+      const response = await fetch("/api/draft/export-docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || "Dokumen Kontrak",
+          content: content || "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal mengekspor dokumen DOCX.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const safeTitle = (title || "Dokumen Kontrak").replace(/[/\\?%*:|"<>]/g, "-").trim();
+      anchor.href = url;
+      anchor.download = `${safeTitle}.docx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Dokumen DOCX berhasil diunduh.", { id: "export-docx" });
+    } catch (err) {
+      console.error("[DraftEditor] Export DOCX error:", err);
+      toast.error("Gagal mengunduh file DOCX. Silakan coba lagi.", { id: "export-docx" });
+    }
+  }, [title, content]);
+
   return (
-    <div className="flex flex-col h-svh max-h-svh overflow-hidden">
+    <div className="flex flex-col h-full max-h-full min-h-0 flex-1 overflow-hidden">
       <EditorHeader
         title={title}
         updatedAt={updatedAt}
@@ -81,6 +117,7 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
         isSaving={isSaving}
         isSaved={isSaved}
         onRename={() => setIsRenameDialogOpen(true)}
+        onExportDocx={handleExportDocx}
         onDelete={() => setIsDeleteDialogOpen(true)}
         backHref={backHref}
       />

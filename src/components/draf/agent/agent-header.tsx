@@ -115,15 +115,13 @@ export function AgentHeader({
     <>
       <header
         className={cn(
-          "sticky top-0 mb-3 z-20 w-full transition-all duration-300 shrink-0",
+          "w-full transition-all duration-200 shrink-0 z-20",
+          !isEmpty
+            ? "bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800"
+            : "hidden",
           className
         )}
       >
-        {/* Progressive gradient blur background matching create draf */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -bottom-6 -z-10 bg-gradient-to-b from-[#f7f8fb] from-60% via-[#f7f8fb]/90 via-80% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)] dark:from-slate-950 dark:via-slate-950/90"
-        />
 
         <div className="flex w-full items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -142,18 +140,19 @@ export function AgentHeader({
                 </span>
 
                 <ActionPopover
+                  modal
                   open={isPopoverOpen}
                   onOpenChange={setIsPopoverOpen}
                   align="start"
                   sideOffset={6}
-                  className="w-44"
+                  className="w-44 z-[150]"
                   trigger={
                     <Button
                       type="button"
                       variant="ghost"
                       size="xs"
                       aria-label="Opsi percakapan"
-                      className="h-6 w-6 p-0 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+                      className="h-6 w-6 p-0 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 cursor-pointer"
                     >
                       <ChevronDown
                         className={cn(
@@ -163,60 +162,45 @@ export function AgentHeader({
                       />
                     </Button>
                   }
-                  items={[
-                    {
-                      text: "Cari percakapan",
-                      icon: <Search className="size-3.5 text-slate-500" />,
-                      onClick: () => {
-                        setIsPopoverOpen(false);
-                        if (onOpenSearch) {
-                          onOpenSearch();
-                        } else {
-                          setIsSearchOpen(true);
-                        }
-                      },
+                items={[
+                  {
+                    text: "Cari percakapan",
+                    icon: <Search className="size-3.5 text-slate-500" />,
+                    onClick: () => {
+                      setIsPopoverOpen(false);
+                      if (onOpenSearch) {
+                        onOpenSearch();
+                      } else {
+                        setIsSearchOpen(true);
+                      }
                     },
-                    {
-                      text: "Percakapan baru",
-                      icon: <Plus className="size-3.5 text-slate-500" />,
-                      disabled: isActionDisabled,
-                      onClick: handleNewChat,
-                    },
-                    {
-                      text: "Ganti nama",
-                      icon: <Pencil className="size-3.5 text-slate-500" />,
-                      disabled: isActionDisabled,
-                      onClick: () => setIsRenameOpen(true),
-                    },
-                  ]}
-                  footer={[
-                    {
-                      text: "Hapus",
-                      icon: <Trash2 className="size-3.5 text-red-500" />,
-                      variant: "destructive",
-                      disabled: isActionDisabled,
-                      onClick: () => setIsDeleteOpen(true),
-                    },
-                  ]}
-                />
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            {onClose && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                aria-label="Tutup panel"
-                onClick={onClose}
-                className="h-6 w-6 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              >
-                <ChevronRight className="size-3.5 text-slate-500" />
-              </Button>
-            )}
-          </div>
+                  },
+                  {
+                    text: "Percakapan baru",
+                    icon: <Plus className="size-3.5 text-slate-500" />,
+                    disabled: isActionDisabled,
+                    onClick: handleNewChat,
+                  },
+                  {
+                    text: "Ganti nama",
+                    icon: <Pencil className="size-3.5 text-slate-500" />,
+                    disabled: isActionDisabled,
+                    onClick: () => setIsRenameOpen(true),
+                  },
+                ]}
+                footer={[
+                  {
+                    text: "Hapus",
+                    icon: <Trash2 className="size-3.5 text-red-500" />,
+                    variant: "destructive",
+                    disabled: isActionDisabled,
+                    onClick: () => setIsDeleteOpen(true),
+                  },
+                ]}
+              />
+            </>
+          )}
+        </div>
         </div>
       </header>
 

@@ -207,7 +207,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
         className={cn(
           "group relative flex w-full gap-2 border bg-white transition-all duration-200 ease-in-out",
           isSmall
-            ? "min-h-[76px] rounded-lg border-slate-200 p-2.5 items-center"
+            ? "min-h-[72px] sm:min-h-[76px] rounded-lg border-slate-200 p-2.5 sm:p-3 items-center"
             : (isMultiLine ? "min-h-[52px] rounded-lg border-slate-300 p-1.5 items-end" : "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-center"),
           disabled && "bg-slate-50/70 opacity-70",
           className
@@ -226,7 +226,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           autoFocus={autoFocus}
           className={cn(
             isSmall
-              ? "self-stretch flex-1 min-h-[48px] pt-1 px-2 text-xs placeholder:text-xs leading-5"
+              ? "self-stretch flex-1 min-h-[44px] pt-1 px-2 text-sm sm:text-xs placeholder:text-sm sm:placeholder:text-xs leading-relaxed"
               : (isMultiLine ? "min-h-[100px] py-2" : "min-h-[26px] py-1 leading-6"),
             !isSmall && "px-2.5 text-sm placeholder:text-sm",
             "w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400",
@@ -248,8 +248,8 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           className={cn(
             "inline-flex shrink-0 items-center justify-center transition-all duration-150",
             isSmall
-              ? (isMultiLine ? "mb-0.5 self-end size-7 rounded-md" : "self-center size-8 rounded-xl")
-              : (isMultiLine ? "mb-0.5 self-end size-9 rounded-md" : "self-center size-9 rounded-lg"),
+              ? (isMultiLine ? "mb-0.5 self-end size-8 rounded-md" : "self-center size-8 rounded-md")
+              : (isMultiLine ? "mb-0.5 self-end size-9 rounded-md" : "self-center size-9 rounded-md"),
             isSubmitDisabled
               ? "cursor-not-allowed bg-slate-50 text-slate-400"
               : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95",
@@ -259,7 +259,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           {isLoading ? (
             <Pause className={cn(isSmall ? "size-3.5" : "size-4", "fill-current")} />
           ) : (
-            <ArrowRight className={isSmall ? "size-3" : "size-4"} />
+            <ArrowRight className={cn(isSmall ? "size-3.5 sm:size-4" : "size-4")} />
           )}
         </button>
       </div>

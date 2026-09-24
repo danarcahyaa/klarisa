@@ -53,6 +53,8 @@ export interface ActionPopoverProps {
   side?: "top" | "right" | "bottom" | "left";
   /** Distance in pixels between popover and trigger */
   sideOffset?: number;
+  /** Whether the popover behaves modally. When true, prevents interaction with outside elements. */
+  modal?: boolean;
   /** Custom CSS classes for PopoverContent */
   className?: string;
   /** Custom CSS classes for the items list wrapper */
@@ -87,6 +89,7 @@ export function ActionPopover({
   align = "start",
   side,
   sideOffset = 6,
+  modal,
   className,
   itemsClassName,
   footerClassName,
@@ -201,14 +204,14 @@ export function ActionPopover({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange} modal={modal}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         align={align}
         side={side}
         sideOffset={sideOffset}
         className={cn(
-          "w-44 px-1 py-1.5 rounded-lg border border-slate-200 bg-white shadow-md text-xs font-medium dark:border-slate-800 dark:bg-slate-900",
+          "z-[150] w-44 px-1 py-1.5 rounded-lg border border-slate-200 bg-white shadow-md text-xs font-medium dark:border-slate-800 dark:bg-slate-900",
           className
         )}
       >
