@@ -334,7 +334,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
         </Button>
       </div>
 
-      <nav aria-label="Menu workspace" className="grid gap-1 pt-4 pr-3">
+      <nav aria-label="Menu workspace" className="grid gap-1 pt-4 pr-3 shrink-0">
         {navigation.map(({ label, href, icon: Icon, exact }) => {
           const isCreateContract = href === "/dashboard/create";
           const isRecentChatActive = Boolean(activeChatId);
@@ -371,7 +371,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
 
       {/* Collapsed Search Chat Item with Divider */}
       {isSidebarCollapsed && (
-        <div className="hidden lg:grid pt-1 pr-3">
+        <div className="hidden lg:grid pt-1 pr-3 shrink-0">
           <div className="my-2 border-t border-[#e7ebf1] mx-1" />
           <button
             type="button"
@@ -390,12 +390,12 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       )}
 
       <SidebarRecentChats
-        className={cn(isSidebarCollapsed && "lg:hidden")}
+        className={cn("flex-1 min-h-0", isSidebarCollapsed && "lg:hidden")}
         initialChats={initialChats}
         onCloseSidebar={() => setIsOpen(false)}
       />
 
-      <div className={cn("mt-auto flex items-center gap-2 border-t border-[#e7ebf1] px-2 pr-3 pt-4", isSidebarCollapsed && "lg:justify-center")}>
+      <div className={cn("mt-auto shrink-0 flex items-center gap-2 border-t border-[#e7ebf1] px-2 pr-3 pt-4", isSidebarCollapsed && "lg:justify-center")}>
         <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
           {user.initials}
         </span>

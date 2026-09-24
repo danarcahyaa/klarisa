@@ -126,9 +126,9 @@ function RecentChatsList({
   };
 
   return (
-    <div className={cn("grid pt-6 text-xs text-slate-500", className)}>
+    <div className={cn("flex flex-col min-h-0 pt-6 text-xs text-slate-500", className)}>
       {/* Header section with TERKINI and Search button aligned with nav */}
-      <div className="flex items-center justify-between px-2 pr-3">
+      <div className="flex items-center justify-between px-2 pr-3 shrink-0 pb-1">
         <b className="text-xs font-bold tracking-wider text-slate-400 uppercase">TERKINI</b>
         <Button
           type="button"
@@ -147,7 +147,7 @@ function RecentChatsList({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex flex-col gap-0.5 max-h-[calc(100vh-380px)] overflow-y-auto pb-3 pr-0 scrollbar-hover"
+        className="flex flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto pb-3 pr-0 scrollbar-hover"
       >
         {isLoading && chats.length === 0 ? (
           <div className="space-y-2 py-1 mr-2">
@@ -294,7 +294,7 @@ export function SidebarRecentChats(props: SidebarRecentChatsProps) {
   return (
     <Suspense
       fallback={
-        <div className={cn("grid gap-2 px-2 pt-6 text-xs text-slate-500", props.className)}>
+        <div className={cn("flex flex-col min-h-0 gap-2 px-2 pt-6 text-xs text-slate-500", props.className)}>
           <div className="flex items-center justify-between">
             <b className="text-xs font-bold tracking-wider text-slate-400 uppercase">TERKINI</b>
             <Button
