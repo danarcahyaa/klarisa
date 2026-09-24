@@ -46,3 +46,26 @@ export async function searchUserReviewsAction(params: SearchReviewsDTO = {}) {
   const reviewService = createReviewService(createAdminClient());
   return reviewService.searchReviews(user.id, params);
 }
+
+/**
+ * Server action to delete a review contract document owned by the current user.
+ */
+export async function deleteReviewAction(contractId: string) {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+  if (error || !user) {
+    return createErrorResponse<boolean>("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  const reviewService = createReviewService(createAdminClient());
+  const result = await reviewService.deleteReview(user.id, contractId);
+  if (result.success) {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/review");
+    revalidatePath("/dashboard/search");
+  }
+  return result;
+}

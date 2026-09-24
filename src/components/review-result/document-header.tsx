@@ -18,9 +18,10 @@ interface DocumentHeaderProps {
   status?: string;
   onBack?: () => void;
   isLoading?: boolean;
+  isDeleting?: boolean;
   onSearchReview?: () => void;
   onExportDraft?: () => void;
-  onDeleteReview?: () => void;
+  onDeleteReview?: () => void | Promise<void>;
 }
 
 export function DocumentHeader({
@@ -29,6 +30,7 @@ export function DocumentHeader({
   status,
   onBack,
   isLoading = false,
+  isDeleting = false,
   onSearchReview,
   onExportDraft,
   onDeleteReview,
@@ -146,6 +148,7 @@ export function DocumentHeader({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         item={fileName || "Review Kontrak"}
+        isLoading={isDeleting}
         onConfirm={async () => {
           if (onDeleteReview) {
             await onDeleteReview();

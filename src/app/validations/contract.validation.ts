@@ -150,3 +150,9 @@ export const searchReviewsSchema = z.object({
 
 export type SearchReviewsInput = z.infer<typeof searchReviewsSchema>;
 
+export const deleteReviewSchema = z.object({
+  contractId: z.string().uuid("ID review kontrak tidak valid"),
+});
+
+export type DeleteReviewDTO = z.infer<typeof deleteReviewSchema>;
+

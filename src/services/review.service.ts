@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   uploadContractDocumentSchema,
   searchReviewsSchema,
+  deleteReviewSchema,
 } from "@/app/validations/contract.validation";
 import { decryptContractContent, encryptContractContent } from "@/lib/contract-encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -897,6 +898,27 @@ ${chunksText}`;
       },
       "Daftar review berhasil dimuat."
     );
+  }
+
+  /**
+   * Delete a contract review belonging to the authenticated user.
+   */
+  async deleteReview(
+    userId: string,
+    contractId: string
+  ): Promise<BaseResponse<boolean>> {
+    const validation = deleteReviewSchema.safeParse({ contractId });
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "ID review kontrak tidak valid.";
+      return createErrorResponse(firstError);
+    }
+
+    const { error } = await this.repository.deleteContract(userId, validation.data.contractId);
+    if (error) {
+      return createErrorResponse(mapSupabaseError(error.message));
+    }
+
+    return createSuccessResponse(true, "Review kontrak berhasil dihapus.");
   }
 }
 

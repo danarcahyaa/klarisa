@@ -12,6 +12,7 @@ import {
 } from "@/components/review-result";
 import { Button } from "@/components/ui/button";
 import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
+import { useDeleteReview } from "@/hooks/useDeleteReview";
 import { useReviewResultWorkspace } from "@/hooks/useReviewResultWorkspace";
 import { cn } from "@/lib/utils";
 import type { DisplayFinding } from "@/types/contract-review.type";
@@ -23,6 +24,7 @@ interface ReviewResultWorkspaceProps {
 
 export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) {
   const isMobile = useIsBreakpoint("max", 1024);
+  const { isDeleting: isDeletingReview, handleDeleteReview } = useDeleteReview();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedTooltip, setSelectedTooltip] = useState<{
     findingId: string;
@@ -61,6 +63,12 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
   const scrollToTop = useCallback(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  const onDeleteReview = useCallback(async () => {
+    if (reviewId) {
+      await handleDeleteReview(reviewId, "/dashboard/review");
+    }
+  }, [reviewId, handleDeleteReview]);
 
   // Dismiss mobile tooltip if viewport resizes to desktop
   useEffect(() => {
@@ -161,6 +169,8 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
               fileName={fileName}
               createdAt={createdAt}
               isLoading={isLoading}
+              isDeleting={isDeletingReview}
+              onDeleteReview={onDeleteReview}
             />
 
             {/* Mobile Risk Summary Bar: Becomes sticky at top-0 touching the hamburger header, layered above DocumentHeader */}

@@ -19,6 +19,7 @@ export class ReviewRepository {
   }
 
   async deleteContract(userId: string, contractId: string) {
+    await this.supabase.from("contract_review").delete().eq("contract_id", contractId);
     return this.supabase.from("contracts").delete().eq("id", contractId).eq("user_id", userId);
   }
 
