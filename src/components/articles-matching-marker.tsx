@@ -113,9 +113,9 @@ export function ArticlesMatchingMarker({
               <div className={`flex items-center ${isProcessing ? "shimmer" : ""}`}>
                 <span>
                   {isProcessing
-                    ? "Mencari Rujukan Undang-Undang yang Relevan"
+                    ? "Mencari Rujukan Regulasi yang Relevan"
                     : !isProcessing && activeRegulations.length > 0
-                    ? "Rujukan Undang-Undang Berhasil Ditemukan"
+                    ? "Rujukan Regulasi Berhasil Ditemukan"
                     : "Proses Pencarian Selesai"}
                 </span>
               </div>
@@ -124,13 +124,13 @@ export function ArticlesMatchingMarker({
             <AccordionContent className="pb-0 text-xs text-slate-600 space-y-3">
               {isProcessing && !activeRegulations.length && (
                 <p className="leading-relaxed text-slate-500">
-                  Sistem sedang menganalisis pasal-pasal dalam dokumen kontrak Anda dan mencocokkannya dengan Peraturan Perundang-undangan Indonesia yang berlaku.
+                  Sistem sedang menganalisis pasal-pasal dalam dokumen kontrak Anda dan mencocokkannya dengan peraturan perundang-undangan dan regulasi yang berlaku.
                 </p>
               )}
 
               {!isProcessing && activeRegulations.length === 0 && (
                 <p className="leading-relaxed text-slate-500">
-                  Dokumen kontrak ini telah dianalisis dan tidak memerlukan rujukan undang-undang khusus.
+                  Dokumen kontrak ini telah dianalisis dan tidak memerlukan rujukan regulasi khusus.
                 </p>
               )}
 

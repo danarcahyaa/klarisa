@@ -40,7 +40,7 @@ export function FindingLegalReferencesCard({
           <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#ff5527] text-white">
             <Scale className="size-3.5" />
           </span>
-          <h4 className="text-sm font-semibold text-slate-900">Rujukan Undang-Undang</h4>
+          <h4 className="text-sm font-semibold text-slate-900">Rujukan Regulasi</h4>
         </div>
         <ChevronDown className="size-4 text-slate-500 transition-transform duration-200" />
       </AccordionTrigger>

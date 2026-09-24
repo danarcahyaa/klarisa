@@ -140,7 +140,7 @@ export function ReviewResultStep({
         {result.references && result.references.length > 0 && (
           <div className="space-y-1.5 pt-1">
             <h4 className="text-xs font-medium text-klarisa-navy">
-              Rujukan Undang-Undang
+              Rujukan Regulasi
             </h4>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {result.references.map((ref, idx) => {
