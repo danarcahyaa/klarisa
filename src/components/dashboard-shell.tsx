@@ -56,6 +56,7 @@ type DashboardShellProps = {
     name: string;
     email: string;
     initials: string;
+    avatarUrl?: string | null;
   };
 };
 
@@ -84,6 +85,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
   const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const { handleLogout, isLoading } = useAuth();
 
   useEffect(() => {
@@ -396,9 +398,18 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       />
 
       <div className={cn("mt-auto shrink-0 flex items-center gap-2 border-t border-[#e7ebf1] px-2 pr-3 pt-4", isSidebarCollapsed && "lg:justify-center")}>
-        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
-          {user.initials}
-        </span>
+        {user.avatarUrl && !avatarError ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.name}
+            onError={() => setAvatarError(true)}
+            className="size-8 shrink-0 rounded-full object-cover border border-slate-200"
+          />
+        ) : (
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
+            {user.initials}
+          </span>
+        )}
         <span className={cn("grid min-w-0 flex-1 gap-0.5", isSidebarCollapsed && "lg:hidden")}>
           <b className="truncate text-xs font-semibold">{user.name}</b>
           <small className="truncate text-xs text-slate-400">{user.email}</small>

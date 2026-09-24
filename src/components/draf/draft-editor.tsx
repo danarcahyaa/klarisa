@@ -35,18 +35,29 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
   const targetId = contractId || initialDraft?.id;
 
   useEffect(() => {
+    let isMounted = true;
+
     if (!draft && targetId) {
       setIsLoading(true);
       loadDraftDetail(targetId)
         .then((data) => {
+          if (!isMounted) return;
           if (data) {
             setDraft(data);
+            setIsLoading(false);
           }
+          // If !data, useDraftEditor is redirecting to /dashboard/create with toast.
+          // Keep isLoading = true so skeleton stays visible instead of flashing an empty canvas.
         })
-        .finally(() => {
+        .catch(() => {
+          if (!isMounted) return;
           setIsLoading(false);
         });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [targetId, draft, loadDraftDetail]);
 
   const activeDraft = draft || initialDraft || {

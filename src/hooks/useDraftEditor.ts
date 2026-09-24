@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useEditor, type Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import Heading from "@tiptap/extension-heading";
@@ -35,7 +37,10 @@ export function useDraftEditor({
   initialContent = "",
   onContentChange,
 }: UseDraftEditorOptions = {}): UseDraftEditorReturn {
+  const router = useRouter();
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const isFetchingRef = useRef(false);
+  const hasRedirectedRef = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -82,23 +87,41 @@ export function useDraftEditor({
 
   const loadDraftDetail = useCallback(
     async (id: string): Promise<ContractDetail | null> => {
+      if (hasRedirectedRef.current) return null;
+
+      if (!id) {
+        hasRedirectedRef.current = true;
+        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+        router.push("/dashboard/create");
+        return null;
+      }
+
+      if (isFetchingRef.current) return null;
+      isFetchingRef.current = true;
       setIsLoadingDetail(true);
+
       try {
         const res = await getDraftDetailAction(id);
-        console.log("Result: ")
-        console.log(res)
         if (res.success && res.data) {
           return res.data;
         }
+
+        hasRedirectedRef.current = true;
+        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+        router.push("/dashboard/create");
         return null;
       } catch (err) {
         console.error("[useDraftEditor] Failed to load draft detail:", err);
+        hasRedirectedRef.current = true;
+        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+        router.push("/dashboard/create");
         return null;
       } finally {
+        isFetchingRef.current = false;
         setIsLoadingDetail(false);
       }
     },
-    []
+    [router]
   );
 
   return {

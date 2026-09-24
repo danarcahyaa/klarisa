@@ -15,15 +15,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { user } = context;
 
-  const chatService = createChatService(createAdminClient());
+  const adminClient = createAdminClient();
+  const chatService = createChatService(adminClient);
   const chatsResult = await chatService.searchChats(user.id, { page: 1, limit: 15 });
   const initialChats = chatsResult.data?.chats ?? [];
 
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("avatar_url, full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const name =
+    profile?.full_name ??
     user.user_metadata?.full_name ??
     user.user_metadata?.name ??
     user.email?.split("@")[0] ??
     "Pengguna Klarisa";
+
   const initials = name
     .split(" ")
     .slice(0, 2)
@@ -31,10 +40,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .join("")
     .toUpperCase();
 
+  const avatarUrl =
+    profile?.avatar_url ??
+    user.user_metadata?.avatar_url ??
+    user.user_metadata?.picture ??
+    user.user_metadata?.avatar ??
+    null;
+
   return (
     <Suspense fallback={null}>
       <DashboardShell
-        user={{ name, email: user.email ?? "", initials: initials || "K" }}
+        user={{
+          name,
+          email: user.email ?? "",
+          initials: initials || "K",
+          avatarUrl,
+        }}
         initialChats={initialChats}
       >
         {children}

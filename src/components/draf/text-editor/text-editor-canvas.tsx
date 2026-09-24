@@ -98,18 +98,19 @@ export function TextEditorCanvas({
               onClick={() => editor?.chain().focus().run()}
             >
               {isLoading ? (
-                <div className="mx-auto w-full max-w-none space-y-4 animate-pulse pt-2">
-                  <Skeleton className="h-8 w-3/5 rounded bg-slate-100" />
-                  <div className="space-y-2.5 pt-3">
-                    <Skeleton className="h-4 w-full rounded bg-slate-2" />
-                    <Skeleton className="h-4 w-11/12 rounded bg-slate-100" />
-                    <Skeleton className="h-4 w-4/5 rounded bg-slate-100" />
+                <div className="mx-auto w-full max-w-none space-y-4 pt-2">
+                  <Skeleton className="h-8 w-3/5 rounded-md" />
+                  <div className="space-y-3 pt-3">
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-11/12 rounded" />
+                    <Skeleton className="h-4 w-4/5 rounded" />
+                    <Skeleton className="h-4 w-9/12 rounded" />
                   </div>
-                  <div className="space-y-2.5 pt-4">
-                    <Skeleton className="h-5 w-2/5 rounded bg-slate-100" />
-                    <Skeleton className="h-4 w-full rounded bg-slate-100" />
-                    <Skeleton className="h-4 w-5/6 rounded bg-slate-100" />
-                    <Skeleton className="h-4 w-3/4 rounded bg-slate-100" />
+                  <div className="space-y-3 pt-4">
+                    <Skeleton className="h-6 w-2/5 rounded-md" />
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-5/6 rounded" />
+                    <Skeleton className="h-4 w-3/4 rounded" />
                   </div>
                 </div>
               ) : (
