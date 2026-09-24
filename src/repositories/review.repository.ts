@@ -93,6 +93,28 @@ export class ReviewRepository {
   async updateDraftMetadata(contractId: string, metadata: TablesInsert<"contract_draft">["metadata"]) {
     return this.supabase.from("contract_draft").update({ metadata }).eq("contract_id", contractId);
   }
+
+  /**
+   * Search and paginate reviewed contracts for a specific user.
+   */
+  async searchReviewsByUser(
+    userId: string,
+    options: { query?: string; from: number; to: number }
+  ) {
+    let queryBuilder = this.supabase
+      .from("contracts")
+      .select("id, title, created_at, updated_at, type, is_pinned", { count: "exact" })
+      .eq("user_id", userId)
+      .eq("type", "review")
+      .order("updated_at", { ascending: false })
+      .range(options.from, options.to);
+
+    if (options.query && options.query.trim().length > 0) {
+      queryBuilder = queryBuilder.ilike("title", `%${options.query.trim()}%`);
+    }
+
+    return queryBuilder;
+  }
 }
 
 export function createReviewRepository(client: SupabaseClient<Database>) {

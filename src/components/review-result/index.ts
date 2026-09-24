@@ -10,3 +10,4 @@ export * from "./revision-recommendation-card";
 export * from "./legal-reference-detail-sheet";
 export * from "./review-alert";
 export * from "./mobile-finding-detail-drawer";
+export * from "./search-review-dialog";

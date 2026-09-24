@@ -11,6 +11,7 @@ import {
   ReviewRiskSummaryBar,
 } from "@/components/review-result";
 import { Button } from "@/components/ui/button";
+import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
 import { useReviewResultWorkspace } from "@/hooks/useReviewResultWorkspace";
 import { cn } from "@/lib/utils";
 import type { DisplayFinding } from "@/types/contract-review.type";
@@ -21,6 +22,7 @@ interface ReviewResultWorkspaceProps {
 }
 
 export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) {
+  const isMobile = useIsBreakpoint("max", 1024);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [selectedTooltip, setSelectedTooltip] = useState<{
     findingId: string;
@@ -60,7 +62,14 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // Show selection tooltip and smooth scroll to the clicked risky clause
+  // Dismiss mobile tooltip if viewport resizes to desktop
+  useEffect(() => {
+    if (!isMobile && selectedTooltip) {
+      setSelectedTooltip(null);
+    }
+  }, [isMobile, selectedTooltip]);
+
+  // Show selection tooltip on mobile and smooth scroll to the clicked risky clause
   const handleClauseClick = useCallback(
     (findingId: string, targetEl: HTMLElement) => {
       // Highlight the active finding
@@ -71,6 +80,12 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
 
       // Smooth scroll the clause to the center of view
       targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Only display the floating selection tooltip on mobile viewports (< 1024px)
+      if (!isMobile) {
+        setSelectedTooltip(null);
+        return;
+      }
 
       const containerRect = container.getBoundingClientRect();
       const targetRect = targetEl.getBoundingClientRect();
@@ -89,7 +104,7 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
 
       setSelectedTooltip({ findingId, top, left });
     },
-    [selectFromList]
+    [isMobile, selectFromList]
   );
 
   // Close tooltip on tapping outside
@@ -179,8 +194,8 @@ export function ReviewResultWorkspace({ reviewId }: ReviewResultWorkspaceProps) 
               />
             )}
 
-            {/* Selection tooltip placed inside scroll container with z-10 so it passes behind sticky summary bar (z-20) and header (z-20) */}
-            {selectedTooltip && (
+            {/* Selection tooltip placed inside scroll container with z-10 so it passes behind sticky summary bar (z-20) and header (z-20). Only shown on mobile viewports */}
+            {isMobile && selectedTooltip && (
               <div
                 data-clause-tooltip
                 style={{

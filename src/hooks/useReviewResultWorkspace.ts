@@ -25,7 +25,7 @@ export function useReviewResultWorkspace(
   reviewId?: string
 ): UseReviewResultWorkspaceReturn {
   const router = useRouter();
-  const [fileName, setFileName] = useState<string>("Dokumen Kontrak.docx");
+  const [fileName, setFileName] = useState<string>("");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   const [findings, setFindings] = useState<DisplayFinding[]>([]);
@@ -68,11 +68,11 @@ export function useReviewResultWorkspace(
         const detail = response.data;
         const meta = (detail.metadata as Record<string, unknown>) ?? {};
 
-        if (meta.source_file_name && typeof meta.source_file_name === "string") {
-          setFileName(meta.source_file_name);
-        } else if (detail.title) {
-          setFileName(`${detail.title}.docx`);
-        }
+        const rawName =
+          (typeof meta.source_file_name === "string" && meta.source_file_name) ||
+          detail.title ||
+          "Dokumen Kontrak";
+        setFileName(rawName.replace(/\.docx$/i, ""));
 
         if ((detail as any).createdAt) {
           setCreatedAt((detail as any).createdAt);

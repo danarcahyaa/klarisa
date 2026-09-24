@@ -135,3 +135,24 @@ export interface UseReviewResultWorkspaceReturn {
 }
 
 export type ContractReviewResponse<T> = BaseResponse<T>;
+
+export interface ReviewSearchItem {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SearchReviewsDTO {
+  query?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedReviewsData {
+  reviews: ReviewSearchItem[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}

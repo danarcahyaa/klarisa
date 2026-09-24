@@ -1,14 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { uploadContractDocumentSchema } from "@/app/validations/contract.validation";
+import {
+  uploadContractDocumentSchema,
+  searchReviewsSchema,
+} from "@/app/validations/contract.validation";
 import { decryptContractContent, encryptContractContent } from "@/lib/contract-encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createErrorResponse, createSuccessResponse } from "@/lib/response";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  mapSupabaseError,
+} from "@/lib/response";
 import {
   buildDocumentOutlinePrompt,
   chunkArray,
   formatRegulationsForPrompt,
   isLimitationError,
+  sanitizeString,
   serializeSectionWithTags,
   sleep,
 } from "@/lib/utils";
@@ -21,7 +29,10 @@ import {
   type ChunkReasoningResult,
   type MatchedChunk,
   type MatchedDocumentChunk,
+  type PaginatedReviewsData,
   type ReasoningAnalysisResult,
+  type ReviewSearchItem,
+  type SearchReviewsDTO,
 } from "@/types/contract-review.type";
 import type { ComplianceStatus, LegalArticle, MatchLegalArticleResult } from "@/types/legal.type";
 import type { DocumentSection } from "@/types/common.type";
@@ -836,6 +847,56 @@ ${chunksText}`;
         revision_recommendation: recommendationText,
       };
     });
+  }
+
+  /**
+   * Search and paginate review contracts for an authenticated user.
+   */
+  async searchReviews(
+    userId: string,
+    params: SearchReviewsDTO
+  ): Promise<BaseResponse<PaginatedReviewsData>> {
+    const validation = searchReviewsSchema.safeParse(params);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Parameter pencarian tidak valid.";
+      return createErrorResponse(firstError);
+    }
+
+    const { query, page, limit } = validation.data;
+    const sanitizedQuery = query ? sanitizeString(query) : undefined;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await this.repository.searchReviewsByUser(userId, {
+      query: sanitizedQuery,
+      from,
+      to,
+    });
+
+    if (error) {
+      return createErrorResponse(mapSupabaseError(error.message));
+    }
+
+    const total = count ?? 0;
+    const hasMore = total > to + 1;
+
+    const reviews: ReviewSearchItem[] = ((data as any[]) || []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+
+    return createSuccessResponse(
+      {
+        reviews,
+        total,
+        page,
+        limit,
+        hasMore,
+      },
+      "Daftar review berhasil dimuat."
+    );
   }
 }
 
