@@ -47,7 +47,7 @@ export function ReviewUploader() {
             REVIEW KONTRAK
           </p>
           <h1 className="mt-2 lg:mt-5 max-w-2xl font-heading text-[clamp(2.8rem,5vw,4.2rem)] font-normal leading-[.94] tracking-[-.06em]">
-            Pahami setiap klausul kontrak
+            Tinjau setiap klausul kontrak
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-6 text-slate-500">
             Unggah dokumen kontrak Anda untuk analisis instan. Sistem akan mengidentifikasi klausul-klausul krusial, menyoroti potensi risiko, dan memberikan rekomendasi revisi yang sesuai dengan hukum.
