@@ -14,6 +14,8 @@ export function AnimatedNumber({
   padLength = 0,
 }: AnimatedNumberProps) {
   const [displayValue, setDisplayValue] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [spanNode, setSpanNode] = useState<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -21,7 +23,27 @@ export function AnimatedNumber({
       return;
     }
 
-    const duration = 650;
+    if (!spanNode) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setHasStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 },
+    );
+
+    observer.observe(spanNode);
+
+    return () => observer.disconnect();
+  }, [spanNode, value]);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const duration = 750;
     let frameId = 0;
     let startTime: number | null = null;
 
@@ -38,10 +60,10 @@ export function AnimatedNumber({
     frameId = requestAnimationFrame(updateValue);
 
     return () => cancelAnimationFrame(frameId);
-  }, [value]);
+  }, [hasStarted, value]);
 
   return (
-    <span aria-label={`${value}${suffix}`}>
+    <span ref={setSpanNode} aria-label={`${value}${suffix}`}>
       {String(displayValue).padStart(padLength, "0")}
       {suffix}
     </span>

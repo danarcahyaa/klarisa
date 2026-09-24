@@ -163,7 +163,7 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="relative isolate -mb-16 min-h-[390px] overflow-hidden sm:min-h-[510px] lg:-mb-20 min-[1440px]:self-end">
-          <article className="absolute top-4 left-0 z-20 w-[38%] max-w-[12rem] rounded-xl border border-slate-200 bg-white p-3 sm:top-6 sm:w-[40%] sm:max-w-[14rem] sm:p-5">
+          <article className="absolute top-4 left-0 z-20 w-[38%] max-w-[12rem] cursor-default rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:top-6 sm:w-[40%] sm:max-w-[14rem] sm:p-5">
             <div className="flex items-start justify-between gap-3 text-[9px] font-bold tracking-[.14em] text-klarisa-secondary">
               <span>DOKUMEN / 01</span>
               <span>04</span>
@@ -187,7 +187,7 @@ export default async function HomePage() {
             className="absolute right-[7%] bottom-[-10%] z-10 h-[92%] w-auto max-w-none object-contain sm:right-[24%] sm:h-[101%] lg:right-[27%] lg:h-[108%] xl:bottom-[-12%] xl:h-[112%]"
           />
 
-          <Card className="absolute right-0 bottom-8 z-20 w-[44%] max-w-[19rem] border-0 bg-slate-900 text-white sm:bottom-10 sm:w-[46%] sm:max-w-[21rem]">
+          <Card className="absolute right-0 bottom-8 z-20 w-[44%] max-w-[19rem] cursor-default border-0 bg-slate-900 text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:bottom-10 sm:w-[46%] sm:max-w-[21rem]">
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-center gap-2">
                 <Image
@@ -285,7 +285,7 @@ export default async function HomePage() {
           {steps.map(([number, title, body], index) => (
             <Card
               className={
-                "min-h-62 border-slate-200 transition hover:-translate-y-1 hover:shadow-lg " +
+                "min-h-62 cursor-pointer border-slate-200 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-xl " +
                 (index === 1 ? "bg-slate-50" : index === 2 ? "bg-sky-100" : "")
               }
               key={number}
@@ -298,7 +298,7 @@ export default async function HomePage() {
                   {title}
                 </h3>
                 <p className="mt-3 text-xs leading-5 text-slate-500">{body}</p>
-                <ArrowRight className="mt-5 size-4 text-klarisa-secondary" />
+                <ArrowRight className="mt-5 size-4 text-klarisa-secondary transition-transform duration-300 group-hover:translate-x-1" />
               </CardContent>
             </Card>
           ))}
@@ -308,7 +308,7 @@ export default async function HomePage() {
       <section className="grid lg:grid-cols-2" id="fitur" data-scroll-reveal>
         <div className="relative min-h-120 overflow-hidden">
           <Image
-            className="object-cover transition duration-700 hover:scale-105"
+            className="object-cover transition-transform duration-700 ease-out hover:scale-105"
             src="/klarisa/hero-contract.jpeg"
             alt="Kontrak yang sedang ditinjau"
             fill
@@ -394,7 +394,7 @@ export default async function HomePage() {
           ].map(([number, title, description], index) => (
             <Card
               className={
-                "min-h-[205px] border-slate-200 transition hover:-translate-y-1 " +
+                "min-h-[205px] cursor-pointer border-slate-200 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-lg " +
                 (index === 2 ? "bg-slate-900 text-white" : "")
               }
               key={number}
