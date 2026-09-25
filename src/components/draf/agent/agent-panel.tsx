@@ -165,13 +165,16 @@ export function AgentPanel({
                 : cn("mt-4 w-full", isMobile && "pb-4")
             )}
           >
-            {/* Smooth gradient background that smoothly fades from bottom to top (active chat only) */}
+            {/* Progressive gradient blur background that smoothly fades from bottom to top (active chat only) */}
             {(hasMessages || isLoadingChat) && (
               <div
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute -top-8 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90",
-                  isMobile ? "-left-6 -right-6" : "-left-4 -right-4 sm:-left-6 sm:-right-6"
+                  "pointer-events-none absolute -top-14 bottom-0 -z-10 backdrop-blur-md",
+                  "[mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]",
+                  isMobile
+                    ? "bg-gradient-to-t from-white from-45% via-white/95 via-70% to-transparent dark:from-slate-950 dark:via-slate-950/95 -left-6 -right-6"
+                    : "bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent dark:from-slate-950 dark:via-slate-950/95 -left-4 -right-4 sm:-left-6 sm:-right-6"
                 )}
               />
             )}

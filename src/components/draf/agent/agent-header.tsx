@@ -119,13 +119,22 @@ export function AgentHeader({
     <>
       <header
         className={cn(
-          "w-full transition-all duration-200 shrink-0 z-20",
-          !isEmpty
-            ? "bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800"
-            : "hidden",
+          "w-full transition-all duration-200 shrink-0 z-20 sticky top-0",
+          isEmpty ? "hidden" : "relative",
           className
         )}
       >
+        {/* Progressive gradient blur background that smoothly fades from top to bottom */}
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 -bottom-6 -z-10 backdrop-blur-md",
+            "[mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)]",
+            isMobile
+              ? "bg-gradient-to-b from-white from-60% via-white/90 via-80% to-transparent dark:from-slate-950 dark:via-slate-950/90"
+              : "bg-gradient-to-b from-[#f7f8fb] from-60% via-[#f7f8fb]/90 via-80% to-transparent dark:from-slate-950 dark:via-slate-950/90"
+          )}
+        />
 
         <div className={cn("flex w-full items-center justify-between px-6 py-2.5", isMobile && "pr-14")}>
           <div className="flex items-center gap-1.5 min-w-0">

@@ -76,6 +76,13 @@ export function ReviseMarkerPopover({
     }
   }, [isOpen]);
 
+  // Focus input automatically when opened without animation delay
+  useEffect(() => {
+    if (showInput) {
+      inputRef.current?.focus();
+    }
+  }, [showInput]);
+
   const handleStartRevise = (e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault();
     e?.stopPropagation();
@@ -177,14 +184,14 @@ export function ReviseMarkerPopover({
             onClick={handleToggleInput}
             title={showInput ? "Tutup input instruksi" : "Tambah instruksi perbaikan"}
             className={cn(
-              "shrink-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer",
+              "shrink-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer transition-none",
               showInput && "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
             )}
           >
             {showInput ? <X className="size-3.5" /> : <Pen className="size-3.5" />}
         </Button>
         
-          {/* displayed when showInput is true */}
+          {/* displayed when showInput is true without animation */}
           {showInput && (
             <Input
               ref={inputRef}
@@ -201,18 +208,18 @@ export function ReviseMarkerPopover({
                 }
               }}
               placeholder="Ketik instruksi tambahan..."
-              className="h-8 text-xs py-1 px-2.5 flex-1 min-w-0 bg-transparent border-slate-200 dark:border-slate-700"
+              className="h-8 text-xs py-1 px-2.5 flex-1 min-w-0 bg-transparent border-slate-200 dark:border-slate-700 transition-none"
             />
           )}
 
-          {/* Flexible Mulai button: full-width by default, adapts dynamically when input appears */}
+          {/* Flexible Mulai button: full-width by default, adapts instantly without transition when input appears */}
           <Button
             type="button"
             size="xs"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleStartRevise}
             className={cn(
-              "cursor-pointer transition-all",
+              "cursor-pointer transition-none",
               showInput ? "shrink-0 px-3" : "flex-1 w-full"
             )}
           >

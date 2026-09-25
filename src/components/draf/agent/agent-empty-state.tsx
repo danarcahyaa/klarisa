@@ -42,8 +42,8 @@ export function AgentEmptyState({
         </h3>
       </div>
 
-      <p className="text-slate-500 text-sm sm:text-xs leading-relaxed max-w-[280px] sm:max-w-xs dark:text-slate-400">
-        Tanyakan saran penulisan klausul atau lengkapi draf kontrak Anda.
+      <p className="text-slate-500 text-sm sm:text-xs leading-relaxed max-w-[340px] dark:text-slate-400">
+        Klarisa dapat membantu Anda untuk menyusun draft Anda.
       </p>
 
       {/* Dedicated search conversation button */}
