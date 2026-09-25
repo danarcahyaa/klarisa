@@ -42,7 +42,7 @@ export function useActionChat({
 }: UseActionChatOptions): UseActionChatReturn {
   const router = useRouter();
   const [isLoadingChat, setIsLoadingChat] = useState<boolean>(() => {
-    if (initialChatId) return true;
+    if (initialChatId !== undefined) return Boolean(initialChatId);
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       return Boolean(params.get("chat_id") || params.get("id"));
@@ -74,16 +74,14 @@ export function useActionChat({
     setConversationsPage(1);
     isFetchingConversationsRef.current = false;
 
-    // Clean URL query parameters (chat_id and id) on reset
+    // Clean URL query parameters (chat_id and id) on reset using Next.js router
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       if (url.searchParams.has("chat_id") || url.searchParams.has("id")) {
-        url.searchParams.delete("chat_id");
-        url.searchParams.delete("id");
-        window.history.replaceState(null, "", url.pathname);
+        router.replace("/dashboard/create");
       }
     }
-  }, [setPrompt, setMessages, setChatId, setInteractionId, setIsLoading, setError, setFirstChatTitle, setStreamingAiId]);
+  }, [router, setPrompt, setMessages, setChatId, setInteractionId, setIsLoading, setError, setFirstChatTitle, setStreamingAiId]);
 
   /**
    * Load detail chats along with their conversations from database.
@@ -332,22 +330,16 @@ export function useActionChat({
     [chatId, reset]
   );
 
-  // Automatically load chat detail on mount if chat_id or id is present in URL or initial options
-  const isInitialMountedRef = useRef<boolean>(false);
+  // Automatically load chat detail on mount or when initialChatId changes
   useEffect(() => {
-    if (isInitialMountedRef.current) return;
-    isInitialMountedRef.current = true;
+    const targetId = initialChatId ?? null;
 
-    let targetId = initialChatId ?? null;
-    if (!targetId && typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      targetId = params.get("chat_id") || params.get("id");
-    }
-
-    if (targetId) {
+    if (targetId && targetId !== chatId && loadingChatIdRef.current !== targetId) {
       void handleLoadChatDetail(targetId);
+    } else if (!targetId && chatId) {
+      reset();
     }
-  }, [initialChatId, handleLoadChatDetail]);
+  }, [initialChatId, chatId, handleLoadChatDetail, reset]);
 
   // Synchronize on browser history navigation (back/forward popstate)
   useEffect(() => {

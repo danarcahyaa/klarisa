@@ -171,7 +171,7 @@ export function ConversationList({
         isShimmer={msg.isShimmer}
         statusSteps={msg.statusSteps}
         metadata={msg.metadata}
-        className="animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out fill-mode-backwards"
+        className="animate-in fade-in duration-200 fill-mode-backwards"
       />
     ));
   }, [messages, variant]);

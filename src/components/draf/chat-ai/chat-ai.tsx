@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowDown } from "lucide-react";
 import AIChatBox from "@/components/ai-chat-box";
 import { ReusableAlert } from "@/components/ui/reusable-alert";
@@ -43,6 +44,23 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamingAiId, setStreamingAiId] = useState<string | null>(null);
+  // Incrementing key to force EmptyStateHeader remount (replaying char animation) on each reset
+  const [emptyStateKey, setEmptyStateKey] = useState(0);
+
+  const searchParams = useSearchParams();
+  const rawSearchChatId = searchParams?.get("chat_id") || searchParams?.get("id") || undefined;
+
+  /**
+   * Ref to track when the user manually triggered a reset (e.g. clicking "Draft kontrak" from
+   * a chat detail view). While this is true, we ignore the stale searchChatId coming from
+   * useSearchParams so that handleLoadChatDetail is not re-triggered before Next.js finishes
+   * updating the URL, which would cause the skeleton to flash.
+   */
+  const wasResetRef = useRef<boolean>(false);
+
+  // Derive the effective chatId to pass to useActionChat.
+  // Block it when reset is in-progress so stale searchChatId doesn't re-trigger a load.
+  const searchChatId = wasResetRef.current ? undefined : rawSearchChatId;
 
   // Initial chat creation hook (handles new thread generation and saving)
   const { handleInitialChat, handleStop: handleStopInitial } = useInitialChat({
@@ -72,6 +90,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     handleLoadMoreConversations,
     reset,
   } = useActionChat({
+    initialChatId: searchChatId,
     setPrompt,
     messages,
     setMessages,
@@ -137,7 +156,12 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       }
     };
     const handleChatReset = () => {
+      // Mark that reset was user-initiated so stale searchChatId (from useSearchParams)
+      // does not re-trigger a chat load before Next.js finishes updating the URL.
+      wasResetRef.current = true;
       reset();
+      // Bump key so EmptyStateHeader remounts and replays the character-by-character animation
+      setEmptyStateKey((k) => k + 1);
     };
     const handleChatUpdated = (event: Event) => {
       const { chatId: updatedChatId, title: updatedTitle } = (event as CustomEvent<ChatUpdatedEventDetail>).detail;
@@ -155,6 +179,17 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       window.removeEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
     };
   }, [handleLoadChatDetail, reset, chatId, setTitle]);
+
+  // Reset active session when searchChatId is removed (URL updated to clean /dashboard/create)
+  useEffect(() => {
+    if (!rawSearchChatId) {
+      // URL has been cleared — reset flag so future chat selections work normally
+      wasResetRef.current = false;
+      if (chatId) {
+        reset();
+      }
+    }
+  }, [rawSearchChatId, chatId, reset]);
 
   useEffect(() => {
     return () => {
@@ -180,7 +215,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
   return (
     <div className={cn("flex flex-col w-full min-h-svh max-w-full overflow-x-clip", className)}>
       {/* Sticky header shown on desktop when chat is active or loading chat (hidden on mobile to avoid duplicate header) */}
-      {(hasMessages || isLoadingChat) && (
+      {(hasMessages || (Boolean(searchChatId) && isLoadingChat)) && (
         <ChatHeader
           className="hidden lg:block"
           title={title}
@@ -197,28 +232,28 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       {/* Main chat container constrained to 860px */}
       <main
         className={cn(
-          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 flex flex-col transition-all duration-500 ease-in-out",
-          hasMessages || isLoadingChat
+          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 flex flex-col",
+          hasMessages || (Boolean(searchChatId) && isLoadingChat)
             ? "pt-4 pb-0 justify-between"
             : "py-10 lg:py-16 justify-center"
         )}
       >
-        {/* Header with smooth exit animation - hidden completely while loading chat detail */}
-        {!isLoadingChat && (
+        {/* Header — shown in empty state, collapses when chat starts (no reverse transition) */}
+        {(!searchChatId || !isLoadingChat) && (
           <div
             className={cn(
-              "transition-all duration-500 ease-in-out",
+              hasMessages && "transition-all duration-500 ease-in-out",
               hasMessages
-                ? "max-h-0 opacity-0 -translate-y-6 pointer-events-none mb-0 pb-0 overflow-hidden"
-                : "max-h-[400px] opacity-100 translate-y-0 pb-2"
+                ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
+                : "pb-2"
             )}
           >
-            <EmptyStateHeader />
+            <EmptyStateHeader key={emptyStateKey} />
           </div>
         )}
 
-        {/* Skeleton shown while loading chat detail & conversations */}
-        {isLoadingChat && <ConversationSkeleton />}
+        {/* Skeleton shown ONLY while loading an existing chat detail from URL */}
+        {Boolean(searchChatId) && isLoadingChat && <ConversationSkeleton />}
 
         {/* Chat messages list shown when chat has started and not pending load */}
         {hasMessages && !isLoadingChat && (
@@ -236,14 +271,14 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
         {/* Chatbox + template options wrapper */}
         <div
           className={cn(
-            "relative mx-auto w-full transition-all duration-500 ease-in-out",
-            hasMessages || isLoadingChat
+            "relative mx-auto w-full",
+            hasMessages || (Boolean(searchChatId) && isLoadingChat)
               ? "mt-auto sticky bottom-0 z-30 pb-4 pt-2 bg-transparent"
               : "mt-5"
           )}
         >
           {/* Progressive gradient blur background that smoothly fades in from top to bottom */}
-          {(hasMessages || isLoadingChat) && (
+          {(hasMessages || (Boolean(searchChatId) && isLoadingChat)) && (
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -top-14 -left-4 -right-4 sm:-left-7 sm:-right-7 bottom-0 -z-10 bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
@@ -291,12 +326,11 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
               onSend={handleSend}
               onStop={handleStop}
               isLoading={isLoading}
-              disabled={isLoadingChat}
-              hasMassage={hasMessages || isLoadingChat}
+              hasMassage
             />
 
             {/* Template options only visible on initial empty state (hidden once chat starts or when loading chat) */}
-            {!hasMessages && !isLoadingChat && (
+            {!hasMessages && (!searchChatId || !isLoadingChat) && (
               <TemplateOptions
                 hasText={hasText}
                 onSelect={handleSelectTemplate}

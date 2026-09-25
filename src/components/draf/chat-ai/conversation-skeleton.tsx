@@ -15,7 +15,7 @@ export function ConversationSkeleton({ className }: ConversationSkeletonProps) {
   return (
     <div
       className={cn(
-        "flex-1 space-y-7 mb-6 pr-1 w-full animate-in fade-in duration-300",
+        "flex-1 space-y-7 mb-6 pr-1 w-full",
         className
       )}
     >

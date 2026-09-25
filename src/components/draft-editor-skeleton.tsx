@@ -1,21 +1,93 @@
-function Bone({ className }: { className: string }) {
-  return <span className={`block rounded bg-slate-200 ${className}`} />;
-}
+"use client";
 
+import { ArrowLeft, MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TextEditorToolbar } from "@/components/draf/text-editor/text-editor-toolbar";
+import { AgentPanel } from "@/components/draf/agent/agent-panel";
+
+/**
+ * DraftEditorSkeleton component.
+ * Renders the real workspace UI shell (Header, Toolbar, and Agent Panel)
+ * and only skeletonizes dynamic data elements (title, timestamp, and document text lines).
+ */
 export function DraftEditorSkeleton() {
   return (
-    <div role="status" aria-label="Memuat editor draft" className="min-h-[calc(100svh-57px)] bg-[#f7f8fb] px-4 pt-6 motion-safe:animate-pulse sm:px-7">
-      <div className="mx-auto w-full max-w-[1080px] overflow-hidden bg-white xl:rounded-lg xl:border xl:border-slate-200">
-        <header className="flex min-h-[68px] items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-7">
-          <div className="grid flex-1 gap-2"><Bone className="h-3 w-56 max-w-full"/><Bone className="h-2 w-32"/></div>
-          <Bone className="hidden h-9 w-24 sm:block"/><Bone className="h-9 w-10 sm:w-28"/>
-        </header>
-        <div className="grid min-h-[calc(100svh-125px)] xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section className="min-w-0 border-b border-slate-200 xl:border-r xl:border-b-0">
-            <div className="flex h-16 items-center gap-4 border-b border-slate-200 px-5 sm:px-7"><Bone className="size-5"/><Bone className="h-8 w-24"/><Bone className="size-5"/><Bone className="size-5"/></div>
-            <div className="mx-auto max-w-[900px] px-5 py-10 sm:px-10"><Bone className="h-3 w-24"/><Bone className="mt-7 h-9 w-4/5"/>{["w-full", "w-11/12", "w-4/5", "w-full", "w-3/4"].map((width, index) => <Bone key={index} className={`mt-7 h-3 ${width}`}/>)}</div>
-          </section>
-          <aside className="p-5 sm:p-7"><Bone className="h-3 w-28"/><Bone className="mt-6 h-4 w-4/5"/><Bone className="mt-4 h-3 w-full"/><Bone className="mt-8 h-28 w-full"/><Bone className="mt-5 h-28 w-full"/></aside>
+    <div className="flex flex-col h-full max-h-full min-h-0 flex-1 overflow-hidden bg-white">
+      {/* Real Header: Only title and updated timestamp are skeletons */}
+      <header className="shrink-0 sticky top-0 z-[80] mx-auto flex h-[68px] min-h-[68px] w-full items-center gap-2 sm:gap-3 bg-white border-b border-input px-2 sm:px-3">
+        <div className="flex gap-1.5 sm:gap-2 w-full items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            title="Kembali"
+            aria-label="Kembali"
+            className="shrink-0"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+
+          <div className="flex justify-between items-center w-full min-w-0">
+            <div className="flex flex-col gap-1 justify-center min-w-0 flex-1 mr-2">
+              <Skeleton className="h-4 w-36 sm:w-52 rounded bg-slate-200" />
+              <Skeleton className="h-3 w-20 sm:w-28 rounded bg-slate-200" />
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 text-slate-400">
+              <Button variant="ghost" size="icon" disabled className="size-8">
+                <MoreVertical className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace: Real Toolbar + Skeletonized Canvas Text + Real Agent Sidebar */}
+      <div className="flex-1 min-h-0 w-full overflow-hidden">
+        <div className="w-full h-full flex justify-start items-center overflow-hidden">
+          {/* Editor Column: Real Toolbar + Canvas with Text Skeleton only */}
+          <div className="h-full min-w-0 flex flex-col shrink-0 w-full max-w-[760px] xl:max-w-[820px] 2xl:max-w-[860px]">
+            {/* Real Text Editor Toolbar (Buttons are real, not skeleton) */}
+            <TextEditorToolbar editor={null} className="w-full shrink-0" />
+
+            {/* Document Canvas: Only document content has text line skeletons */}
+            <div
+              data-editor-canvas
+              className="flex-1 min-h-0 overflow-y-auto border-r border-input bg-white p-6 sm:p-8 lg:p-15 relative"
+            >
+              <div className="mx-auto w-full max-w-none space-y-4 pt-2">
+                <Skeleton className="h-8 w-3/5 rounded-md" />
+                <div className="space-y-3 pt-3">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-11/12 rounded" />
+                  <Skeleton className="h-4 w-4/5 rounded" />
+                  <Skeleton className="h-4 w-9/12 rounded" />
+                </div>
+                <div className="space-y-3 pt-4">
+                  <Skeleton className="h-6 w-2/5 rounded-md" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-5/6 rounded" />
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                </div>
+                <div className="space-y-3 pt-4">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-11/12 rounded" />
+                  <Skeleton className="h-4 w-4/5 rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Agent Sidebar on the right (Real Component, not skeleton) */}
+          <div className="hidden lg:flex flex-1 h-full min-w-0 overflow-hidden">
+            <AgentPanel
+              selectedText=""
+              highlightId={undefined}
+              isMultiLine={false}
+              className="w-full h-full"
+            />
+          </div>
         </div>
       </div>
     </div>

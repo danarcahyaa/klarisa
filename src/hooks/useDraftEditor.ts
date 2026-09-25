@@ -39,7 +39,7 @@ export function useDraftEditor({
 }: UseDraftEditorOptions = {}): UseDraftEditorReturn {
   const router = useRouter();
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const isFetchingRef = useRef(false);
+  const inFlightPromiseRef = useRef<Promise<ContractDetail | null> | null>(null);
   const hasRedirectedRef = useRef(false);
 
   const editor = useEditor({
@@ -96,30 +96,37 @@ export function useDraftEditor({
         return null;
       }
 
-      if (isFetchingRef.current) return null;
-      isFetchingRef.current = true;
+      if (inFlightPromiseRef.current) {
+        return inFlightPromiseRef.current;
+      }
+
       setIsLoadingDetail(true);
 
-      try {
-        const res = await getDraftDetailAction(id);
-        if (res.success && res.data) {
-          return res.data;
-        }
+      const fetchPromise = (async () => {
+        try {
+          const res = await getDraftDetailAction(id);
+          if (res.success && res.data) {
+            return res.data;
+          }
 
-        hasRedirectedRef.current = true;
-        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
-        router.push("/dashboard/create");
-        return null;
-      } catch (err) {
-        console.error("[useDraftEditor] Failed to load draft detail:", err);
-        hasRedirectedRef.current = true;
-        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
-        router.push("/dashboard/create");
-        return null;
-      } finally {
-        isFetchingRef.current = false;
-        setIsLoadingDetail(false);
-      }
+          hasRedirectedRef.current = true;
+          toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+          router.push("/dashboard/create");
+          return null;
+        } catch (err) {
+          console.error("[useDraftEditor] Failed to load draft detail:", err);
+          hasRedirectedRef.current = true;
+          toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+          router.push("/dashboard/create");
+          return null;
+        } finally {
+          setIsLoadingDetail(false);
+          inFlightPromiseRef.current = null;
+        }
+      })();
+
+      inFlightPromiseRef.current = fetchPromise;
+      return fetchPromise;
     },
     [router]
   );

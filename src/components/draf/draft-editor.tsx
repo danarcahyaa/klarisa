@@ -44,10 +44,8 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
           if (!isMounted) return;
           if (data) {
             setDraft(data);
-            setIsLoading(false);
           }
-          // If !data, useDraftEditor is redirecting to /dashboard/create with toast.
-          // Keep isLoading = true so skeleton stays visible instead of flashing an empty canvas.
+          setIsLoading(false);
         })
         .catch(() => {
           if (!isMounted) return;

@@ -40,6 +40,7 @@ import {
   dispatchChatUpdated,
   dispatchChatDeleted,
 } from "@/lib/chat-events";
+import { useCreateDraftNavigation } from "@/hooks/useCreateDraftNavigation";
 import type { ChatRow } from "@/types/chat.type";
 
 const navigation = [
@@ -87,6 +88,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
   const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const { handleLogout, isLoading } = useAuth();
+  const { handleNavigateToCreateDraft } = useCreateDraftNavigation();
 
   useEffect(() => {
     setActiveChatId(searchChatId);
@@ -189,10 +191,9 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
 
   const handleMobileNewChat = () => {
     setIsMobileChatPopoverOpen(false);
-    dispatchChatReset();
     setActiveChatId(null);
     setActiveChatTitle(null);
-    router.push("/dashboard/create");
+    handleNavigateToCreateDraft();
   };
 
   const handleSaveRename = async (newTitle: string) => {
@@ -345,17 +346,36 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
             ? pathname === href && !isRecentChatActive
             : (exact ? pathname === href : pathname.startsWith(href));
 
+          if (isCreateContract) {
+            return (
+              <button
+                key={href}
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setActiveChatId(null);
+                  setActiveChatTitle(null);
+                  handleNavigateToCreateDraft();
+                }}
+                aria-current={active ? "page" : undefined}
+                title={isSidebarCollapsed ? label : undefined}
+                className={cn(
+                  "flex min-h-11 items-center gap-3 rounded-md px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 w-full text-left cursor-pointer",
+                  active && "bg-[#eaf0ff] text-klarisa-secondary",
+                  isSidebarCollapsed && "lg:!h-11 lg:!w-11 lg:!min-h-0 lg:justify-self-center lg:justify-center lg:px-0",
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                <span className={cn(isSidebarCollapsed && "lg:sr-only")}>{label}</span>
+              </button>
+            );
+          }
+
           return (
             <Link
               key={href}
               href={href}
-              onClick={() => {
-                setIsOpen(false);
-                if (isCreateContract) {
-                  dispatchChatReset();
-                  setActiveChatId(null);
-                }
-              }}
+              onClick={() => setIsOpen(false)}
               aria-current={active ? "page" : undefined}
               title={isSidebarCollapsed ? label : undefined}
               className={cn(

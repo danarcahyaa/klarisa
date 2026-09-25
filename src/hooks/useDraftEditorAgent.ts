@@ -35,7 +35,7 @@ export function useDraftEditorAgent({
   const [messages, setMessages] = useState<AgentChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [chatTitle, setChatTitle] = useState("Draf Kontrak");
-  const [isLoadingChat, setIsLoadingChat] = useState(false);
+  const [isLoadingChat, setIsLoadingChat] = useState(() => Boolean(initialChatId));
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const {

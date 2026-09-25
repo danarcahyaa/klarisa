@@ -101,7 +101,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     const isControlled = controlledValue !== undefined;
     const [internalValue, setInternalValue] = useState(defaultValue);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [isMultiLine, setIsMultiLine] = useState(hasMassage);
+    const [isMultiLine, setIsMultiLine] = useState(false);
 
     const currentValue = isControlled ? controlledValue : internalValue;
     const isSubmitDisabled = isLoading ? (disabled || !onStop) : (disabled || !currentValue.trim());
@@ -117,20 +117,20 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
       const textarea = textareaRef.current;
       if (!textarea) return;
 
-      // Reset height to auto first so shrinking text calculates scrollHeight correctly
+      // Temporarily set height to auto first so shrinking text calculates scrollHeight correctly
       textarea.style.height = "auto";
 
       const scrollHeight = textarea.scrollHeight;
-      // Set to scrollHeight; CSS max-h-* handles the visual clamp and scrollbar
-      if (isSmall) {
-        textarea.style.height = `${Math.max(scrollHeight, 48)}px`;
-      } else {
-        textarea.style.height = `${scrollHeight}px`;
-      }
+      const baseHeight = isSmall ? 52 : (hasMassage ? 60 : 26);
+      const targetHeight = Math.max(scrollHeight, baseHeight);
 
-      const threshold = isSmall ? 52 : 40;
-      setIsMultiLine(hasMassage || scrollHeight > threshold);
-    }, [hasMassage, isSmall]);
+      textarea.style.height = `${targetHeight}px`;
+
+      // Multiline is triggered only when content requires more than base line
+      const multilineThreshold = isSmall ? 52 : (hasMassage ? 60 : 34);
+      const isContentMultiLine = targetHeight > multilineThreshold || currentValue.includes("\n");
+      setIsMultiLine(isContentMultiLine);
+    }, [isSmall, hasMassage, currentValue]);
 
     // Adjust textarea height whenever the text content changes or hasMassage toggles
     useEffect(() => {
@@ -151,10 +151,10 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           if (textareaRef.current) {
             textareaRef.current.style.height = "auto";
           }
-          setIsMultiLine(hasMassage);
+          setIsMultiLine(false);
         },
       }),
-      [isControlled, onChange, hasMassage]
+      [isControlled, onChange]
     );
 
     const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -177,7 +177,7 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
         }
-        setIsMultiLine(hasMassage);
+        setIsMultiLine(false);
       }
     };
 
@@ -205,10 +205,12 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
     return (
       <div
         className={cn(
-          "group relative flex w-full gap-2 border bg-white transition-all duration-200 ease-in-out",
+          "group relative flex w-full gap-2 border bg-white transition-[border-color,box-shadow] duration-150 items-end",
           isSmall
-            ? "min-h-[72px] sm:min-h-[76px] rounded-xl border-slate-200 p-2.5 sm:p-4 items-center"
-            : (isMultiLine ? "min-h-[52px] rounded-xl border-slate-300 p-4 items-end" : "min-h-[52px] rounded-xl border-slate-300 p-1.5 items-center"),
+            ? "min-h-[76px] sm:min-h-[82px] rounded-xl border-slate-200 p-2.5 sm:p-3"
+            : hasMassage
+            ? "min-h-[84px] sm:min-h-[92px] rounded-2xl border-slate-300 p-3 sm:p-3.5"
+            : "min-h-[52px] sm:min-h-[56px] rounded-xl border-slate-300 px-3.5 py-2.5",
           disabled && "bg-slate-50/70 opacity-70",
           className
         )}
@@ -225,14 +227,14 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           disabled={disabled}
           autoFocus={autoFocus}
           className={cn(
-            isSmall
-              ? "self-stretch flex-1 min-h-[44px] pt-1 px-2 text-sm sm:text-xs placeholder:text-sm sm:placeholder:text-xs leading-relaxed"
-              : (isMultiLine ? "min-h-[100px] py-2" : "min-h-[26px] py-1 leading-6"),
-            !isSmall && "px-2.5 text-sm placeholder:text-sm",
             "w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400",
             "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
             "overflow-y-auto no-scrollbar",
-            "transition-[min-height,height] duration-200 ease-in-out",
+            isSmall
+              ? "min-h-[52px] sm:min-h-[58px] py-1 px-1 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm leading-relaxed"
+              : hasMassage
+              ? "min-h-[60px] sm:min-h-[68px] py-1 px-1.5 text-sm placeholder:text-sm leading-relaxed"
+              : "min-h-[26px] py-1 px-1 text-sm placeholder:text-sm leading-6",
             maxHeightClass,
             disabled && "cursor-not-allowed",
             textareaClassName
@@ -246,13 +248,11 @@ export const AIChatBox = forwardRef<AIChatBoxRef, AIChatBoxProps>(
           aria-label={isLoading ? stopAriaLabel : sendAriaLabel}
           title={isLoading ? stopAriaLabel : sendAriaLabel}
           className={cn(
-            "inline-flex shrink-0 items-center justify-center transition-all duration-150",
-            isSmall
-              ? (isMultiLine ? "mb-0.5 self-end size-8 rounded-md" : "self-center size-8 rounded-md")
-              : (isMultiLine ? "mb-0.5 self-end size-9 rounded-md" : "self-center size-9 rounded-md"),
+            "inline-flex shrink-0 items-center justify-center rounded-lg transition-colors duration-150 self-end",
+            isSmall ? "size-8 mb-0.5" : hasMassage ? "size-9 mb-0.5" : "size-8 mb-0.5",
             isSubmitDisabled
-              ? "cursor-not-allowed bg-slate-50 text-slate-400"
-              : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95",
+              ? "cursor-not-allowed bg-slate-100 text-slate-400"
+              : "cursor-pointer bg-klarisa-primary text-white shadow-xs active:scale-95 hover:bg-klarisa-primary/90",
             buttonClassName
           )}
         >

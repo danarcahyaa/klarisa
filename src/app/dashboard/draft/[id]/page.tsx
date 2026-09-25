@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { DraftEditor } from "@/components/draft-editor";
+import { getDraftServerContext } from "@/lib/draft-context";
 
 export const metadata: Metadata = {
   title: "Editor Draft Kontrak | Klarisa",
@@ -19,5 +21,21 @@ export default async function DraftEditorPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const backHref = resolvedSearchParams?.backHref ?? "/dashboard";
 
-  return <DraftEditor contractId={id} backHref={backHref} />;
+  const context = await getDraftServerContext();
+  if (!context) {
+    redirect(`/login?next=/dashboard/draft/${id}`);
+  }
+
+  const result = await context.service.getDraftDetail(context.user.id, id);
+  if (!result.success || !result.data) {
+    redirect("/dashboard/create");
+  }
+
+  return (
+    <DraftEditor
+      contractId={id}
+      initialDraft={result.data}
+      backHref={backHref}
+    />
+  );
 }

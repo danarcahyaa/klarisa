@@ -106,7 +106,7 @@ export function AgentPanel({
       <div className="flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative">
         <div
           className={cn(
-            "flex-1 flex flex-col w-full transition-all duration-500 ease-in-out",
+            "flex-1 flex flex-col w-full",
             hasMessages || isLoadingChat
               ? "justify-between"
               : "justify-center items-center px-4 py-8 sm:py-6"
@@ -149,7 +149,7 @@ export function AgentPanel({
           {/* Chatbox Wrapper: Sticky at bottom with smooth gradient blur when chat is active; Centered below intro when empty */}
           <div
             className={cn(
-              "relative w-full transition-all duration-500 ease-in-out",
+              "relative w-full",
               hasMessages || isLoadingChat
                 ? "mt-auto sticky bottom-0 z-30 px-3 pb-3 pt-2 bg-transparent"
                 : "w-full max-w-md mx-auto"
