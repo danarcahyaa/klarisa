@@ -104,6 +104,26 @@ export const agentDiffReplaceArgsSchema = z.object({
 export type AgentDiffReplaceArgsDTO = z.infer<typeof agentDiffReplaceArgsSchema>;
 
 /**
+ * Zod schema validating contract analysis and review tool arguments (agent_analyze_review).
+ */
+export const agentAnalyzeReviewArgsSchema = z.object({
+  summary: z
+    .string()
+    .trim()
+    .min(1, "Ringkasan analisis tidak boleh kosong."),
+  content: z
+    .string()
+    .trim()
+    .min(1, "Isi analisis tidak boleh kosong."),
+  recommendations: z
+    .array(z.string().trim().min(1))
+    .max(30, "Maksimal 30 rekomendasi.")
+    .optional(),
+});
+
+export type AgentAnalyzeReviewArgsDTO = z.infer<typeof agentAnalyzeReviewArgsSchema>;
+
+/**
  * Zod schema validating streaming request payload sent from client.
  */
 export const agentStreamRequestSchema = z.object({
@@ -125,6 +145,12 @@ export const agentStreamRequestSchema = z.object({
   interactionId: z
     .string()
     .trim()
+    .optional()
+    .nullable(),
+  contractContent: z
+    .string()
+    .trim()
+    .max(500000, "Konten draf kontrak terlalu panjang.")
     .optional()
     .nullable(),
 });

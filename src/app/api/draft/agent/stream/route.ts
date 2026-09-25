@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { prompt, selectedText, highlightId, interactionId } = validation.data;
+    const { prompt, selectedText, highlightId, interactionId, contractContent } = validation.data;
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
             selectedText,
             highlightId,
             interactionId,
+            contractContent,
           })) {
             if (req.signal.aborted) {
               break;

@@ -65,7 +65,7 @@ export function useChatResponse({
    * immediately disables the button upon generation complete, and saves conversation to Supabase.
    */
   const streamResponse = useCallback(
-    async ({ prompt, selectedText, highlightId, title }: StreamChatResponseParams) => {
+    async ({ prompt, selectedText, highlightId, title, contractContent }: StreamChatResponseParams) => {
       const assistantMessageId = `ai-${Date.now()}`;
 
       setIsSending(true);
@@ -80,6 +80,7 @@ export function useChatResponse({
           selectedText,
           highlightId,
           interactionId,
+          contractContent,
           signal: controller.signal,
           onChunk: (_delta, accumulated) => {
             setStreamingAiId(assistantMessageId);

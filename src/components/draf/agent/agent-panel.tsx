@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { Editor } from "@tiptap/react";
+import { useCurrentEditor } from "@tiptap/react";
 import { useDraftEditorAgent } from "@/hooks/useDraftEditorAgent";
 import { AgentHeader } from "./agent-header";
 import { AgentEmptyState } from "./agent-empty-state";
@@ -32,6 +34,10 @@ export interface AgentProps {
   onClearSelectedText?: () => void;
   /** Whether the panel is rendered in mobile/sheet mode */
   isMobile?: boolean;
+  /** Active Tiptap editor instance */
+  editor?: Editor | null;
+  /** Custom function to retrieve raw text of current contract draft */
+  getContractContent?: () => string;
 }
 
 export function AgentPanel({
@@ -45,8 +51,22 @@ export function AgentPanel({
   onDismissSelectedText: externalDismiss,
   onClearSelectedText,
   isMobile = false,
+  editor,
+  getContractContent,
 }: AgentProps) {
   const dismissHandler = externalDismiss || onClearSelectedText;
+  const { editor: contextEditor } = useCurrentEditor();
+  const activeEditor = editor ?? contextEditor;
+
+  const resolveContractContent = useCallback(() => {
+    if (getContractContent) {
+      return getContractContent();
+    }
+    if (activeEditor) {
+      return activeEditor.getText({ blockSeparator: "\n\n" }).trim();
+    }
+    return "";
+  }, [getContractContent, activeEditor]);
 
   const {
     messages,
@@ -67,6 +87,7 @@ export function AgentPanel({
     selectedText,
     highlightId,
     initialChatId,
+    getContractContent: resolveContractContent,
   });
 
   const handleSendMessage = useCallback(
@@ -170,11 +191,10 @@ export function AgentPanel({
               <div
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute -top-14 bottom-0 -z-10 backdrop-blur-md",
-                  "[mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]",
+                  "pointer-events-none absolute -top-6 bottom-0 -z-10",
                   isMobile
-                    ? "bg-gradient-to-t from-white from-45% via-white/95 via-70% to-transparent dark:from-slate-950 dark:via-slate-950/95 -left-6 -right-6"
-                    : "bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent dark:from-slate-950 dark:via-slate-950/95 -left-4 -right-4 sm:-left-6 sm:-right-6"
+                    ? "progressive-blur-fade-bottom-white -left-6 -right-6"
+                    : "progressive-blur-fade-bottom -left-4 -right-4 sm:-left-6 sm:-right-6"
                 )}
               />
             )}

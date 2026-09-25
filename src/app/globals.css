@@ -335,6 +335,103 @@
   );
 }
 
+/* Progressive blur gradient fade from bottom to top for sticky inputs/chatboxes */
+.progressive-blur-fade-bottom-white {
+  background: linear-gradient(
+    to top,
+    #ffffff 0%,
+    #ffffff 40%,
+    rgba(255, 255, 255, 0.95) 55%,
+    rgba(255, 255, 255, 0.75) 70%,
+    rgba(255, 255, 255, 0.45) 84%,
+    rgba(255, 255, 255, 0.15) 94%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.95) 55%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    rgba(0, 0, 0, 0.15) 94%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.95) 55%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    rgba(0, 0, 0, 0.15) 94%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.dark .progressive-blur-fade-bottom-white {
+  background: linear-gradient(
+    to top,
+    #020617 0%,
+    #020617 40%,
+    rgba(2, 6, 23, 0.95) 55%,
+    rgba(2, 6, 23, 0.75) 70%,
+    rgba(2, 6, 23, 0.45) 84%,
+    rgba(2, 6, 23, 0.15) 94%,
+    rgba(2, 6, 23, 0) 100%
+  );
+}
+
+.progressive-blur-fade-bottom {
+  background: linear-gradient(
+    to top,
+    #f7f8fb 0%,
+    #f7f8fb 40%,
+    rgba(247, 248, 251, 0.95) 55%,
+    rgba(247, 248, 251, 0.75) 70%,
+    rgba(247, 248, 251, 0.45) 84%,
+    rgba(247, 248, 251, 0.15) 94%,
+    rgba(247, 248, 251, 0) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.95) 55%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    rgba(0, 0, 0, 0.15) 94%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.95) 55%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0.45) 84%,
+    rgba(0, 0, 0, 0.15) 94%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.dark .progressive-blur-fade-bottom {
+  background: linear-gradient(
+    to top,
+    #020617 0%,
+    #020617 40%,
+    rgba(2, 6, 23, 0.95) 55%,
+    rgba(2, 6, 23, 0.75) 70%,
+    rgba(2, 6, 23, 0.45) 84%,
+    rgba(2, 6, 23, 0.15) 94%,
+    rgba(2, 6, 23, 0) 100%
+  );
+}
+
 /* Hide scrollbar while keeping scroll functionality */
 .no-scrollbar {
   scrollbar-width: none; /* Firefox */

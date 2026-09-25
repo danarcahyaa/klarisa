@@ -281,11 +281,11 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
               : "mt-5"
           )}
         >
-          {/* Progressive gradient blur background that smoothly fades in from top to bottom */}
+          {/* Progressive gradient blur background that smoothly fades from bottom to top */}
           {(hasMessages || (Boolean(searchChatId) && isLoadingChat)) && (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -top-14 -left-4 -right-4 sm:-left-7 sm:-right-7 bottom-0 -z-10 bg-gradient-to-t from-[#f7f8fb] from-45% via-[#f7f8fb]/95 via-70% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
+              className="pointer-events-none absolute -top-6 -left-4 -right-4 sm:-left-7 sm:-right-7 bottom-0 -z-10 progressive-blur-fade-bottom"
             />
           )}
 

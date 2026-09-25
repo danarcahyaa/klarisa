@@ -127,7 +127,7 @@ export function ChatHeader({
         {/* Progressive gradient blur background that smoothly fades from top to bottom */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -bottom-6 -z-10 bg-gradient-to-b from-[#f7f8fb] from-60% via-[#f7f8fb]/90 via-80% to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)]"
+          className="pointer-events-none absolute inset-0 -bottom-3 -z-10 progressive-blur-fade"
         />
 
         <div className="flex w-full items-center justify-between px-4 sm:px-6 py-2.5">

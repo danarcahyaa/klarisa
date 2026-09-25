@@ -71,6 +71,24 @@ export function extractToolCallText(toolCall: GeminiInteractionToolCall): string
     return summary || null;
   }
 
+  // 5. agent_analyze_review
+  if (toolCall.name === "agent_analyze_review") {
+    const summary = (toolCall.args?.summary as string) || "";
+    const content = (toolCall.args?.content as string) || "";
+    const recommendations = (toolCall.args?.recommendations as string[]) || [];
+    let formattedText = "";
+    if (summary) {
+      formattedText += `### ${summary}\n\n`;
+    }
+    if (content) {
+      formattedText += `${content}\n\n`;
+    }
+    if (recommendations.length > 0) {
+      formattedText += `**Rekomendasi Utama:**\n${recommendations.map((r) => `- ${r}`).join("\n")}`;
+    }
+    return formattedText.trim() || summary || content || null;
+  }
+
   // Legacy tools
   if (toolCall.name === "ask_clarification" && typeof toolCall.args?.message_to_user === "string") {
     return toolCall.args.message_to_user;

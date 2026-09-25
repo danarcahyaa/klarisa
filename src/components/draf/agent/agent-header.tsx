@@ -128,11 +128,8 @@ export function AgentHeader({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 -bottom-6 -z-10 backdrop-blur-md",
-            "[mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)]",
-            isMobile
-              ? "bg-gradient-to-b from-white from-60% via-white/90 via-80% to-transparent dark:from-slate-950 dark:via-slate-950/90"
-              : "bg-gradient-to-b from-[#f7f8fb] from-60% via-[#f7f8fb]/90 via-80% to-transparent dark:from-slate-950 dark:via-slate-950/90"
+            "pointer-events-none absolute inset-0 -bottom-3 -z-10",
+            isMobile ? "progressive-blur-fade-white" : "progressive-blur-fade"
           )}
         />
 

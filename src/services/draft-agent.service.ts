@@ -23,13 +23,15 @@ export class DraftAgentService {
   /**
    * Constructs a comprehensive system instruction for the contract AI agent.
    *
-   * @param selectedText - Snippet of text selected by user on the editor canvas.
-   * @param targetId     - Highlight mark ID corresponding to the selection mark.
+   * @param selectedText    - Snippet of text selected by user on the editor canvas.
+   * @param targetId        - Highlight mark ID corresponding to the selection mark.
+   * @param contractContent - Full raw text content of the contract currently in the editor.
    * @returns Formatted system instruction string.
    */
   buildAgentSystemPrompt(
     selectedText?: string | null,
-    targetId?: string | null
+    targetId?: string | null,
+    contractContent?: string | null
   ): string {
     const lines: string[] = [];
 
@@ -64,9 +66,27 @@ export class DraftAgentService {
       "   - Panggil tool ini HANYA JIKA permintaan pengguna benar-benar di luar konteks hukum/kontrak.",
       "   - Berikan penolakan singkat dan sopan dalam satu kalimat tanpa menyebut 'asisten hukum'.",
       "",
+      "4. `agent_analyze_review` (Analisis & Review Kontrak):",
+      "   - Panggil tool ini atau hasilkan ulasan teks terstruktur ketika pengguna meminta untuk melakukan analisa, review, evaluasi, pengecekan risiko klausul, atau telaah dokumen draf (tidak hanya terbatas pada kata 'analisa' atau 'review', namun mencakup seluruh maksud untuk memeriksa atau mengulas draf).",
+      "   - Evaluasi menyeluruh isi draf kontrak dari editor yang tercantum pada 'KONTEKS DRAF KONTRAK SAAT INI (DARI EDITOR)'.",
+      "   - Format ulasan mencakup: (1) Ringkasan & Gambaran Umum Kontrak, (2) Temuan Risiko & Klausul Rawan, (3) Saran & Rekomendasi Klausul Perbaikan.",
+      "   - Jika draf di editor saat ini masih kosong, jelaskan dengan ramah bahwa draf masih kosong dan persilakan pengguna mengisi dokumen di editor terlebih dahulu.",
+      "",
       "BAHASA:",
       "- Gunakan Bahasa Indonesia yang santun, ringkas, dan profesional."
     );
+
+    if (contractContent && contractContent.trim().length > 0) {
+      lines.push(
+        "",
+        "---",
+        "KONTEKS DRAF KONTRAK SAAT INI (DARI EDITOR):",
+        '"""',
+        contractContent.trim(),
+        '"""',
+        "Catatan: Ini adalah teks draf kontrak lengkap dari editor yang sedang dibuka oleh pengguna. Gunakan teks ini untuk melakukan analisis/review jika diminta oleh pengguna."
+      );
+    }
 
     if (selectedText && selectedText.trim().length > 0) {
       lines.push(
@@ -88,16 +108,20 @@ export class DraftAgentService {
   /**
    * Executes a real-time streaming interaction with Gemini using the contract tools.
    *
-   * @param request - User prompt and optional selection context.
+   * @param request - User prompt, selection context, and contract content.
    * @yields Stream events (text_delta, tool_call, interaction_created, interaction_completed, error).
    * @returns Final GeminiInteractionResponse.
    */
   async *streamAgentInteraction(
     request: AgentStreamRequest
   ): AsyncGenerator<GeminiInteractionStreamEvent, GeminiInteractionResponse, unknown> {
-    const { prompt, selectedText, highlightId, interactionId } = request;
+    const { prompt, selectedText, highlightId, interactionId, contractContent } = request;
 
-    const systemInstruction = this.buildAgentSystemPrompt(selectedText, highlightId);
+    const systemInstruction = this.buildAgentSystemPrompt(
+      selectedText,
+      highlightId,
+      contractContent
+    );
 
     return yield* this.gemini.streamInteractions(prompt, {
       tools: AGENT_CONTRACT_TOOLS,

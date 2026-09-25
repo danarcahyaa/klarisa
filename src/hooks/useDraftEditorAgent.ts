@@ -31,6 +31,7 @@ export function useDraftEditorAgent({
   selectedText,
   highlightId,
   initialChatId,
+  getContractContent,
 }: UseDraftEditorAgentOptions): UseDraftEditorAgentReturn {
   const [messages, setMessages] = useState<AgentChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -195,14 +196,17 @@ export function useDraftEditorAgent({
 
       setMessages((prev) => [...prev, userMsg]);
 
+      const contractContent = getContractContent?.() || undefined;
+
       await streamResponse({
         prompt: rawInput,
         selectedText,
         highlightId,
         title: derivedTitle,
+        contractContent,
       });
     },
-    [input, isSending, messages.length, chatTitle, selectedText, highlightId, streamResponse]
+    [input, isSending, messages.length, chatTitle, selectedText, highlightId, getContractContent, streamResponse]
   );
 
   return {

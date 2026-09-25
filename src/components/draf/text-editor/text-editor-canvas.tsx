@@ -139,6 +139,7 @@ export function TextEditorCanvas({
           {/* AI Agent Sidebar on the right (Desktop only) */}
           <div className="hidden lg:flex flex-1 h-full min-w-0 overflow-hidden">
             <AgentPanel
+              editor={editor}
               selectedText={selectedTextForAsk}
               highlightId={selectedHighlightId}
               isMultiLine={isMultiLine}
@@ -155,11 +156,10 @@ export function TextEditorCanvas({
             side="bottom"
             className="w-full h-[88vh] rounded-t-2xl sm:rounded-t-3xl max-h-[94vh] p-0 flex flex-col gap-0 overflow-hidden bg-white dark:bg-slate-950"
           >
-            <SheetTitle className="sr-only">Asisten AI Klarisa</SheetTitle>
-            <SheetDescription className="sr-only">Panel interaktif asisten AI untuk draf kontrak</SheetDescription>
 
             <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
               <AgentPanel
+                editor={editor}
                 selectedText={selectedTextForAsk}
                 highlightId={selectedHighlightId}
                 isMultiLine={isMultiLine}

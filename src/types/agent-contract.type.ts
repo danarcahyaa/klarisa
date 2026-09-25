@@ -77,11 +77,24 @@ export interface AgentRejectOutOfScopeArgs {
 /**
  * Union of all structured tool call payloads produced by the contract agent.
  */
+/**
+ * Arguments payload for the `agent_analyze_review` tool.
+ */
+export interface AgentAnalyzeReviewArgs {
+  /** High-level summary of the contract review. */
+  summary: string;
+  /** Detailed legal review and analysis in markdown format. */
+  content: string;
+  /** List of actionable recommendations for improving the contract. */
+  recommendations?: string[];
+}
+
 export type AgentToolCallPayload =
   | { name: "agent_diff_replace"; args: AgentDiffReplaceArgs }
   | { name: "agent_text_output"; args: AgentTextOutputArgs }
   | { name: "agent_clarification"; args: AgentClarificationArgs }
-  | { name: "agent_reject_out_of_scope"; args: AgentRejectOutOfScopeArgs };
+  | { name: "agent_reject_out_of_scope"; args: AgentRejectOutOfScopeArgs }
+  | { name: "agent_analyze_review"; args: AgentAnalyzeReviewArgs };
 
 /**
  * Request payload sent to the draft agent streaming endpoint.
@@ -95,6 +108,8 @@ export interface AgentStreamRequest {
   highlightId?: string | null;
   /** Multi-turn Gemini interaction ID to maintain conversation state. */
   interactionId?: string | null;
+  /** Full raw text of the contract currently in the editor for analysis/review. */
+  contractContent?: string | null;
 }
 
 /**
@@ -114,6 +129,8 @@ export interface StreamDraftAgentOptions {
   highlightId?: string | null;
   /** Previous interaction ID for multi-turn conversational context. */
   interactionId?: string | null;
+  /** Full raw text of the contract currently in the editor. */
+  contractContent?: string | null;
   /** Abort signal to cancel streaming midway. */
   signal?: AbortSignal;
   /** Callback triggered on every streaming text delta. */
@@ -131,6 +148,8 @@ export interface UseDraftEditorAgentOptions {
   highlightId?: string | null;
   /** Optional initial chat ID to continue an existing session */
   initialChatId?: string | null;
+  /** Function retrieving current raw text of the contract from the editor */
+  getContractContent?: () => string;
 }
 
 /**
@@ -171,6 +190,7 @@ export interface StreamChatResponseParams {
   selectedText?: string | null;
   highlightId?: string | null;
   title?: string | null;
+  contractContent?: string | null;
 }
 
 /**

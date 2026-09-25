@@ -22,6 +22,7 @@ export async function streamDraftAgentAction(
     selectedText,
     highlightId,
     interactionId,
+    contractContent,
     signal,
     onChunk,
     onToolCall,
@@ -56,6 +57,7 @@ export async function streamDraftAgentAction(
         selectedText,
         highlightId,
         interactionId,
+        contractContent,
       }),
       signal,
     });
