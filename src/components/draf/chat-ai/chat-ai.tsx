@@ -227,15 +227,17 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
         />
       )}
 
-      {/* Main chat container constrained to 860px */}
-      <main
-        className={cn(
-          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 min-h-0 flex flex-col overflow-y-auto relative",
-          hasMessages || (Boolean(searchChatId) && isLoadingChat)
-            ? "pt-4 pb-0"
-            : "py-10 lg:py-16 justify-center"
-        )}
-      >
+      {/* Full width scrollable area so scrollbar sits at the far right edge on desktop and mobile */}
+      <div className="flex-1 min-h-0 w-full overflow-y-auto relative flex flex-col">
+        {/* Main chat container constrained to 860px */}
+        <main
+          className={cn(
+            "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 flex flex-col",
+            hasMessages || (Boolean(searchChatId) && isLoadingChat)
+              ? "pt-4 pb-0"
+              : "py-10 lg:py-16 justify-center"
+          )}
+        >
         {/* Header — shown in empty state, collapses when chat starts (no reverse transition) */}
         {(!searchChatId || !isLoadingChat) && (
           <div
@@ -337,6 +339,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }
