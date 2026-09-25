@@ -103,23 +103,23 @@ export function AgentPanel({
       />
 
       {/* Scrollable Messages & Content Area */}
-      <div className="flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative">
+      <div className="flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative px-3 sm:px-4">
         <div
           className={cn(
             "flex-1 flex flex-col w-full",
             hasMessages || isLoadingChat
-              ? "justify-between"
-              : "justify-center items-center px-4 py-8 sm:py-6"
+              ? "pt-3 pb-0"
+              : "py-8 sm:py-6 justify-center"
           )}
         >
-          {/* Dedicated Empty State with Search Conversation button */}
+          {/* Header — shown in empty state, collapses when chat starts (no reverse transition) */}
           {!isLoadingChat && (
             <div
               className={cn(
-                "transition-all duration-500 ease-in-out w-full flex justify-center",
+                hasMessages && "transition-all duration-500 ease-in-out",
                 hasMessages
-                  ? "max-h-0 opacity-0 -translate-y-4 pointer-events-none mb-0 overflow-hidden"
-                  : "max-h-[300px] opacity-100 translate-y-0 mb-6 sm:mb-8"
+                  ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
+                  : "pb-2"
               )}
             >
               <AgentEmptyState onSearchClick={() => setIsSearchOpen(true)} />
@@ -128,22 +128,20 @@ export function AgentPanel({
 
           {/* Skeleton loading when fetching chat */}
           {isLoadingChat && (
-            <div className="flex-1 px-4 py-3">
+            <div className="flex-1 py-3">
               <ConversationSkeleton />
             </div>
           )}
 
           {/* Active conversation list */}
           {hasMessages && !isLoadingChat && (
-            <div className="flex-1 px-4 pb-6 pt-1 space-y-6 flex flex-col">
-              <ConversationList
-                variant="small"
-                messages={messages}
-                isLoading={isSending}
-                streamingAiId={streamingAiId}
-                messagesEndRef={messagesEndRef}
-              />
-            </div>
+            <ConversationList
+              variant="small"
+              messages={messages}
+              isLoading={isSending}
+              streamingAiId={streamingAiId}
+              messagesEndRef={messagesEndRef}
+            />
           )}
 
           {/* Chatbox Wrapper: Sticky at bottom with smooth gradient blur when chat is active; Centered below intro when empty */}
@@ -151,15 +149,15 @@ export function AgentPanel({
             className={cn(
               "relative w-full",
               hasMessages || isLoadingChat
-                ? "mt-auto sticky bottom-0 z-30 px-3 pb-3 pt-2 bg-transparent"
-                : "w-full max-w-md mx-auto"
+                ? "mt-auto sticky bottom-0 z-30 pb-3 pt-2 bg-transparent"
+                : "mt-4 max-w-md mx-auto"
             )}
           >
             {/* Smooth gradient background that smoothly fades from bottom to top (active chat only) */}
             {(hasMessages || isLoadingChat) && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -top-8 left-0 right-0 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90"
+                className="pointer-events-none absolute -top-8 -left-3 -right-3 sm:-left-4 sm:-right-4 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90"
               />
             )}
 
