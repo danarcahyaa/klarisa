@@ -211,11 +211,11 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
   }, []);
 
   return (
-    <div className={cn("flex flex-col w-full min-h-svh max-w-full overflow-x-clip", className)}>
+    <div className={cn("flex flex-col w-full h-full min-h-0 max-w-full overflow-hidden", className)}>
       {/* Sticky header shown on desktop when chat is active or loading chat (hidden on mobile to avoid duplicate header) */}
       {(hasMessages || (Boolean(searchChatId) && isLoadingChat)) && (
         <ChatHeader
-          className="hidden lg:block"
+          className="hidden lg:block shrink-0"
           title={title}
           chatId={chatId}
           onRename={setTitle}
@@ -230,9 +230,9 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       {/* Main chat container constrained to 860px */}
       <main
         className={cn(
-          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 flex flex-col",
+          "mx-auto w-[860px] max-w-full min-w-0 px-4 sm:px-7 flex-1 min-h-0 flex flex-col overflow-y-auto relative",
           hasMessages || (Boolean(searchChatId) && isLoadingChat)
-            ? "pt-4 pb-0 justify-between"
+            ? "pt-4 pb-0"
             : "py-10 lg:py-16 justify-center"
         )}
       >

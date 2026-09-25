@@ -452,7 +452,9 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
 
   const isDraftDetail = pathname.startsWith("/dashboard/draft");
   const isFixedWorkspace =
-    isDraftDetail || pathname.startsWith("/dashboard/review/result");
+    isDraftDetail ||
+    pathname.startsWith("/dashboard/review/result") ||
+    pathname.startsWith("/dashboard/create");
 
   return (
     <main
