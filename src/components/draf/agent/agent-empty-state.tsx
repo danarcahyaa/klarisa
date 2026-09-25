@@ -24,7 +24,7 @@ export function AgentEmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center text-center w-full max-w-sm px-2 transition-all duration-500 ease-in-out",
+        "flex flex-col items-center text-center w-full max-w-sm px-2 mx-auto transition-all duration-500 ease-in-out",
         className
       )}
     >

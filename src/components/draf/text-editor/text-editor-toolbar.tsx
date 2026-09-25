@@ -22,42 +22,45 @@ export function TextEditorToolbar({
   onToggleAgent,
 }: TextEditorToolbarProps) {
     return (
-        <div className={cn("relative z-[70] shrink-0 px-3 sm:px-4 py-2 bg-white border-r border-b border-input flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar shadow-2xs", className)}>
+        <div className={cn("relative z-20 shrink-0 px-3 sm:px-4 py-2 bg-white border-r border-b border-input flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar shadow-2xs", className)}>
             <div className="flex gap-1 shrink-0">
                 <UndoRedoButton
                     editor={editor}
                     action="undo"
-                    onExecuted={() => console.log('Action executed!')}
+                    className="cursor-pointer"
                 />
                 <UndoRedoButton
                     editor={editor}
                     action="redo"
-                    onExecuted={() => console.log('Action executed!')}
+                    className="cursor-pointer"
                 />
             </div>
             
             <div className="flex gap-1 shrink-0">
-                <HeadingDropdownMenu editor={editor}
+                <HeadingDropdownMenu 
+                    className="cursor-pointer"
+                    editor={editor}
                     levels={[1,2,3,4,5,6]}
                     
                 />
                 <ListDropdownMenu
+                    className="cursor-pointer"
                     editor={editor}
                     types={['bulletList', 'orderedList']}
                 />
             </div>
             <div className="flex gap-1 shrink-0">
-                <MarkButton editor={editor} type="bold"/>
-                <MarkButton editor={editor} type="italic" />
-                <MarkButton editor={editor} type="strike" />
-                <MarkButton editor={editor} type="underline" /> 
+                <MarkButton editor={editor} type="bold" className="cursor-pointer"/>
+                <MarkButton editor={editor} type="italic" className="cursor-pointer"/>
+                <MarkButton editor={editor} type="strike" className="cursor-pointer"/>
+                <MarkButton editor={editor} type="underline" className="cursor-pointer" /> 
             </div>
 
             <div className="flex gap-1 shrink-0"> 
-                <TextAlignButton editor={editor} align="left"/>
-                <TextAlignButton editor={editor} align="center" />
-                <TextAlignButton editor={editor} align="right" />
-                <TextAlignButton editor={editor} align="justify" />
+                <TextAlignButton editor={editor} align="left" className="cursor-pointer"/>
+                <TextAlignButton editor={editor} align="center" className="cursor-pointer"/>
+                <TextAlignButton editor={editor} align="right" className="cursor-pointer"/>
+                <TextAlignButton editor={editor} align="justify"className="cursor-pointer" />
             </div>
 
             {onToggleAgent && (

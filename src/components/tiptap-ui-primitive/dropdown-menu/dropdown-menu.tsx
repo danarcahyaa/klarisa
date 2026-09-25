@@ -48,7 +48,7 @@ function DropdownMenuContent({
         data-slot="tiptap-dropdown-menu-content"
         sideOffset={sideOffset}
         align={align}
-        className={cn("tiptap-dropdown-menu-content", className)}
+        className={cn("tiptap-dropdown-menu-content z-[90]", className)}
         onCloseAutoFocus={(e) => e.preventDefault()}
         {...props}
       />

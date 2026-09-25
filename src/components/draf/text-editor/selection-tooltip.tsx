@@ -160,7 +160,7 @@ export function SelectionTooltip(props: AskSelectionTooltipProps) {
 
       {isForceHidden ? null : (
         <div
-          className="not-prose z-[60] animate-in fade-in zoom-in-95 duration-150 w-fit"
+          className="not-prose z-[90] animate-in fade-in zoom-in-95 duration-150 w-fit"
           onMouseDown={(e) => {
             e.preventDefault();
           }}

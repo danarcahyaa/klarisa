@@ -30,6 +30,8 @@ export interface AgentProps {
   onDismissSelectedText?: () => void;
   /** Backwards compatibility alias */
   onClearSelectedText?: () => void;
+  /** Whether the panel is rendered in mobile/sheet mode */
+  isMobile?: boolean;
 }
 
 export function AgentPanel({
@@ -42,6 +44,7 @@ export function AgentPanel({
   setSelectedTextRef,
   onDismissSelectedText: externalDismiss,
   onClearSelectedText,
+  isMobile = false,
 }: AgentProps) {
   const dismissHandler = externalDismiss || onClearSelectedText;
 
@@ -87,6 +90,13 @@ export function AgentPanel({
         className
       )}
     >
+      {/* Mobile sheet drag handle indicator */}
+      {isMobile && (
+        <div className="flex items-center justify-center pt-2.5 pb-1 shrink-0 select-none">
+          <div className="h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+        </div>
+      )}
+
       {/* Fixed top header when in chat mode */}
       <AgentHeader
         title={chatTitle}
@@ -100,28 +110,27 @@ export function AgentPanel({
         isLoading={isLoadingChat}
         isActionDisabled={isSending || isLoadingChat}
         isEmpty={!hasMessages}
+        isMobile={isMobile}
       />
 
       {/* Scrollable Messages & Content Area */}
-      <div className="flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative px-3 sm:px-4">
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto min-h-0 text-sm flex flex-col relative",
+          isMobile ? "px-6" : "px-4 sm:px-6"
+        )}
+      >
         <div
           className={cn(
             "flex-1 flex flex-col w-full",
             hasMessages || isLoadingChat
               ? "pt-3 pb-0"
-              : "py-8 sm:py-6 justify-center"
+              : "py-6 sm:py-8 justify-center"
           )}
         >
-          {/* Header — shown in empty state, collapses when chat starts (no reverse transition) */}
-          {!isLoadingChat && (
-            <div
-              className={cn(
-                hasMessages && "transition-all duration-500 ease-in-out",
-                hasMessages
-                  ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
-                  : "pb-2"
-              )}
-            >
+          {/* Header — shown in empty state only */}
+          {!isLoadingChat && !hasMessages && (
+            <div className="w-full flex justify-center pb-2">
               <AgentEmptyState onSearchClick={() => setIsSearchOpen(true)} />
             </div>
           )}
@@ -144,20 +153,26 @@ export function AgentPanel({
             />
           )}
 
-          {/* Chatbox Wrapper: Sticky at bottom with smooth gradient blur when chat is active; Centered below intro when empty */}
+          {/* Chatbox Wrapper: Sticky at bottom with smooth gradient blur when chat is active; Consistent full width across empty and active states */}
           <div
             className={cn(
               "relative w-full",
               hasMessages || isLoadingChat
-                ? "mt-auto sticky bottom-0 z-30 pb-3 pt-2 bg-transparent"
-                : "mt-4 max-w-md mx-auto"
+                ? cn(
+                    "mt-auto sticky bottom-0 z-30 pt-2 bg-transparent",
+                    isMobile ? "pb-4 sm:pb-3" : "pb-3"
+                  )
+                : cn("mt-4 w-full", isMobile && "pb-4")
             )}
           >
             {/* Smooth gradient background that smoothly fades from bottom to top (active chat only) */}
             {(hasMessages || isLoadingChat) && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -top-8 -left-3 -right-3 sm:-left-4 sm:-right-4 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90"
+                className={cn(
+                  "pointer-events-none absolute -top-8 bottom-0 -z-10 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90",
+                  isMobile ? "-left-6 -right-6" : "-left-4 -right-4 sm:-left-6 sm:-right-6"
+                )}
               />
             )}
 

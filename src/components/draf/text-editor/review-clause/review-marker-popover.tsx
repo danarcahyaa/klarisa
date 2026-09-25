@@ -85,7 +85,7 @@ export function ReviewMarkerPopover(props: ReviewMarkerPopoverProps) {
           // Prevent click from bubbling to editor canvas
           e.stopPropagation();
         }}
-        className="z-[60] w-[360px] sm:w-[400px] max-w-[92vw] max-h-[min(480px,85vh)] min-h-[220px] p-0 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col overflow-hidden"
+        className="z-[90] w-[360px] sm:w-[400px] max-w-[92vw] max-h-[min(480px,85vh)] min-h-[220px] p-0 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col overflow-hidden"
       >
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 flex items-start justify-between gap-2.5 px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">

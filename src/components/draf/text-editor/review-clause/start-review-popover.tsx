@@ -80,7 +80,7 @@ export function StartReviewPopover({
         collisionBoundary={collisionBoundary}
         collisionPadding={16}
         sticky="always"
-        className="z-[60] w-72 max-w-[calc(100vw-32px)] p-3 space-y-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg"
+        className="z-[90] w-72 max-w-[calc(100vw-32px)] p-3 space-y-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => {
           const target = e.target as HTMLElement | null;

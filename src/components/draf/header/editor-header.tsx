@@ -51,7 +51,7 @@ export function EditorHeader({
   const formattedDate = updatedAt ? formatIndonesianDate(updatedAt) : "Baru saja";
 
   return (
-    <header className="shrink-0 sticky top-0 z-[80] mx-auto flex h-[68px] min-h-[68px] w-full items-center gap-2 sm:gap-3 bg-white border-b border-input px-2 sm:px-3">
+    <header className="shrink-0 sticky top-0 z-30 mx-auto flex h-[68px] min-h-[68px] w-full items-center gap-2 sm:gap-3 bg-white border-b border-input px-2 sm:px-3">
         <div className="flex gap-1.5 sm:gap-2 w-full items-center">
             <Button variant={"ghost"} size={"sm"} onClick={handleBack} title="Kembali" aria-label="Kembali" className="shrink-0">
                 <ArrowLeft className="size-4" />

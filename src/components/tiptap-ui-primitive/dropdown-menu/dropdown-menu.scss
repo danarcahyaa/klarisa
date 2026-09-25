@@ -26,7 +26,7 @@
 
   font-family: var(--font-dm), var(--font-sans), sans-serif;
   position: relative;
-  z-index: 50;
+  z-index: 90;
   min-width: 8rem;
   max-height: var(--radix-dropdown-menu-content-available-height);
   overflow-x: hidden;
@@ -107,7 +107,7 @@
   --slide-y: 0px;
   --padding: 0.375rem;
 
-  z-index: 50;
+  z-index: 90;
   min-width: 6rem;
   overflow: hidden;
   border-radius: var(--radius, 0.5rem);

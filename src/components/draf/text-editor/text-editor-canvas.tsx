@@ -155,14 +155,18 @@ export function TextEditorCanvas({
             side="bottom"
             className="w-full h-[88vh] rounded-t-2xl sm:rounded-t-3xl max-h-[94vh] p-0 flex flex-col gap-0 overflow-hidden bg-white dark:bg-slate-950"
           >
-            
-            <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col py-3 pl-3 pr-1">
+            <SheetTitle className="sr-only">Asisten AI Klarisa</SheetTitle>
+            <SheetDescription className="sr-only">Panel interaktif asisten AI untuk draf kontrak</SheetDescription>
+
+            <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
               <AgentPanel
                 selectedText={selectedTextForAsk}
                 highlightId={selectedHighlightId}
                 isMultiLine={isMultiLine}
                 setSelectedTextRef={setSelectedTextRef}
                 onDismissSelectedText={handleDismissSelectedText}
+                onClose={() => setIsMobileAgentOpen(false)}
+                isMobile
                 className="w-full h-full"
               />
             </div>

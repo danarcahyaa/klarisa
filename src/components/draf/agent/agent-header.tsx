@@ -35,6 +35,8 @@ export interface AgentHeaderProps {
   isActionDisabled?: boolean;
   /** Whether the conversation is empty */
   isEmpty?: boolean;
+  /** Whether the header is in mobile or sheet mode */
+  isMobile?: boolean;
   /** Additional CSS classes */
   className?: string;
 }
@@ -57,12 +59,13 @@ export function AgentHeader({
   isLoading = false,
   isActionDisabled = false,
   isEmpty = false,
+  isMobile = false,
   className,
 }: AgentHeaderProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | null; title: string } | null>(null);
 
   const {
     handleRenameChat,
@@ -98,8 +101,9 @@ export function AgentHeader({
   };
 
   const handleConfirmDelete = async () => {
-    if (chatId) {
-      const success = await handleDeleteChat(chatId);
+    const targetChatId = deleteTarget?.id ?? chatId;
+    if (targetChatId) {
+      const success = await handleDeleteChat(targetChatId);
       if (!success) {
         return;
       }
@@ -107,8 +111,8 @@ export function AgentHeader({
       toast.success("Percakapan berhasil dihapus.");
     }
 
+    setDeleteTarget(null);
     onDelete?.();
-    setIsDeleteOpen(false);
   };
 
   return (
@@ -117,13 +121,13 @@ export function AgentHeader({
         className={cn(
           "w-full transition-all duration-200 shrink-0 z-20",
           !isEmpty
-            ? "bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800"
+            ? "bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800"
             : "hidden",
           className
         )}
       >
 
-        <div className="flex w-full items-center justify-between px-4 py-2.5">
+        <div className={cn("flex w-full items-center justify-between px-6 py-2.5", isMobile && "pr-14")}>
           <div className="flex items-center gap-1.5 min-w-0">
             {isLoading ? (
               <div className="flex items-center gap-2 py-0.5 animate-in fade-in duration-200">
@@ -194,7 +198,10 @@ export function AgentHeader({
                     icon: <Trash2 className="size-3.5 text-red-500" />,
                     variant: "destructive",
                     disabled: isActionDisabled,
-                    onClick: () => setIsDeleteOpen(true),
+                    onClick: () => {
+                      setIsPopoverOpen(false);
+                      setDeleteTarget({ id: chatId, title: displayTitle });
+                    },
                   },
                 ]}
               />
@@ -224,10 +231,12 @@ export function AgentHeader({
       />
 
       <DeleteDialog
-        open={isDeleteOpen}
-        onOpenChange={setIsDeleteOpen}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
         title="Hapus Percakapan"
-        item={displayTitle}
+        item={deleteTarget?.title || displayTitle}
         isLoading={isChatSubmitting}
         onConfirm={handleConfirmDelete}
       />
