@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { AnimatedNumber } from "@/components/animated-number";
-import { HomeChatbot } from "@/components/home-chatbot";
 import { HomeWorkspacePreview } from "@/components/home-workspace-preview";
 import { ScrollRevealObserver } from "@/components/scroll-reveal-observer";
 import { Button } from "@/components/ui/button";
@@ -539,7 +538,6 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
-      <HomeChatbot />
     </main>
   );
 }
