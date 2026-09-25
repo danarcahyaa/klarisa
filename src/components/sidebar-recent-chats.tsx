@@ -173,15 +173,15 @@ function RecentChatsList({
                   }}
                   className={cn(
                     "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-2 cursor-pointer",
-                    isCurrent && "bg-[#edf2ff] text-klarisa-secondary font-medium"
+                    isCurrent && "bg-[#edf2ff] text-klarisa-secondary"
                   )}
                 >
                   <span
                     className={cn(
-                      "min-w-0 flex-1 truncate text-xs transition-colors text-left",
+                      "min-w-0 flex-1 truncate text-xs font-medium transition-colors text-left",
                       isCurrent
-                        ? "font-semibold text-klarisa-secondary"
-                        : "font-medium text-slate-600 group-hover:text-klarisa-secondary"
+                        ? "text-klarisa-secondary"
+                        : "text-slate-600 group-hover:text-klarisa-secondary"
                     )}
                     title={displayTitle}
                   >

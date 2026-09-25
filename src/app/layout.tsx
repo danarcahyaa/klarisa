@@ -16,8 +16,13 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Klarisa - Platform LegalTech",
-  description: "Platform Manajemen Dokumen & Kontrak Hukum AI",
+  title: "Klarisa",
+  description: "Platform review kontrak dan draft kontrak berbasis AI dan regulasi Indonesia.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
