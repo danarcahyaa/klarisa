@@ -86,7 +86,7 @@ export function AgentPanel({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden h-full max-h-full bg-white dark:bg-slate-950 relative",
+        "flex flex-col overflow-hidden h-full max-h-full relative",
         className
       )}
     >

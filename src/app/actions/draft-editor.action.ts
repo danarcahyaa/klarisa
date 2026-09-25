@@ -7,6 +7,7 @@ import { createDraftService } from "@/services/draft.service";
 import { createDraftEditorService } from "@/services/draft-editor.service";
 import { createErrorResponse } from "@/lib/response";
 import type { BaseResponse } from "@/types/response.type";
+import type { SearchDraftsDTO, PaginatedDraftsData } from "@/types/draft.type";
 
 /**
  * Retrieves the current authenticated user and an admin-privileged DraftEditorService instance.
@@ -129,4 +130,28 @@ export async function getDraftDetailAction(
   const service = createDraftService(createAdminClient());
   return service.getDraftDetail(user.id, contractId);
 }
+
+/**
+ * Server action to search and paginate contract drafts belonging to the current user.
+ *
+ * @param params - Query and pagination parameters.
+ * @returns BaseResponse with PaginatedDraftsData.
+ */
+export async function searchUserDraftsAction(
+  params: SearchDraftsDTO = {}
+): Promise<BaseResponse<PaginatedDraftsData>> {
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await sessionClient.auth.getUser();
+
+  if (error || !user) {
+    return createErrorResponse("Sesi Anda telah berakhir. Silakan masuk kembali.");
+  }
+
+  const service = createDraftService(createAdminClient());
+  return service.searchDrafts(user.id, params);
+}
+
 

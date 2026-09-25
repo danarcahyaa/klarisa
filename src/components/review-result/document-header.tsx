@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, EllipsisVertical, FileDown, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, EllipsisVertical, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { formatIndonesianDate } from "@/lib/utils";
@@ -20,6 +20,7 @@ interface DocumentHeaderProps {
   isLoading?: boolean;
   isDeleting?: boolean;
   onSearchReview?: () => void;
+  onNewReview?: () => void;
   onExportDraft?: () => void;
   onDeleteReview?: () => void | Promise<void>;
 }
@@ -32,6 +33,7 @@ export function DocumentHeader({
   isLoading = false,
   isDeleting = false,
   onSearchReview,
+  onNewReview,
   onExportDraft,
   onDeleteReview,
 }: DocumentHeaderProps) {
@@ -110,13 +112,13 @@ export function DocumentHeader({
                   },
                 },
                 {
-                  text: "Export draft",
-                  icon: <FileDown className="size-3.5" />,
+                  text: "Review kontrak",
+                  icon: <Plus className="size-3.5" />,
                   onClick: () => {
-                    if (onExportDraft) {
-                      onExportDraft();
+                    if (onNewReview) {
+                      onNewReview();
                     } else {
-                      toast.info("Fitur ekspor draft sedang dipersiapkan.");
+                      router.push("/dashboard/review");
                     }
                   },
                 },

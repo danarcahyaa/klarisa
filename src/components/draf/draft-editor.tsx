@@ -120,6 +120,7 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
   return (
     <div className="flex flex-col h-full max-h-full min-h-0 flex-1 overflow-hidden">
       <EditorHeader
+        contractId={activeDraft.id}
         title={title}
         updatedAt={updatedAt}
         isLoading={isLoading}

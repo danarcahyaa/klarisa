@@ -162,3 +162,33 @@ export interface UseInteractionChatReturn {
   handleStop: () => void;
   handleSelectTemplate: (templatePrompt: string) => void;
 }
+
+/**
+ * Single item returned in draft search list.
+ */
+export interface DraftSearchItem {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Input DTO for searching and paginating user contract drafts.
+ */
+export interface SearchDraftsDTO {
+  query?: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Paginated draft search response payload.
+ */
+export interface PaginatedDraftsData {
+  drafts: DraftSearchItem[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}

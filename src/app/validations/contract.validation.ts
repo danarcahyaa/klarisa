@@ -156,3 +156,14 @@ export const deleteReviewSchema = z.object({
 
 export type DeleteReviewDTO = z.infer<typeof deleteReviewSchema>;
 
+export const searchDraftsSchema = z.object({
+  query: z
+    .string()
+    .max(100, "Kata kunci pencarian maksimal 100 karakter.")
+    .optional(),
+  page: z.number().int().min(1, "Halaman minimal 1.").default(1),
+  limit: z.number().int().min(1).max(50, "Batas maksimal 50 per halaman.").default(15),
+});
+
+export type SearchDraftsInput = z.infer<typeof searchDraftsSchema>;
+

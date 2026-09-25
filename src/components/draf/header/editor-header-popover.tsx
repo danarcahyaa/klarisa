@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Pencil, FileDown, Trash2, EllipsisVertical } from "lucide-react";
+import { Search, Pencil, FileDown, Trash2, EllipsisVertical } from "lucide-react";
 import {
   ActionPopover,
   type PopoverActionItem,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 export interface EditorHeaderPopoverProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSearchDraft?: () => void;
   onRename?: () => void;
   onExportDocx?: () => void;
   onShare?: () => void;
@@ -19,12 +20,13 @@ export interface EditorHeaderPopoverProps {
 }
 
 /**
- * Popover action menu for EditorHeader containing document options: Ganti nama, Export DOCX, Hapus.
+ * Popover action menu for EditorHeader containing document options: Cari draft, Ganti nama, Export DOCX, Hapus.
  * Built using the reusable ActionPopover component.
  */
 export function EditorHeaderPopover({
   isOpen,
   onOpenChange,
+  onSearchDraft,
   onRename,
   onExportDocx,
   onDelete,
@@ -32,6 +34,11 @@ export function EditorHeaderPopover({
 }: EditorHeaderPopoverProps) {
   const items = useMemo<PopoverActionItem[]>(
     () => [
+      {
+        text: "Cari draft",
+        icon: <Search className="size-3.5" />,
+        onClick: onSearchDraft,
+      },
       {
         text: "Ganti nama",
         icon: <Pencil className="size-3.5" />,
@@ -43,7 +50,7 @@ export function EditorHeaderPopover({
         onClick: onExportDocx,
       },
     ],
-    [onRename, onExportDocx]
+    [onSearchDraft, onRename, onExportDocx]
   );
 
   const footer = useMemo<PopoverActionItem | undefined>(

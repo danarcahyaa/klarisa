@@ -9,11 +9,19 @@ import {
   updateDraftTitleSchema,
   saveDraftContentSchema,
   deleteDraftSchema,
+  searchDraftsSchema,
   type SaveDraftChatDTO,
   type UpdateDraftTitleDTO,
   type SaveDraftContentDTO,
   type DeleteDraftDTO,
+  type SearchDraftsInput,
 } from "@/app/validations/contract.validation";
+import { sanitizeString } from "@/lib/utils";
+import type {
+  DraftSearchItem,
+  SearchDraftsDTO,
+  PaginatedDraftsData,
+} from "@/types/draft.type";
 import {
   decryptContractContent,
   encryptContractContent,
@@ -566,6 +574,60 @@ ATURAN PERILAKU & FORMAT RESPONS:
       console.error("[DraftService] Error generating initial draft:", error);
       throw error;
     }
+  }
+
+  /**
+   * Search and paginate contract drafts belonging to the authenticated user.
+   *
+   * @param userId - Unique identifier of the authenticated user.
+   * @param params - Search and pagination options (query, page, limit).
+   * @returns BaseResponse containing PaginatedDraftsData.
+   */
+  async searchDrafts(
+    userId: string,
+    params: SearchDraftsDTO = {}
+  ): Promise<BaseResponse<PaginatedDraftsData>> {
+    const validation = searchDraftsSchema.safeParse(params);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Parameter pencarian tidak valid.";
+      return createErrorResponse(firstError);
+    }
+
+    const { query, page, limit } = validation.data;
+    const sanitizedQuery = query ? sanitizeString(query) : undefined;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await this.repository.searchDraftsByUser(userId, {
+      query: sanitizedQuery,
+      from,
+      to,
+    });
+
+    if (error) {
+      return createErrorResponse(mapSupabaseError(error.message));
+    }
+
+    const total = count ?? 0;
+    const hasMore = total > to + 1;
+
+    const drafts: DraftSearchItem[] = ((data as any[]) || []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+
+    return createSuccessResponse(
+      {
+        drafts,
+        total,
+        page,
+        limit,
+        hasMore,
+      },
+      "Daftar draf kontrak berhasil dimuat."
+    );
   }
 }
 
