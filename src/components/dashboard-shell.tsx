@@ -360,7 +360,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
                 aria-current={active ? "page" : undefined}
                 title={isSidebarCollapsed ? label : undefined}
                 className={cn(
-                  "flex min-h-11 items-center gap-3 rounded-md px-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 w-full text-left cursor-pointer",
+                  "flex min-h-10 items-center gap-3 rounded-md px-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 w-full text-left cursor-pointer",
                   active && "bg-[#eaf0ff] text-klarisa-secondary",
                   isSidebarCollapsed && "lg:!h-11 lg:!w-11 lg:!min-h-0 lg:justify-self-center lg:justify-center lg:px-0",
                 )}
@@ -379,7 +379,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
               aria-current={active ? "page" : undefined}
               title={isSidebarCollapsed ? label : undefined}
               className={cn(
-                "flex min-h-11 items-center gap-3 rounded-md px-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0",
+                "flex min-h-10 items-center gap-3 rounded-md px-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#edf2ff] hover:text-klarisa-secondary outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0",
                 active && "bg-[#eaf0ff] text-klarisa-secondary",
                 isSidebarCollapsed && "lg:!h-11 lg:!w-11 lg:!min-h-0 lg:justify-self-center lg:justify-center lg:px-0",
               )}
