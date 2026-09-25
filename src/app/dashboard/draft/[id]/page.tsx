@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { DraftEditor } from "@/components/draft-editor";
 import { getDraftServerContext } from "@/lib/draft-context";
+import { DraftEditor } from "@/components/draft-editor";
 
 export const metadata: Metadata = {
   title: "Editor Draft Kontrak | Klarisa",
