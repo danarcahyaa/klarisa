@@ -330,16 +330,17 @@ export function useActionChat({
     [chatId, reset]
   );
 
-  // Automatically load chat detail on mount or when initialChatId changes
+  // Automatically load chat detail on mount or when initialChatId changes.
+  // The else-if reset branch is intentionally removed: cleanup when URL clears is
+  // handled directly in handleChatReset (chat-ai.tsx) which calls reset() directly,
+  // avoiding spurious resets when a new chat is created in empty create mode.
   useEffect(() => {
     const targetId = initialChatId ?? null;
 
     if (targetId && targetId !== chatId && loadingChatIdRef.current !== targetId) {
       void handleLoadChatDetail(targetId);
-    } else if (!targetId && chatId) {
-      reset();
     }
-  }, [initialChatId, chatId, handleLoadChatDetail, reset]);
+  }, [initialChatId, chatId, handleLoadChatDetail]);
 
   // Synchronize on browser history navigation (back/forward popstate)
   useEffect(() => {

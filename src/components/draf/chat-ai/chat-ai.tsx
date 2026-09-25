@@ -180,16 +180,14 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     };
   }, [handleLoadChatDetail, reset, chatId, setTitle]);
 
-  // Reset active session when searchChatId is removed (URL updated to clean /dashboard/create)
+  // Reset active session ONLY when URL is cleared after an intentional navigation
+  // (wasResetRef.current=true). Guards against spurious resets when a new chat is
+  // created in create mode (rawSearchChatId stays undefined but chatId becomes non-null).
   useEffect(() => {
-    if (!rawSearchChatId) {
-      // URL has been cleared — reset flag so future chat selections work normally
+    if (!rawSearchChatId && wasResetRef.current) {
       wasResetRef.current = false;
-      if (chatId) {
-        reset();
-      }
     }
-  }, [rawSearchChatId, chatId, reset]);
+  }, [rawSearchChatId]);
 
   useEffect(() => {
     return () => {
