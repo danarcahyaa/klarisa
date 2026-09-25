@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, DM_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
+
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -36,9 +38,11 @@ export default function RootLayout({
       className={`h-full antialiased font-sans ${plusJakartaSans.variable} ${dmSans.variable}`}
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+        <NextTopLoader color="#3b5bdb" height={3} showSpinner={false} />
         {children}
         <Toaster position="top-right" />
       </body>
+
     </html>
   );
 }

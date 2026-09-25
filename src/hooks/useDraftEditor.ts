@@ -110,7 +110,9 @@ export function useDraftEditor({
           }
 
           hasRedirectedRef.current = true;
-          toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
+          // Show a specific toast for access-denied vs generic not-found
+          const isAccessDenied = typeof res.error === "string" && res.error.toLowerCase().includes("akses");
+          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : "Draft tidak ditemukan.", { id: "draft-not-found" });
           router.push("/dashboard/create");
           return null;
         } catch (err) {

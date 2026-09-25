@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatIndonesianDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditorHeaderPopover } from "./editor-header-popover";
-import { SearchDraftDialog } from "../dialogs/search-draft-dialog";
+import { SearchDraftDialog } from "@/components/draf/search-draft-dialog";
 
 interface EditorHeaderProps {
   contractId?: string;

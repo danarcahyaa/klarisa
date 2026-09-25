@@ -113,7 +113,9 @@ export function useDraftEditorAgent({
         ]);
 
         if (!res.success || !res.data) {
-          toast.error(res.error ?? "Gagal memuat detail percakapan.");
+          const errMsg = res.error ?? "Gagal memuat detail percakapan.";
+          const isAccessDenied = errMsg.toLowerCase().includes("akses");
+          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : errMsg);
           setMessages(previousMessages);
           return;
         }

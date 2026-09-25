@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { getReviewDetailAction } from "@/app/actions/review.action";
 import { highlightRiskyClauses } from "@/lib/docx-highlighter";
@@ -61,7 +62,12 @@ export function useReviewResultWorkspace(
         if (!isMounted) return;
 
         if (!response.success || !response.data) {
-          setError(response.error ?? "Gagal memuat detail review dokumen.");
+          if (!isMounted) return;
+          // Redirect to /dashboard/review with a toast instead of showing an error page
+          const errMsg = response.error ?? "";
+          const isAccessDenied = errMsg.toLowerCase().includes("akses");
+          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : "Dokumen review tidak ditemukan.");
+          router.replace("/dashboard/review");
           return;
         }
 

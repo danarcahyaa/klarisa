@@ -53,7 +53,7 @@ export function ReviewUploader() {
             Unggah dokumen kontrak Anda untuk analisis instan. Sistem akan mengidentifikasi klausul-klausul krusial, menyoroti potensi risiko, dan memberikan rekomendasi revisi yang sesuai dengan hukum.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 min-[420px]:flex-row sm:w-auto">
+        <div className="flex w-full flex-row gap-2 sm:w-auto">
           <input
             ref={inputRef}
             type="file"
@@ -70,7 +70,7 @@ export function ReviewUploader() {
             variant="outline"
             size="default"
             onClick={() => inputRef.current?.click()}
-            className="w-32 justify-center"
+            className="flex-1 sm:flex-none sm:w-32 justify-center"
           >
             <Upload className="size-4 shrink-0" />
             <span className="truncate" title={fileName ?? "Pilih DOCX"}>
@@ -85,10 +85,12 @@ export function ReviewUploader() {
             loadingText={reviewStep === "redirecting" ? "Mengalihkan..." : "Memproses..."}
             onClick={handleStartReview}
             rightIcon={<ArrowRight className="size-4" />}
+            className="flex-1 sm:flex-none"
           >
             Mulai review
           </SubmitButton>
         </div>
+
       </section>
 
       {error && (

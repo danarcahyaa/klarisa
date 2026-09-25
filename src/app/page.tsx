@@ -503,7 +503,7 @@ export default async function HomePage() {
         <div className="mx-auto w-[min(100%-2.5rem,1280px)] py-20">
           <Label>SEBELUM TANDA TANGAN</Label>
           <h2 className="mt-5 max-w-3xl font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
-            Ketahui risiko, dasar hukum, dan pilihan revisinya.
+            Ketahui risiko klausul, dapatkan rekomendasi revisinya.
           </h2>
           <Button asChild size="lg" className="mt-8">
             <Link href={reviewHref}>

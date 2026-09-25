@@ -124,10 +124,12 @@ export function useActionChat({
         }
 
         if (!res.success || !res.data) {
-          // If chat id is invalid, ngawur, deleted, or unauthorized -> redirect to /dashboard/create
+          // If chat id is invalid, deleted, or unauthorized -> redirect to /dashboard/create
           reset();
           router.replace("/dashboard/create");
-          toast.error("Percakapan tidak ditemukan.");
+          // Show a specific toast for access-denied vs generic not-found
+          const isAccessDenied = typeof res.error === "string" && res.error.toLowerCase().includes("akses");
+          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : "Percakapan tidak ditemukan.");
           return false;
         }
 

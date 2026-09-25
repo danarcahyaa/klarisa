@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   FilePen,
@@ -79,6 +79,9 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
   const [activeChatId, setActiveChatId] = useState<string | null>(searchChatId);
   const [activeChatTitle, setActiveChatTitle] = useState<string | null>(initialTitleFromChats);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(false);
+  const [isMobileSidebarAnimatedIn, setIsMobileSidebarAnimatedIn] = useState(false);
+  const mobileSidebarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
   const [isMobileChatPopoverOpen, setIsMobileChatPopoverOpen] = useState(false);
@@ -172,6 +175,42 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
     };
   }, [activeChatId, initialChats]);
 
+  // Two-step animation: mount element first, then apply open class on next frame
+  // so the browser has a starting position to transition FROM.
+  useEffect(() => {
+    if (mobileSidebarTimerRef.current) clearTimeout(mobileSidebarTimerRef.current);
+
+    if (isOpen) {
+      // 1. Mount the DOM element (still in closed/off-screen position)
+      setIsMobileSidebarVisible(true);
+      // 2. Double-rAF: wait for browser to complete one full layout+paint cycle
+      //    with the closed position before applying the open class.
+      //    Single rAF fires before paint and may be batched with the mount,
+      //    causing the element to appear at the destination with no transition.
+      let raf1 = 0;
+      let raf2 = 0;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          setIsMobileSidebarAnimatedIn(true);
+        });
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
+    } else {
+      // 1. Remove open class → triggers slide-out CSS transition
+      setIsMobileSidebarAnimatedIn(false);
+      // 2. After transition finishes, unmount the DOM element
+      mobileSidebarTimerRef.current = setTimeout(() => setIsMobileSidebarVisible(false), 320);
+    }
+
+    return () => {
+      if (mobileSidebarTimerRef.current) clearTimeout(mobileSidebarTimerRef.current);
+    };
+  }, [isOpen]);
+
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -188,6 +227,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
+
 
   const handleMobileNewChat = () => {
     setIsMobileChatPopoverOpen(false);
@@ -468,19 +508,29 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
         {sidebar}
       </aside>
 
-      {isOpen && (
+      {isMobileSidebarVisible && (
         <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
           <button
             type="button"
             aria-label="Tutup menu"
-            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-300"
+            style={{ opacity: isMobileSidebarAnimatedIn ? 1 : 0 }}
             onClick={() => setIsOpen(false)}
           />
-          <aside id="workspace-navigation" aria-label="Navigasi workspace" className="relative h-full w-[min(86vw,300px)] border-r border-[#e1e6ee] shadow-2xl">
+          <aside
+            id="workspace-navigation"
+            aria-label="Navigasi workspace"
+            className="relative h-full w-[min(86vw,300px)] border-r border-[#e1e6ee] shadow-2xl"
+            style={{
+              transform: isMobileSidebarAnimatedIn ? "translateX(0)" : "translateX(-100%)",
+              transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
             {sidebar}
           </aside>
         </div>
       )}
+
 
       <section
         className={cn(
