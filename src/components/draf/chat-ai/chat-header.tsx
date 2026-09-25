@@ -9,7 +9,7 @@ import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { SearchChatDialog } from "./search-chat-dialog";
 import { updateChatTitleAction, deleteChatAction } from "@/app/actions/chat.action";
-import { dispatchChatUpdated, dispatchChatDeleted } from "@/lib/chat-events";
+import { dispatchChatUpdated, dispatchChatDeleted, dispatchChatReset } from "@/lib/chat-events";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +60,7 @@ export function ChatHeader({
 
   const handleNewChat = () => {
     setIsPopoverOpen(false);
+    dispatchChatReset();
     onNewChat?.();
   };
 
@@ -102,6 +103,7 @@ export function ChatHeader({
           return;
         }
         dispatchChatDeleted(chatId);
+        dispatchChatReset();
       }
 
       onDelete?.();

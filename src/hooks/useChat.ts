@@ -13,6 +13,7 @@ import {
   dispatchChatCreated,
   dispatchChatUpdated,
   dispatchChatDeleted,
+  dispatchChatReset,
 } from "@/lib/chat-events";
 import type { CreateChatDTO } from "@/types/chat.type";
 
@@ -107,6 +108,10 @@ export function useChat(searchOptions?: UseChatSearchOptions) {
 
         toast.success("Percakapan berhasil dihapus.");
         dispatchChatDeleted(chatId);
+        if (currentChatId && chatId === currentChatId) {
+          dispatchChatReset();
+          router.push("/dashboard/create");
+        }
         await search.refresh();
         return true;
       } catch (err) {

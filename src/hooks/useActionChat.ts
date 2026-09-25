@@ -12,6 +12,7 @@ import {
 import {
   dispatchChatUpdated,
   dispatchChatDeleted,
+  dispatchChatReset,
   CHAT_EVENTS,
   type ChatDeletedEventDetail,
 } from "@/lib/chat-events";
@@ -368,7 +369,7 @@ export function useActionChat({
     const handleChatDeleted = (event: Event) => {
       const { chatId: deletedChatId } = (event as CustomEvent<ChatDeletedEventDetail>).detail;
       if (deletedChatId && deletedChatId === chatId) {
-        reset();
+        dispatchChatReset();
       }
     };
     window.addEventListener(CHAT_EVENTS.DELETED, handleChatDeleted);

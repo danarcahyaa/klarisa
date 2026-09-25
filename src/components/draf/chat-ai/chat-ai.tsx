@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDown } from "lucide-react";
 import AIChatBox from "@/components/ai-chat-box";
 import { ReusableAlert } from "@/components/ui/reusable-alert";
@@ -47,6 +47,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
   // Incrementing key to force EmptyStateHeader remount (replaying char animation) on each reset
   const [emptyStateKey, setEmptyStateKey] = useState(0);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawSearchChatId = searchParams?.get("chat_id") || searchParams?.get("id") || undefined;
 
@@ -145,6 +146,17 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
     messagesEndRef,
   });
 
+  const handleChatReset = useCallback(() => {
+    // Mark that reset was user-initiated so stale searchChatId (from useSearchParams)
+    // does not re-trigger a chat load before Next.js finishes updating the URL.
+    wasResetRef.current = true;
+    reset();
+    dispatchChatTitleChange(null);
+    router.push("/dashboard/create");
+    // Bump key so EmptyStateHeader remounts and replays the character-by-character animation
+    setEmptyStateKey((k) => k + 1);
+  }, [reset, router]);
+
   // Listen for chat select, reset, and title update events dispatched by external components
   // to load chat detail, start a fresh session, or keep local title synchronized.
   useEffect(() => {
@@ -154,14 +166,6 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       if (selectedChatId) {
         void handleLoadChatDetail(selectedChatId);
       }
-    };
-    const handleChatReset = () => {
-      // Mark that reset was user-initiated so stale searchChatId (from useSearchParams)
-      // does not re-trigger a chat load before Next.js finishes updating the URL.
-      wasResetRef.current = true;
-      reset();
-      // Bump key so EmptyStateHeader remounts and replays the character-by-character animation
-      setEmptyStateKey((k) => k + 1);
     };
     const handleChatUpdated = (event: Event) => {
       const { chatId: updatedChatId, title: updatedTitle } = (event as CustomEvent<ChatUpdatedEventDetail>).detail;
@@ -178,7 +182,7 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
       window.removeEventListener(CHAT_EVENTS.RESET, handleChatReset);
       window.removeEventListener(CHAT_EVENTS.UPDATED, handleChatUpdated);
     };
-  }, [handleLoadChatDetail, reset, chatId, setTitle]);
+  }, [handleLoadChatDetail, handleChatReset, chatId, setTitle]);
 
   // Reset active session ONLY when URL is cleared after an intentional navigation
   // (wasResetRef.current=true). Guards against spurious resets when a new chat is
@@ -219,8 +223,8 @@ export function ChatAI({ onGenerated, className }: ChatAIProps = {}) {
           title={title}
           chatId={chatId}
           onRename={setTitle}
-          onDelete={reset}
-          onNewChat={reset}
+          onDelete={handleChatReset}
+          onNewChat={handleChatReset}
           onSelectChat={handleLoadChatDetail}
           isLoading={isLoadingChat}
           isActionDisabled={isLoading}
