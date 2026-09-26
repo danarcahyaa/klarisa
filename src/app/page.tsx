@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { AnimatedNumber } from "@/components/animated-number";
-import { HomeWorkspacePreview } from "@/components/home-workspace-preview";
+import { AnimatedChatPreview } from "@/components/animated-chat-preview";
 import { ScrollRevealObserver } from "@/components/scroll-reveal-observer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,8 +23,8 @@ const steps = [
   ],
   [
     "03",
-    "Pahami tingkat risiko.",
-    "Bagian kontrak dikelompokkan agar Anda tahu apa yang perlu dibahas.",
+    "Pahami risiko.",
+    "Setiap klausul akan diperiksa, diberikan rujukan regulasi, dan rekomendasi revisi.",
   ],
 ];
 
@@ -108,7 +108,7 @@ export default async function HomePage() {
                 className="min-h-11 px-4"
               >
                 <Link href="/dashboard">
-                  Buka workspace <ArrowRight />
+                  Mulai Sekarang<ArrowRight />
                 </Link>
               </Button>
             </>
@@ -149,7 +149,7 @@ export default async function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Button asChild variant="blue" size="lg">
-              <Link href={reviewHref}>
+              <Link href={reviewHref} className="font-medium">
                 Mulai review kontrak <ArrowRight />
               </Link>
             </Button>
@@ -304,60 +304,100 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid lg:grid-cols-2" id="fitur" data-scroll-reveal>
-        <div className="relative min-h-120 overflow-hidden">
-          <Image
-            className="object-cover transition-transform duration-700 ease-out hover:scale-105"
-            src="/klarisa/hero-contract.jpeg"
-            alt="Kontrak yang sedang ditinjau"
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
-          <Card className="absolute bottom-8 left-[8%] w-[80%] max-w-108 border border-white/80 shadow-[12px_12px_0_#dbeafe]">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <Image
-                    src="/klarisa/logo-ai.svg"
-                    alt="Klarisa AI"
-                    width={28}
-                    height={28}
-                    className="size-7 object-contain"
-                  />
-                  <Label>ANALISIS KLARISA</Label>
-                </div>
-                <Image
-                  src="/klarisa/ai.png"
-                  alt=""
-                  aria-hidden
-                  width={15}
-                  height={15}
-                  className="size-4 object-contain"
-                />
-              </div>
-              <p className="mt-4 border-l-[3px] border-red-500 bg-rose-50 p-3 text-sm leading-6">
-                Pembayaran dapat ditunda tanpa batas waktu.
-              </p>
-              <p className="mt-4 text-xs leading-5 text-slate-600">
-                Klarisa melihat belum ada batas waktu dan ukuran hasil yang
-                disepakati.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-klarisa-secondary">
-                Lihat penjelasan <ArrowRight className="size-3" />
-              </span>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="bg-slate-900 px-7 py-20 text-white md:px-14">
-          <Label inverse>BUKAN SEKADAR SKOR</Label>
+      <section className="grid lg:grid-cols-2 sm:px-18 px-5" id="fitur" data-scroll-reveal>
+         <div className="bg-slate-900 px-7 lg:px-10 py-20 text-white rounded-lg">
+          <Label inverse>REVIEW KONTRAK </Label>
           <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
             Temukan klausul yang perlu diseimbangkan.
           </h2>
           <p className="mt-6 max-w-md text-sm leading-6 text-slate-300">
-            Klarisa membantu mencari kalimat yang ambigu, pembagian beban yang
-            timpang, dan bagian yang perlu dibahas bersama.
+            Klarisa membantu mencari klausul yang ambigu, pembagian beban yang
+            timpang, dan klausul yang melanggar regulasi.
           </p>
         </div>
+        <div className="sm:pl-10 mt-5 lg:mt-0">
+            {/* Risk summary bar */}
+            <div className="mb-5 flex items-center gap-4 rounded-lg bg-gradient-to-b from-white/95 via-white/85 to-white/70 backdrop-blur-md border border-input p-5">
+              <div className="relative flex size-20 shrink-0 items-center justify-center">
+                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-100"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-[#ff5527]"
+                    strokeDasharray="38, 100"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-xs font-bold text-slate-800">3/4</span>
+              </div>
+              <div className="grid flex-1 gap-1">
+                <h3 className="text-md font-bold text-slate-900 leading-snug">3 terdeteksi berisiko</h3>
+                <p className="text-xs text-slate-500">
+                  Dari 4 bagian kontrak yang diperiksa, terdapat 3 yang berisiko
+                </p>
+              </div>
+            </div>
+            {/* Mock contract article */}
+            <article className="font-serif  rounded-md border border-input  p-7 text-slate-800 sm:p-10">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold uppercase tracking-wide">
+                  PERJANJIAN KERJA SAMA JASA
+                </h3>
+              </div>
+              <p className="mt-5 text-sm leading-relaxed text-slate-600">
+                Perjanjian ini dibuat dan ditandatangani oleh PT Maju Berdikari
+                sebagai PIHAK PERTAMA dan Rian Pratama sebagai PIHAK KEDUA.
+              </p>
+              <p className="mt-4 border-b border-slate-200 pb-1 text-sm font-bold text-slate-900">
+                PASAL 1: RUANG LINGKUP &amp; PENYESUAIAN
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                1. PIHAK KEDUA menyelesaikan pekerjaan pembuatan sistem
+                informasi sesuai lampiran spesifikasi teknis.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed">
+                2.{" "}
+                <mark className="clause-issue font-serif text-sm">
+                  Pekerjaan tambahan, biaya, dan perubahan jadwal wajib
+                  disetujui secara tertulis oleh kedua belah pihak.
+                </mark>
+              </p>
+              <p className="mt-4 border-b border-slate-200 pb-1 text-sm font-bold text-slate-900">
+                PASAL 2: PEMBAYARAN DAN PENCAIRAN
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                1. Total imbalan jasa yang disepakati adalah sebesar
+                Rp20.000.000,- (Dua Puluh Juta Rupiah).
+              </p>
+              <p className="mt-2 text-sm leading-relaxed">
+                2.{" "}
+                <mark className="clause-issue font-serif text-sm">
+                  Pelunasan sisa 70% hanya dicairkan setelah PIHAK PERTAMA
+                  menerima pembayaran penuh dari klien utama.
+                </mark>
+              </p>
+              <p className="mt-4 border-b border-slate-200 pb-1 text-sm font-bold text-slate-900">
+                PASAL 3: HAK KEKAYAAN INTELEKTUAL
+              </p>
+              <p className="mt-3 text-sm leading-relaxed">
+                1.{" "}
+                <mark className="clause-issue font-serif text-sm">
+                  Hak cipta dan seluruh hak ekonomi beralih sepenuhnya kepada
+                  PIHAK PERTAMA setelah seluruh pembayaran dilunasi.
+                </mark>
+              </p>
+            </article>
+        </div>
+       
       </section>
 
       <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28" data-scroll-reveal>
@@ -416,42 +456,26 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      <section className="mx-auto w-[min(100%-2.5rem,1280px)] py-20 md:py-28" data-scroll-reveal>
-        <Label>SATU RUANG KERJA</Label>
-        <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
-          Dokumen, temuan, dan diskusi berada di satu tempat.
-        </h2>
-        <div className="mt-12">
-          <HomeWorkspacePreview />
-        </div>
-      </section>
-      <section className="bg-slate-900 text-white" id="keamanan" data-scroll-reveal>
-        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] gap-12 py-20 md:grid-cols-[1.15fr_.85fr] md:py-28">
+
+      <section className="bg-slate-900 text-white" id="draft-kontrak" data-scroll-reveal>
+        <div className="mx-auto grid w-[min(100%-2.5rem,1280px)] items-center gap-12 py-20 md:grid-cols-[1fr_1fr] md:py-28">
           <div>
-            <Label inverse>PRIVASI SEJAK AWAL</Label>
+            <Label inverse>DRAFT KONTRAK</Label>
             <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
-              <em className="not-italic text-klarisa-secondary">0</em> file asli
-              disimpan setelah analisis.
+              <em className="not-italic ">
+                Ketik Kebutuhan Draft.
+              </em>{" "}
+              Draft Disusun Secara Otomatis.
             </h2>
-          </div>
-          <div className="pt-2">
-            <ShieldCheck className="size-7 text-indigo-200" />
-            <p className="mt-5 text-sm leading-6 text-slate-300">
-              File asli tidak menjadi arsip Klarisa. Dokumen diproses hanya
-              untuk membantu analisis, lalu hasilnya disajikan di ruang kerja
-              Anda.
+            <p className="mt-6 text-sm leading-6 text-slate-300">
+              Tidak perlu mulai dari halaman kosong. Tulis kebutuhan Anda,
+              dan Klarisa akan menyusun draft kontrak yang siap diedit langsung
+              di editor.
             </p>
-            <div className="mt-8">
-              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300">
-                <b className="w-18 text-klarisa-secondary">DOCX</b>Dokumen
-                dibaca sebagai input terstruktur
-              </p>
-              <p className="flex gap-6 border-t border-white/15 py-4 text-xs text-slate-300">
-                <b className="w-18 text-klarisa-secondary">RAG</b>Konteks hukum
-                dicari sesuai bagian kontrak
-              </p>
-            </div>
+            
           </div>
+          {/* Animated AI Chat Preview */}
+          <AnimatedChatPreview />
         </div>
       </section>
       <section
@@ -506,7 +530,7 @@ export default async function HomePage() {
             Ketahui risiko klausul, dapatkan rekomendasi revisinya.
           </h2>
           <Button asChild size="lg" className="mt-8">
-            <Link href={reviewHref}>
+            <Link href={reviewHref} className="font-medium">
               Review kontrak sekarang <ArrowRight />
             </Link>
           </Button>
@@ -526,6 +550,7 @@ export default async function HomePage() {
             </b>
             <a href="#cara-kerja">Cara kerja</a>
             <a href="#fitur">Review kontrak</a>
+            <a href="#draft-kontrak">Draft kontrak</a>
           </div>
           <div className="flex flex-col gap-3 text-xs text-slate-300">
             <b className="text-[10px] tracking-widest text-indigo-200">
@@ -533,7 +558,7 @@ export default async function HomePage() {
             </b>
             <a href="#keamanan">Keamanan</a>
             <Link href={user ? "/dashboard" : "/login"}>
-              {user ? "Buka workspace" : "Masuk"}
+              {user ? "Mulai" : "Masuk"}
             </Link>
           </div>
         </div>
