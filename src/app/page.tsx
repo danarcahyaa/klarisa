@@ -82,9 +82,9 @@ export default async function HomePage() {
         >
           {[
             ["Cara kerja", "#cara-kerja"],
-            ["Fitur", "#fitur"],
+            ["Review kontrak", "#review-kontrak"],
+            ["Draft kontrak", "#draft-kontrak"],
             ["Untuk siapa", "#untuk-siapa"],
-            ["Keamanan", "#keamanan"],
           ].map(([name, href]) => (
             <a
               className="text-xs text-slate-500 transition hover:text-klarisa-secondary"
@@ -228,11 +228,6 @@ export default async function HomePage() {
               tetapi tidak seharusnya menghadapi kontrak sendirian.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-xs font-medium text-slate-300 sm:grid-cols-4">
-            {audiences.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -304,7 +299,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid lg:grid-cols-2 sm:px-18 px-5" id="fitur" data-scroll-reveal>
+      <section className="grid lg:grid-cols-2 sm:px-18 px-5" id="review-kontrak" data-scroll-reveal>
          <div className="bg-slate-900 px-7 lg:px-10 py-20 text-white rounded-lg">
           <Label inverse>REVIEW KONTRAK </Label>
           <h2 className="mt-5 font-heading text-[clamp(2.5rem,4.4vw,4rem)] font-normal leading-[.98] tracking-[-.055em]">
@@ -549,17 +544,8 @@ export default async function HomePage() {
               PRODUK
             </b>
             <a href="#cara-kerja">Cara kerja</a>
-            <a href="#fitur">Review kontrak</a>
+            <a href="#review-kontrak">Review kontrak</a>
             <a href="#draft-kontrak">Draft kontrak</a>
-          </div>
-          <div className="flex flex-col gap-3 text-xs text-slate-300">
-            <b className="text-[10px] tracking-widest text-indigo-200">
-              KEPERCAYAAN
-            </b>
-            <a href="#keamanan">Keamanan</a>
-            <Link href={user ? "/dashboard" : "/login"}>
-              {user ? "Mulai" : "Masuk"}
-            </Link>
           </div>
         </div>
       </footer>
