@@ -466,7 +466,7 @@ export function DashboardShell({ children, user, initialChats }: DashboardShellP
             className="size-8 shrink-0 rounded-full object-cover border border-slate-200"
           />
         ) : (
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#edf2ff] text-xs font-bold text-klarisa-secondary">
             {user.initials}
           </span>
         )}
