@@ -103,7 +103,7 @@ export function SearchChatDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari percakapan draf..."
+              placeholder="Masukan nama percakapan..."
               className="pl-9 pr-9 text-xs h-9 w-full bg-slate-50/60 focus:bg-white dark:bg-slate-800/60 dark:focus:bg-slate-800"
               autoFocus
             />
