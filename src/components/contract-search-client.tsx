@@ -27,9 +27,6 @@ export function ContractSearchClient({
   items?: ReadonlyArray<SearchItem>;
   initialTotalCount?: number;
 }) {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const initialList = initialItems ?? items ?? [];
   const {
     query,
@@ -51,13 +48,6 @@ export function ContractSearchClient({
     initialTotalCount: initialTotalCount ?? initialList.length,
   });
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      router.push("/dashboard/review");
-    }
-  };
-
   return (
     <div className="mx-auto max-w-[1010px] px-4 pb-8 sm:px-7 lg:pb-12">
       {/* Sticky Header Section: Title, Filters, Search & Counter */}
@@ -70,15 +60,7 @@ export function ContractSearchClient({
         </h1>
 
         <div className="mt-6">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".docx"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-
-          {/* Top Controls Bar: Filter on the left, Search input in the middle, Action buttons on the right */}
+          {/* Top Controls Bar: Filter on the left, Search input in the middle */}
           <div className="flex items-center gap-2 sm:gap-3">
             <Select
               value={filter}
@@ -104,33 +86,6 @@ export function ContractSearchClient({
               containerClassName="flex-1 space-y-0 min-w-0"
               inputClassName="bg-white"
             />
-
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-              <Button
-                asChild
-                variant="outline"
-                className="size-11 p-0 sm:h-11 sm:w-auto sm:px-4 shrink-0"
-                title="Buat draft"
-                aria-label="Buat draft"
-              >
-                <Link href="/dashboard/create">
-                  <FilePen className="size-4" />
-                  <span className="hidden sm:inline">Buat draft</span>
-                </Link>
-              </Button>
-
-              <Button
-                asChild
-                className="size-11 p-0 sm:h-11 sm:w-auto sm:px-4 shrink-0"
-                title="Review kontrak"
-                aria-label="Review kontrak"
-              >
-                <Link href="/dashboard/review">
-                  <FileSearch className="size-4" />
-                  <span className="hidden sm:inline">Review kontrak</span>
-                </Link>
-              </Button>
-            </div>
           </div>
 
           {/* Counter Bar */}
@@ -164,9 +119,30 @@ export function ContractSearchClient({
               ))}
 
               {searchResults.length === 0 && (
-                <p className="py-12 text-center text-sm text-slate-500">
-                  Kontrak tidak ditemukan.
-                </p>
+                <div className="py-16 text-center">
+                  <h3 className="text-sm sm:text-2xl font-bold text-slate-800">
+                    {totalCount === 0 ? "Tidak Ada Kontrak" : "Kontrak Tidak Ditemukan"}
+                  </h3>
+                  <p className="mt-1.5 text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    {totalCount === 0
+                      ? "Anda belum memiliki dokumen draft atau hasil review kontrak. Mulai buat draft baru atau unggah dokumen untuk ditinjau."
+                      : "Tidak ada kontrak yang sesuai dengan kata kunci atau filter Anda. Coba gunakan kata kunci lain atau mulai buat kontrak baru."}
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-3">
+                    <Button asChild size={"xs"} variant="outline">
+                      <Link href="/dashboard/create">
+                        <FilePen className="size-3" />
+                        <span>Buat draft</span>
+                      </Link>
+                    </Button>
+                    <Button asChild size={"xs"} variant="default">
+                      <Link href="/dashboard/review">
+                        <FileSearch className="size-3" />
+                        <span>Mulai review</span>
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               )}
             </>
           )}

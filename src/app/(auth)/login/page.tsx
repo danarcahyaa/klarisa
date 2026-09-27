@@ -3,12 +3,12 @@
 import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, LockKeyhole, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, LockKeyhole, Mail, Eye, EyeOff } from 'lucide-react'
 
 import { FormInput } from '@/components/ui/form-input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import GoogleIcon from '@/components/ui/google-icon'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ReusableAlert } from '@/components/ui/reusable-alert'
 import { useAuth } from '@/hooks/useAuth'
 
 function LoginFormContent() {
@@ -72,17 +72,19 @@ function LoginFormContent() {
       <h2 className="mb-6 font-heading text-[clamp(2.125rem,3.1vw,2.875rem)] font-normal leading-none tracking-[-2.8px]">Masuk ke akun Anda</h2>
       
       {displayError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle />
-          <AlertDescription>{displayError}</AlertDescription>
-        </Alert>
+        <ReusableAlert
+          variant="destructive"
+          description={displayError}
+          className="mb-4"
+        />
       )}
 
       {successMessage && !displayError && (
-        <Alert variant="success" className="mb-4">
-          <CheckCircle2 />
-          <AlertDescription>{successMessage}</AlertDescription>
-        </Alert>
+        <ReusableAlert
+          variant="success"
+          description={successMessage}
+          className="mb-4"
+        />
       )}
 
       <SubmitButton

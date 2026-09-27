@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, LockKeyhole, Mail, UserRound, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { ArrowRight, LockKeyhole, Mail, UserRound, Eye, EyeOff } from 'lucide-react'
 
 import { FormInput } from '@/components/ui/form-input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import GoogleIcon from '@/components/ui/google-icon'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ReusableAlert } from '@/components/ui/reusable-alert'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function RegisterPage() {
@@ -77,10 +77,11 @@ export default function RegisterPage() {
           <h2 className="mb-6 font-heading text-[clamp(2.125rem,3.1vw,2.875rem)] font-normal leading-none tracking-[-2.8px]">Buat akun Anda</h2>
           
           {displayError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle />
-              <AlertDescription>{displayError}</AlertDescription>
-            </Alert>
+            <ReusableAlert
+              variant="destructive"
+              description={displayError}
+              className="mb-4"
+            />
           )}
 
           <SubmitButton

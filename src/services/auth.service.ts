@@ -51,6 +51,12 @@ export class AuthService {
       return createErrorResponse('Gagal membuat akun. Silakan coba lagi.')
     }
 
+    // When Supabase has Email Enumeration Protection enabled,
+    // signUp for an already existing registered email returns an empty identities array.
+    if (resData.user.identities && resData.user.identities.length === 0) {
+      return createErrorResponse('Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.')
+    }
+
     const authUser = this.mapUserToAuthUser(resData.user)
     return createSuccessResponse(authUser, 'Registrasi berhasil. Silakan cek email Anda untuk konfirmasi.')
   }

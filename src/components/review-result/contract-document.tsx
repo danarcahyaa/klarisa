@@ -42,34 +42,14 @@ function ContractReadView({
     }
   };
 
-  if (htmlContent) {
-    return (
-      <article className="docx-rendered-content w-full p-6 sm:p-10 lg:p-12 font-serif text-sm leading-6 text-slate-800">
-        <div
-          className="max-w-4xl mx-auto w-full"
-          ref={containerRef}
-          onClick={handleClick}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
-      </article>
-    );
-  }
-
   return (
-    <article className="w-full px-5 py-9 text-[#202a3a] sm:px-10 lg:py-14">
-      <p className="text-xs font-bold tracking-wider text-klarisa-secondary uppercase">DOKUMEN / 01</p>
-      <h1 className="mt-5 font-heading text-2xl font-semibold leading-tight sm:text-3xl">
-        SURAT PERJANJIAN KERJA<br className="hidden sm:block" /> SAMA JASA DIGITAL
-      </h1>
-      <p className="mt-4 text-sm leading-relaxed">
-        Perjanjian ini dibuat antara PT Maju Berdikari sebagai PIHAK PERTAMA dan Rian Pratama sebagai PIHAK KEDUA.
-      </p>
-      <section className="mt-8">
-        <h2 className="font-sans text-xs font-bold uppercase tracking-wide">PASAL 1: RUANG LINGKUP &amp; PENYESUAIAN</h2>
-        <p className="mt-4 pl-0 text-sm leading-relaxed sm:pl-5">
-          PIHAK KEDUA bertanggung jawab menyelesaikan sistem informasi sesuai lampiran spesifikasi teknis.
-        </p>
-      </section>
+    <article className="docx-rendered-content w-full p-6 sm:p-10 lg:p-12 font-serif text-sm leading-6 text-slate-800">
+      <div
+        className="max-w-4xl mx-auto w-full min-h-[300px]"
+        ref={containerRef}
+        onClick={handleClick}
+        dangerouslySetInnerHTML={{ __html: htmlContent || "" }}
+      />
     </article>
   );
 }

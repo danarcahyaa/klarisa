@@ -91,8 +91,8 @@ export function useDraftEditor({
 
       if (!id) {
         hasRedirectedRef.current = true;
-        toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
-        router.push("/dashboard/create");
+        toast.error("Draft tidak ditemukan.");
+        router.replace("/dashboard/create");
         return null;
       }
 
@@ -112,14 +112,14 @@ export function useDraftEditor({
           hasRedirectedRef.current = true;
           // Show a specific toast for access-denied vs generic not-found
           const isAccessDenied = typeof res.error === "string" && res.error.toLowerCase().includes("akses");
-          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : "Draft tidak ditemukan.", { id: "draft-not-found" });
-          router.push("/dashboard/create");
+          toast.error(isAccessDenied ? "Anda tidak memiliki akses." : "Draft tidak ditemukan.");
+          router.replace("/dashboard/create");
           return null;
         } catch (err) {
           console.error("[useDraftEditor] Failed to load draft detail:", err);
           hasRedirectedRef.current = true;
-          toast.error("Draft tidak ditemukan.", { id: "draft-not-found" });
-          router.push("/dashboard/create");
+          toast.error("Draft tidak ditemukan.");
+          router.replace("/dashboard/create");
           return null;
         } finally {
           setIsLoadingDetail(false);

@@ -155,7 +155,7 @@ function RecentChatsList({
             <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
           </div>
         ) : chats.length === 0 ? (
-          <span className="text-xs leading-5 text-slate-400 mr-2">Belum ada percakapan</span>
+          <span className="text-xs leading-5 text-slate-400 ml-2">Belum ada percakapan</span>
         ) : (
           <>
             {chats.map((chat) => {

@@ -27,14 +27,11 @@ export default async function DraftEditorPage({
   }
 
   const result = await context.service.getDraftDetail(context.user.id, id);
-  if (!result.success || !result.data) {
-    redirect("/dashboard/create");
-  }
 
   return (
     <DraftEditor
       contractId={id}
-      initialDraft={result.data}
+      initialDraft={result.success ? result.data : null}
       backHref={backHref}
     />
   );
