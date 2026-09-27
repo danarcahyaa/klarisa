@@ -95,7 +95,7 @@ export function SearchDraftDialog({
         <DialogHeader className="px-5 pt-4 pb-2">
           <DialogTitle className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <FileEdit className="size-4 text-klarisa-secondary" />
-            <span>Cari Draf Kontrak</span>
+            <span>Cari Draft Kontrak</span>
           </DialogTitle>
         </DialogHeader>
 

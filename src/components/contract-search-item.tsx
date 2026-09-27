@@ -134,6 +134,7 @@ export function ContractSearchItem({
         open={isRenameOpen}
         onOpenChange={setIsRenameOpen}
         title="Ganti Nama Kontrak"
+        description="Masukan nama baru untuk kontrak ini."
         item="Kontrak"
         defaultValue={item.title}
         onConfirm={handleConfirmRename}
