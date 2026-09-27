@@ -163,36 +163,36 @@ function RecentChatsList({
               const displayTitle = chat.title?.trim() || "Percakapan baru";
 
               return (
-                <Link
+                <div
                   key={chat.id}
-                  href={`/dashboard/create?chat_id=${chat.id}`}
-                  onClick={() => {
-                    dispatchChatSelect(chat.id);
-                    setCurrentChatId(chat.id);
-                    onCloseSidebar?.();
-                  }}
                   className={cn(
-                    "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-2 cursor-pointer",
+                    "group relative flex items-center justify-between gap-1 rounded-md pl-2 pr-1.5 py-1.5 transition-colors hover:bg-[#edf2ff] mr-2",
                     isCurrent && "bg-[#edf2ff] text-klarisa-secondary"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "min-w-0 flex-1 truncate text-xs font-medium transition-colors text-left",
-                      isCurrent
-                        ? "text-klarisa-secondary"
-                        : "text-slate-600 group-hover:text-klarisa-secondary"
-                    )}
+                  <Link
+                    href={`/dashboard/create?chat_id=${chat.id}`}
+                    onClick={() => {
+                      dispatchChatSelect(chat.id);
+                      setCurrentChatId(chat.id);
+                      onCloseSidebar?.();
+                    }}
+                    className="min-w-0 flex-1 truncate text-left outline-none cursor-pointer"
                     title={displayTitle}
                   >
-                    {displayTitle}
-                  </span>
+                    <span
+                      className={cn(
+                        "block truncate text-xs font-medium transition-colors",
+                        isCurrent
+                          ? "text-klarisa-secondary"
+                          : "text-slate-600 group-hover:text-klarisa-secondary"
+                      )}
+                    >
+                      {displayTitle}
+                    </span>
+                  </Link>
 
                   <div
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
                     className={cn(
                       "shrink-0 transition-opacity",
                       activePopoverId === chat.id
@@ -232,7 +232,7 @@ function RecentChatsList({
                       ]}
                     />
                   </div>
-                </Link>
+                </div>
               );
             })}
 
@@ -267,6 +267,7 @@ function RecentChatsList({
           if (!open) setRenameChat(null);
         }}
         title="Ganti Nama Percakapan"
+        description="Masukan nama baru untuk percakapan ini."
         item="Percakapan"
         defaultValue={renameChat?.title?.trim() || ""}
         isLoading={isSubmitting}

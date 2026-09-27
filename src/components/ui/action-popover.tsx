@@ -211,7 +211,7 @@ export function ActionPopover({
         side={side}
         sideOffset={sideOffset}
         className={cn(
-          "z-20 w-44 px-1 py-1.5 rounded-lg border border-slate-200 bg-white shadow-md text-xs font-medium dark:border-slate-800 dark:bg-slate-900",
+          "z-50 w-44 px-1 py-1.5 rounded-lg border border-slate-200 bg-white shadow-md text-xs font-medium dark:border-slate-800 dark:bg-slate-900",
           className
         )}
       >
