@@ -23,28 +23,24 @@ export async function POST(request: Request) {
     const rawContent = typeof body.content === "string" ? body.content : "";
 
     const cleanedContent = cleanDraftHtml(rawContent);
-    const documentHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${title}</title>
-</head>
-<body>
-  ${cleanedContent}
-</body>
-</html>`;
 
-    const docxBuffer = await htmlToDocx(documentHtml, null, {
+    // html-to-docx replaces default margins entirely if a margins object is provided.
+    // Explicitly defining header, footer, and gutter prevents Word XML schema errors
+    // where attributes default to "undefined" twip values, which corrupts the document.
+    const docxBuffer = await htmlToDocx(cleanedContent, null, {
       title,
       margins: {
         top: 1440,
         right: 1440,
         bottom: 1440,
         left: 1440,
+        header: 720,
+        footer: 720,
+        gutter: 0,
       },
     });
 
-    const safeFilename = title.replace(/[/\\?%*:|"<>]/g, "-").trim() || "dokumen-kontrak";
+    const safeFilename = title.replace(/\.docx$/i, "").replace(/[/\\?%*:|"<>]/g, "-").trim() || "dokumen-kontrak";
 
     return new Response(docxBuffer as unknown as BodyInit, {
       status: 200,

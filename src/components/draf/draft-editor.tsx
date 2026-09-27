@@ -102,7 +102,10 @@ export function DraftEditor({ contractId, initialDraft, backHref = "/dashboard" 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      const safeTitle = (title || "Dokumen Kontrak").replace(/[/\\?%*:|"<>]/g, "-").trim();
+      const safeTitle = (title || "Dokumen Kontrak")
+        .replace(/\.docx$/i, "")
+        .replace(/[/\\?%*:|"<>]/g, "-")
+        .trim() || "Dokumen Kontrak";
       anchor.href = url;
       anchor.download = `${safeTitle}.docx`;
       document.body.appendChild(anchor);
